@@ -1,4 +1,8 @@
-﻿data class PrTelemetry(
+package SUITS2025Backend.PythonCommunication
+
+import com.fasterxml.jackson.databind.JsonNode
+
+data class PrTelemetry(
     var acHeating: Boolean,
     var acCooling: Boolean,
     var co2Scrubber: Boolean,
@@ -50,80 +54,97 @@
     var simCompleted: Boolean,
     var latitude: Float,
     var longitude: Float,
-
 ) {
     companion object {
-        fun fromStringList(values: List<String>): PrTelemetry {
-            
-            require(values.size == 51) { "Expected 51 values, got ${values.size}" }
+        private fun f(node: JsonNode?, key: String, default: Double = 0.0): Float {
+            return node?.path(key)?.asDouble(default)?.toFloat() ?: default.toFloat()
+        }
 
-            var i = 0
-            fun safeBoolean(value: String): Boolean {
-                return when (value.lowercase()) {
-                    "true", "1" -> true
-                    "false", "0" -> false
-                    else -> {
-                        value.toDoubleOrNull()?.let { it != 0.0 } ?: false
-                    }
+        private fun b(node: JsonNode?, key: String, default: Boolean = false): Boolean {
+            return node?.path(key)?.asBoolean(default) ?: default
+        }
+
+        fun fromRoverJson(root: JsonNode?): PrTelemetry {
+            val pr = root?.path("pr_telemetry")
+            val simRunningNode = pr?.path("sim_running")
+            val simPaused = b(pr, "sim_paused")
+            val simCompleted = b(pr, "sim_completed")
+            val x = f(pr, "rover_pos_x")
+            val y = f(pr, "rover_pos_y")
+            val fanPriRpm = f(pr, "fan_pri_rpm")
+            val fanSecRpm = f(pr, "fan_sec_rpm")
+            val oxygenTankValue = f(pr, "oxygen_tank", f(pr, "oxygen_storage").toDouble())
+            val batteryLevelValue = f(pr, "battery_level", f(pr, "primary_battery_level").toDouble())
+            val speed = f(pr, "speed")
+            val throttle = f(pr, "throttle")
+            val steering = f(pr, "steering")
+            val explicitSimRunning =
+                if (simRunningNode != null && !simRunningNode.isMissingNode && !simRunningNode.isNull) {
+                    simRunningNode.asBoolean(false)
+                } else {
+                    false
                 }
-            }
-            fun nextBool() = safeBoolean(values[i++])
-            fun nextInt() = values[i++].toFloat().toInt()
-            fun nextFloat() = values[i++].toFloat()
+            val roverClearlyActive =
+                kotlin.math.abs(speed) > 0.01f ||
+                kotlin.math.abs(throttle) > 0.01f ||
+                kotlin.math.abs(steering) > 0.01f
+            val simRunningResolved =
+                explicitSimRunning ||
+                (!simPaused && !simCompleted && roverClearlyActive) ||
+                (simRunningNode == null || simRunningNode.isMissingNode || simRunningNode.isNull) && !simPaused && !simCompleted
 
             return PrTelemetry(
-                acHeating = nextBool(),
-                acCooling = nextBool(),
-                co2Scrubber = nextBool(),
-                lightsOn = nextBool(),
-                internalLightsOn = nextBool(),
-                brakes = nextBool(),
-                inSunlight = nextBool(),
-                throttle = nextFloat(),
-                steering = nextFloat(),
-                currentPosX = nextFloat(),
-                currentPosY = nextFloat(),
-                currentPosAlt = nextFloat(),
-                heading = nextFloat(),
-                pitch = nextFloat(),
-                roll = nextFloat(),
-                distanceTraveled = nextFloat(),
-                speed = nextFloat(),
-                surfaceIncline = nextFloat(),
-                oxygenTank = nextFloat(),
-                oxygenPressure = nextFloat(),
-                oxygenLevels = nextFloat(),
-                fanPri = nextBool(),
-                acFanPri = nextFloat(),
-                acFanSec = nextFloat(),
-                cabinPressure = nextFloat(),
-                cabinTemperature = nextFloat(),
-                batteryLevel = nextFloat(),
-                powerConsumptionRate = nextFloat(),
-                solarPanelEfficiency = nextFloat(),
-                externalTemp = nextFloat(),
-                prCoolantLevel = nextFloat(),
-                prCoolantPressure = nextFloat(),
-                prCoolantTank = nextFloat(),
-                radiator = nextFloat(),
-                motorPowerConsumption = nextFloat(),
-                terrainCondition = nextFloat(),
-                solarPanelDustAccum = nextFloat(),
-                missionElapsedTime = nextFloat(),
-                missionPlannedTime = nextFloat(),
-                pointOfNoReturn = nextFloat(),
-                distanceFromBase = nextFloat(),
-                switchDest = nextBool(),
-                destX = nextFloat(),
-                destY = nextFloat(),
-                destZ = nextFloat(),
-                dustWiper = nextBool(),
-                simRunning = nextBool(),
-                simPaused = nextBool(),
-                simCompleted = nextBool(),
-                latitude = nextFloat(),
-                longitude = nextFloat(),
-         
+                acHeating = b(pr, "cabin_heating"),
+                acCooling = b(pr, "cabin_cooling"),
+                co2Scrubber = b(pr, "co2_scrubber"),
+                lightsOn = b(pr, "lights_on"),
+                internalLightsOn = b(pr, "internal_lights_on"),
+                brakes = b(pr, "brakes"),
+                inSunlight = f(pr, "sunlight") > 0f,
+                throttle = throttle,
+                steering = steering,
+                currentPosX = x,
+                currentPosY = y,
+                currentPosAlt = f(pr, "rover_pos_z"),
+                heading = f(pr, "heading"),
+                pitch = f(pr, "pitch"),
+                roll = f(pr, "roll"),
+                distanceTraveled = f(pr, "distance_traveled"),
+                speed = speed,
+                surfaceIncline = f(pr, "surface_incline"),
+                oxygenTank = oxygenTankValue,
+                oxygenPressure = f(pr, "oxygen_pressure"),
+                oxygenLevels = oxygenTankValue,
+                fanPri = fanPriRpm >= fanSecRpm,
+                acFanPri = fanPriRpm,
+                acFanSec = fanSecRpm,
+                cabinPressure = f(pr, "cabin_pressure"),
+                cabinTemperature = f(pr, "cabin_temperature"),
+                batteryLevel = batteryLevelValue,
+                powerConsumptionRate = f(pr, "power_consumption_rate"),
+                solarPanelEfficiency = f(pr, "solar_panel_efficiency"),
+                externalTemp = f(pr, "external_temp"),
+                prCoolantLevel = f(pr, "coolant_storage"),
+                prCoolantPressure = f(pr, "coolant_pressure"),
+                prCoolantTank = f(pr, "coolant_storage"),
+                radiator = f(pr, "radiator"),
+                motorPowerConsumption = f(pr, "motor_power_consumption"),
+                terrainCondition = f(pr, "terrain_condition", f(pr, "surface_incline").toDouble()),
+                solarPanelDustAccum = f(pr, "solar_panel_dust_accum"),
+                missionElapsedTime = f(pr, "rover_elapsed_time"),
+                missionPlannedTime = f(pr, "mission_planned_time"),
+                pointOfNoReturn = f(pr, "point_of_no_return"),
+                distanceFromBase = f(pr, "distance_from_base"),
+                switchDest = b(pr, "switch_dest"),
+                destX = f(pr, "dest_x"),
+                destY = f(pr, "dest_y"),
+                destZ = f(pr, "dest_z"),
+                dustWiper = b(pr, "dust_wiper"),
+                simRunning = simRunningResolved,
+                simPaused = simPaused,
+                simCompleted = simCompleted,
+                latitude = y,
+                longitude = x,
             )
         }
     }
