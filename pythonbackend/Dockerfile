@@ -3,6 +3,6 @@ WORKDIR /app
 RUN pip install poetry
 COPY pyproject.toml poetry.lock ./
 COPY . .
-RUN poetry install
+RUN poetry lock && poetry install
 
 CMD ["poetry", "run","start"]
