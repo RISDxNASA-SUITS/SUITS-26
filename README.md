@@ -16,25 +16,141 @@ A **deterministic**, safety-oriented EVA-style copilot demo: **typed or spoken**
 
 ---
 
-## Architecture
+## System design
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Browser (React)                                                        │
-│  • Text or Mic → command or /asr/transcribe                             │
-│  • Assistant panel + optional TTS (speechSynthesis) on successful reply   │
-└───────────────────────────────┬─────────────────────────────────────────┘
-                                │ HTTP (JSON / multipart)
-                                ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│  FastAPI (`backend/app`)                                                 │
-│  ASR (optional) → command_normalizer → command_parser → safety_service  │
-│       → response_service → JSON                                         │
-│  + telemetry, mission, procedure routes (in-memory)                     │
-└─────────────────────────────────────────────────────────────────────────┘
+The diagrams below use [Mermaid](https://mermaid.js.org/) (rendered on GitHub; in other viewers you may see the source code only).
+
+### 1) High-level architecture
+
+End-to-end view: browser, API, in-memory state, and on-disk procedures.
+
+```mermaid
+flowchart TB
+  subgraph FE["Frontend — Vite + React + TypeScript"]
+    UI["Mission console UI\n(Command, Assistant, Mission, Telemetry,\nProcedure, Alerts)"]
+    MIC["MediaRecorder\n(short audio clip)"]
+    TTS["Voice output\n(Web Speech API)"]
+  end
+
+  subgraph API["Backend — FastAPI"]
+    R_CMD["POST /command"]
+    R_ASR["POST /asr/transcribe"]
+    R_CTX["GET/POST /telemetry · /mission · /procedure …"]
+  end
+
+  subgraph CORE["Command core (same path for text & voice)"]
+    NORM["command_normalizer"]
+    PARSE["command_parser"]
+    SAFE["safety_service\n(guardrails)"]
+    RESP["response_service\n(+ procedure / diagnosis / warnings)"]
+    NORM --> PARSE --> SAFE --> RESP
+  end
+
+  subgraph ASR_MOD["ASR only"]
+    WHISPER["faster-whisper\n(local CPU/GPU)"]
+  end
+
+  subgraph STATE["In-memory runtime state"]
+    TEL["telemetry_service"]
+    MIS["mission_service"]
+    PRC["procedure_service"]
+  end
+
+  subgraph DISK["On disk"]
+    YAML["YAML procedures\nbackend/data/procedures/"]
+  end
+
+  UI -->|"JSON: { text }"| R_CMD
+  MIC -->|"multipart audio"| R_ASR
+  UI <-->|"context refresh"| R_CTX
+
+  R_CMD --> NORM
+  R_ASR --> WHISPER --> NORM
+
+  RESP --> TEL
+  RESP --> MIS
+  RESP --> PRC
+  PRC --> YAML
+
+  RESP -->|"JSON: CommandResponse"| UI
+  UI -->|"optional: speak(response_text)\nif success"| TTS
 ```
 
-**Important:** Raw ASR text is **not** parsed directly. It is **normalized** (`command_normalizer.py`) to canonical phrases, then fed through the same path as `POST /command`.
+### 2) Text vs voice — request paths
+
+Both modalities converge on **normalized text** before parsing; raw transcript never drives the parser.
+
+```mermaid
+flowchart LR
+  subgraph Text["Typed command"]
+    T1["User types phrase"] --> T2["POST /command"]
+    T2 --> T3["parse_command(input_text)"]
+  end
+
+  subgraph Voice["Spoken command"]
+    V1["User records audio"] --> V2["POST /asr/transcribe"]
+    V2 --> V3["Whisper → transcript"]
+    V3 --> V4["normalize_eva_command(transcript)"]
+    V4 --> V5["parse_command(normalized_text)"]
+  end
+
+  subgraph Shared["Shared"]
+    P["safety_service → response_service"]
+  end
+
+  T3 --> P
+  V5 --> P
+```
+
+### 3) Backend services (logical layering)
+
+How major modules relate inside `backend/app/` (simplified).
+
+```mermaid
+flowchart TB
+  subgraph routes["api/routes_*"]
+    RC["routes_command"]
+    RA["routes_asr"]
+    RT["routes_telemetry"]
+    RM["routes_mission"]
+    RP["routes_procedure"]
+  end
+
+  subgraph services["services/"]
+    DISP["command_dispatch\n(run_command_pipeline)"]
+    CP["command_parser"]
+    CN["command_normalizer"]
+    ASR["asr_service"]
+    SS["safety_service"]
+    RS["response_service"]
+    TS["telemetry_service"]
+    MS["mission_service"]
+    PS["procedure_service"]
+    WE["warning_evaluation"]
+    DG["diagnosis_service"]
+  end
+
+  RC --> DISP
+  RA --> ASR
+  RA --> CN
+  RA --> DISP
+
+  DISP --> CP
+  DISP --> SS
+  DISP --> RS
+
+  RT --> TS
+  RT --> WE
+  RM --> MS
+  RP --> PS
+
+  RS --> TS
+  RS --> MS
+  RS --> PS
+  RS --> DG
+```
+
+**Important:** Raw ASR text is **not** parsed directly. It is **normalized** (`command_normalizer.py`) to canonical phrases, then fed through the same **`run_command_pipeline`** path as `POST /command`.
 
 ---
 
