@@ -1,0 +1,11 @@
+procedure_id: INGRESS_RETURN
+title: Ingress and Return
+allowed_phase: INGRESS
+steps:
+  - step_id: IR1
+    instruction: Confirm safe path to airlock; report range to safe zone.
+    check_key: SAFE_RANGE
+  - step_id: IR2
+    instruction: Enter UIA foot restraint sequence; tether check.
+  - step_id: IR3
+    instruction: Close outer hatch; begin repress to cabin nominal.

@@ -1,0 +1,14 @@
+procedure_id: EGRESS_UIA
+title: Egress UIA
+allowed_phase: EGRESS
+steps:
+  - step_id: EU1
+    instruction: Confirm suit power and comms nominal before hatch cycle.
+    check_key: SUIT_POWER
+  - step_id: EU2
+    instruction: Equalize UIA interface pressure with cabin.
+    check_key: UIA_PRESS
+  - step_id: EU3
+    instruction: Open inner hatch; verify seal indicators green.
+  - step_id: EU4
+    instruction: Egress to EVA rail; report when boots on surface.

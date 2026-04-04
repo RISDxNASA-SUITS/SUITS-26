@@ -1,0 +1,13 @@
+procedure_id: ERM_REPAIR
+title: ERM / LTV Repair
+allowed_phase: LTV_REPAIR
+steps:
+  - step_id: ER1
+    instruction: Safe LTV power; verify lockout tags applied.
+    check_key: LTV_LOCKOUT
+  - step_id: ER2
+    instruction: Remove access panel per torque spec; stow fasteners.
+  - step_id: ER3
+    instruction: Replace failed module; mate connectors until latch clicks.
+  - step_id: ER4
+    instruction: Close panel; run self-test; clear maintenance flags.

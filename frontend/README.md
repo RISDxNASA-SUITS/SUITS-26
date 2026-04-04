@@ -1,0 +1,47 @@
+# Frontend — EVA AIA mission console
+
+Vite + React + TypeScript. Single-page **mission console**: command input, prominent assistant reply, mission status, telemetry (with mock patch), procedures, and alerts.
+
+## Setup
+
+```bash
+cd frontend
+npm install
+```
+
+## Run (development)
+
+1. Start the backend on port **8000** (see [`../backend/README.md`](../backend/README.md)).
+2. From this directory:
+
+```bash
+npm run dev
+```
+
+Open the printed URL (typically `http://localhost:5173`).
+
+### API origin
+
+The client calls `http://localhost:8000` by default. To override:
+
+```bash
+VITE_API_ORIGIN=http://127.0.0.1:8000 npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+npm run preview   # optional local preview of production build
+```
+
+## Layout
+
+- **Primary column**: Command + Assistant (latest reply emphasized).
+- **Side column**: Mission status → Alerts → Telemetry → Procedure.
+
+Responsive: stacks vertically on narrow viewports.
+
+## Tests
+
+Frontend has no Jest/RTL suite in this prototype; backend `pytest` covers API contracts. Run `npm run build` to verify TypeScript and Vite production build.
