@@ -86,3 +86,21 @@ export interface CommandResponse {
   entity: string | null
   response_text: string
 }
+
+/** POST /asr/transcribe — local Whisper + optional command routing. */
+export interface AsrCommandResultPayload {
+  intent: string
+  response_text: string
+  success: boolean
+  error_code: string | null
+  entity: string | null
+}
+
+export interface AsrTranscribeResponse {
+  success: boolean
+  transcript: string
+  normalized_text: string
+  error: string | null
+  command_result: AsrCommandResultPayload | null
+  avg_logprob?: number | null
+}

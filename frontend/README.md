@@ -42,6 +42,12 @@ npm run preview   # optional local preview of production build
 
 Responsive: stacks vertically on narrow viewports.
 
+## Voice output (TTS)
+
+- **Voice output** checkbox in the page header (default **on**): speaks the assistant **response text** when the command succeeds (browser **Web Speech API** / `speechSynthesis`).
+- Implementation: [`src/utils/tts.ts`](src/utils/tts.ts) — `speak()`, `stop()`, `prepareTextForSpeech()` (Unicode subscripts → ASCII for reliable speech).
+- Does **not** read transcripts, normalized text, or guardrail-only errors; no backend change required.
+
 ## Tests
 
 Frontend has no Jest/RTL suite in this prototype; backend `pytest` covers API contracts. Run `npm run build` to verify TypeScript and Vite production build.

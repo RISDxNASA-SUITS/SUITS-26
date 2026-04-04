@@ -1,4 +1,5 @@
 import type {
+  AsrTranscribeResponse,
   CommandRequest,
   CommandResponse,
   MissionPhaseUpdateRequest,
@@ -65,6 +66,25 @@ export async function postCommand(body: CommandRequest): Promise<CommandResponse
     body: JSON.stringify(body),
   })
   return parseJson<CommandResponse>(res)
+}
+
+/** Upload recorded audio to local Whisper; optional auto-route through /command pipeline. */
+export async function postAsrTranscribe(
+  blob: Blob,
+  autoRouteToCommand = true,
+): Promise<AsrTranscribeResponse> {
+  const form = new FormData()
+  form.append('audio', blob, 'clip.webm')
+  form.append('auto_route_to_command', autoRouteToCommand ? 'true' : 'false')
+  const res = await fetch(`${apiOrigin()}/asr/transcribe`, {
+    method: 'POST',
+    body: form,
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(text || `HTTP ${res.status}`)
+  }
+  return res.json() as Promise<AsrTranscribeResponse>
 }
 
 export async function getProcedureList(): Promise<ProcedureSummary[]> {

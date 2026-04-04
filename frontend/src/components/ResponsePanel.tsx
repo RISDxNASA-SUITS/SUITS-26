@@ -4,9 +4,11 @@ type Props = {
   response: CommandResponse | null
   error: string | null
   sending: boolean
+  /** Last voice attempt: raw transcript and normalized text (when available). */
+  voiceTrace?: { transcript: string; normalized: string } | null
 }
 
-export function ResponsePanel({ response, error, sending }: Props) {
+export function ResponsePanel({ response, error, sending, voiceTrace }: Props) {
   return (
     <section className="panel panel-assistant" aria-labelledby="assistant-heading">
       <h2 id="assistant-heading" className="panel-heading">
@@ -14,14 +16,34 @@ export function ResponsePanel({ response, error, sending }: Props) {
       </h2>
       {sending && <p className="muted">Processing command…</p>}
       {error && <p className="error">{error}</p>}
-      {!sending && !error && !response && (
-        <div className="assistant-hero">
-          <p className="assistant-hero-label">Latest reply</p>
-          <div className="assistant-message-box">
-            <p className="response-message empty-assistant-hint">
-              No command yet. Enter a phrase and send, or use the side panels for phase and procedures.
-            </p>
+      {!sending &&
+        !error &&
+        !response &&
+        !(voiceTrace && (voiceTrace.transcript || voiceTrace.normalized)) && (
+          <div className="assistant-hero">
+            <p className="assistant-hero-label">Latest reply</p>
+            <div className="assistant-message-box">
+              <p className="response-message empty-assistant-hint">
+                No command yet. Enter a phrase and send, use the mic, or adjust phase and procedures in the
+                side panels.
+              </p>
+            </div>
           </div>
+        )}
+      {voiceTrace && (voiceTrace.transcript || voiceTrace.normalized) && (
+        <div className="voice-trace" aria-label="Last voice input">
+          {voiceTrace.transcript && (
+            <p className="voice-trace-line">
+              <span className="voice-trace-label">Transcript</span>{' '}
+              <span className="mono wrap">{voiceTrace.transcript}</span>
+            </p>
+          )}
+          {voiceTrace.normalized && (
+            <p className="voice-trace-line">
+              <span className="voice-trace-label">Normalized</span>{' '}
+              <span className="mono wrap">{voiceTrace.normalized}</span>
+            </p>
+          )}
         </div>
       )}
       {response && (

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes_asr import router as asr_router
 from app.api.routes_command import router as command_router
 from app.api.routes_mission import router as mission_router
 from app.api.routes_procedure import router as procedure_router
@@ -18,6 +19,7 @@ app.add_middleware(
 )
 
 app.include_router(command_router)
+app.include_router(asr_router)
 app.include_router(telemetry_router)
 app.include_router(mission_router)
 app.include_router(procedure_router)

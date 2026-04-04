@@ -44,8 +44,15 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | `POST` | `/procedure/start` | Start by `procedure_id` |
 | `POST` | `/procedure/next` | Next step |
 | `POST` | `/procedure/repeat` | Repeat step |
+| `POST` | `/asr/transcribe` | Multipart: `audio` file + `auto_route_to_command` — local Whisper → normalize → optional same pipeline as `/command` |
 
 CORS allows the Vite dev server on **5173** by default.
+
+### ASR
+
+- **Dependency:** `faster-whisper` (see root `requirements.txt`). **ffmpeg** should be on `PATH` for WebM/MP3 from browsers.
+- **Env:** `EVA_ASR_ENABLED`, `EVA_ASR_MODEL_SIZE`, `EVA_ASR_DEVICE`, `EVA_ASR_COMPUTE_TYPE` (see main README).
+- Raw transcripts are **never** parsed directly; `command_normalizer` maps EVA phrasing, then `parse_command` runs on the normalized string.
 
 ## Tests
 
@@ -63,6 +70,10 @@ Environment variables (prefix **`EVA_`**):
 |----------|-------------|
 | `EVA_DEMO_MODE` | `true` / `false` — demo vs training startup defaults |
 | `EVA_CORS_ORIGINS` | JSON array of allowed browser origins |
+| `EVA_ASR_ENABLED` | `true` / `false` — enable local Whisper endpoint |
+| `EVA_ASR_MODEL_SIZE` | Whisper model id (default `base`) |
+| `EVA_ASR_DEVICE` | `cpu` or `cuda` |
+| `EVA_ASR_COMPUTE_TYPE` | e.g. `int8`, `float16` |
 
 ## Mission phases
 

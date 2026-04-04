@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   getMission,
   getProcedureCurrent,
@@ -15,6 +15,7 @@ import { ResponsePanel } from './components/ResponsePanel'
 import { TelemetryPanel } from './components/TelemetryPanel'
 import { WarningsPanel } from './components/WarningsPanel'
 import type {
+  AsrTranscribeResponse,
   CommandResponse,
   MissionPhase,
   MissionState,
@@ -23,6 +24,7 @@ import type {
   WarningItem,
 } from './types/api'
 import './App.css'
+import { speak, stop } from './utils/tts'
 
 export default function App() {
   const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null)
@@ -35,6 +37,13 @@ export default function App() {
   const [lastResponse, setLastResponse] = useState<CommandResponse | null>(null)
   const [cmdError, setCmdError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
+  const [voiceTrace, setVoiceTrace] = useState<{ transcript: string; normalized: string } | null>(
+    null,
+  )
+  const [voiceTranscribing, setVoiceTranscribing] = useState(false)
+  /** Read aloud assistant reply (Web Speech API); default on for demo. */
+  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(true)
+  const lastSpokenSigRef = useRef<string | null>(null)
 
   const refreshContext = useCallback(async () => {
     setCtxError(null)
@@ -62,9 +71,30 @@ export default function App() {
     void refreshContext()
   }, [refreshContext])
 
+  useEffect(() => {
+    if (!voiceOutputEnabled) return
+    if (!lastResponse?.success) {
+      if (lastResponse && !lastResponse.success) stop()
+      return
+    }
+    const text = lastResponse.response_text.trim()
+    if (!text) return
+    const sig = JSON.stringify({
+      in: lastResponse.input_text,
+      out: lastResponse.response_text,
+      intent: lastResponse.parsed_intent,
+      entity: lastResponse.entity,
+    })
+    if (sig === lastSpokenSigRef.current) return
+    lastSpokenSigRef.current = sig
+    speak(text)
+  }, [lastResponse, voiceOutputEnabled])
+
   async function handleCommand(text: string) {
+    stop()
     setSending(true)
     setCmdError(null)
+    setVoiceTrace(null)
     try {
       const res = await postCommand({ text })
       setLastResponse(res)
@@ -74,6 +104,34 @@ export default function App() {
       setCmdError(e instanceof Error ? e.message : 'Request failed')
     } finally {
       setSending(false)
+    }
+  }
+
+  function handleVoiceResult(r: AsrTranscribeResponse) {
+    stop()
+    setCmdError(null)
+    setVoiceTrace({
+      transcript: r.transcript,
+      normalized: r.normalized_text,
+    })
+    if (!r.success) {
+      setLastResponse(null)
+      setCmdError(r.error || 'Unable to transcribe command.')
+      return
+    }
+    if (r.command_result) {
+      const mapped: CommandResponse = {
+        success: r.command_result.success,
+        error_code: r.command_result.error_code,
+        input_text: r.normalized_text,
+        parsed_intent: r.command_result.intent,
+        entity: r.command_result.entity,
+        response_text: r.command_result.response_text,
+      }
+      setLastResponse(mapped)
+      void refreshContext()
+    } else {
+      setLastResponse(null)
     }
   }
 
@@ -96,8 +154,23 @@ export default function App() {
             Mission assistant · deterministic copilot · default demo: EGRESS + live mock telemetry
           </p>
         </div>
-        <div className="console-header-meta" aria-hidden="true">
-          <span className="console-pill">demo</span>
+        <div className="console-header-meta">
+          <label className="tts-toggle">
+            <input
+              type="checkbox"
+              checked={voiceOutputEnabled}
+              onChange={(e) => {
+                const on = e.target.checked
+                setVoiceOutputEnabled(on)
+                if (!on) stop()
+                else lastSpokenSigRef.current = null
+              }}
+            />
+            <span>Voice output</span>
+          </label>
+          <span className="console-pill" aria-hidden="true">
+            demo
+          </span>
         </div>
       </header>
 
@@ -107,11 +180,23 @@ export default function App() {
             <h2 id="cmd-heading" className="panel-heading">
               Command
             </h2>
-            <p className="panel-lead">Natural-language commands route to the same engine as future voice input.</p>
-            <CommandInput onSubmit={handleCommand} disabled={sending} />
+            <p className="panel-lead">
+              Type commands or use the mic — voice is transcribed locally, normalized, then parsed (same as text).
+            </p>
+            <CommandInput
+              onSubmit={handleCommand}
+              onVoiceResult={handleVoiceResult}
+              onVoiceTranscribing={setVoiceTranscribing}
+              disabled={sending}
+            />
           </section>
 
-          <ResponsePanel response={lastResponse} error={cmdError} sending={sending} />
+          <ResponsePanel
+            response={lastResponse}
+            error={cmdError}
+            sending={sending || voiceTranscribing}
+            voiceTrace={voiceTrace}
+          />
         </div>
 
         <aside className="console-side" aria-label="Mission context">
