@@ -149,28 +149,32 @@ export default function App() {
     <div className="console">
       <header className="console-header">
         <div className="console-brand">
+          <p className="console-kicker">Mission console</p>
           <h1 className="console-title">EVA AIA</h1>
           <p className="console-subtitle">
-            Mission assistant · deterministic copilot · default demo: EGRESS + live mock telemetry
+            <span className="console-subtitle-line">Deterministic copilot — same parser for text and voice.</span>
+            <span className="console-subtitle-meta">Demo defaults: EGRESS · mock suit telemetry</span>
           </p>
         </div>
         <div className="console-header-meta">
-          <label className="tts-toggle">
-            <input
-              type="checkbox"
-              checked={voiceOutputEnabled}
-              onChange={(e) => {
-                const on = e.target.checked
-                setVoiceOutputEnabled(on)
-                if (!on) stop()
-                else lastSpokenSigRef.current = null
-              }}
-            />
-            <span>Voice output</span>
-          </label>
-          <span className="console-pill" aria-hidden="true">
-            demo
-          </span>
+          <div className="console-header-actions" role="group" aria-label="Display options">
+            <label className="tts-toggle">
+              <input
+                type="checkbox"
+                checked={voiceOutputEnabled}
+                onChange={(e) => {
+                  const on = e.target.checked
+                  setVoiceOutputEnabled(on)
+                  if (!on) stop()
+                  else lastSpokenSigRef.current = null
+                }}
+              />
+              <span>Voice output</span>
+            </label>
+            <span className="console-pill" aria-hidden="true">
+              demo
+            </span>
+          </div>
         </div>
       </header>
 
