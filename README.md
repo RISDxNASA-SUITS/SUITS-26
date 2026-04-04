@@ -18,7 +18,96 @@ A **deterministic**, safety-oriented EVA-style copilot demo: **typed or spoken**
 
 ## System design
 
-The diagrams below use [Mermaid](https://mermaid.js.org/) (rendered on GitHub; in other viewers you may see the source code only).
+The diagrams below use [Mermaid](https://mermaid.js.org/) (rendered on GitHub; in other viewers you may see the source code only). An **ASCII overview** of the same EVA pipeline is inlined here and also lives in **[`system.md`](system.md)** at the repo root (handy for slides or plain-text diffs).
+
+### ASCII architecture overview (EVA pipeline)
+
+```text
+                          ┌──────────────────────────────┐
+                          │        Astronaut User        │
+                          │   Voice Command / Text Input │
+                          └──────────────┬───────────────┘
+                                         │
+                     ┌───────────────────┴───────────────────┐
+                     │                                       │
+                     ▼                                       ▼
+        ┌────────────────────────┐              ┌────────────────────────┐
+        │   Voice Input (Mic)    │              │   Text Input (UI)      │
+        └─────────────┬──────────┘              └─────────────┬──────────┘
+                      │                                       │
+                      ▼                                       │
+        ┌────────────────────────┐                            │
+        │ Local ASR (Whisper)    │                            │
+        │ Speech → Transcript    │                            │
+        └─────────────┬──────────┘                            │
+                      │                                       │
+                      └───────────────────┬───────────────────┘
+                                          ▼
+                          ┌──────────────────────────────┐
+                          │   Command Normalization      │
+                          │  Canonical EVA Command Form  │
+                          └──────────────┬───────────────┘
+                                         │
+                                         ▼
+                          ┌──────────────────────────────┐
+                          │ Intent Parser / Classifier   │
+                          │  Constrained, Rule-Based     │
+                          └──────────────┬───────────────┘
+                                         │
+                                         ▼
+                          ┌──────────────────────────────┐
+                          │   Guardrails / Safety Layer  │
+                          │  Validate / Reject / Confirm │
+                          └──────────────┬───────────────┘
+                                         │
+                                         ▼
+                          ┌──────────────────────────────┐
+                          │   Command Dispatch Pipeline  │
+                          │   Shared by Text + Voice     │
+                          └──────────────┬───────────────┘
+                                         │
+                 ┌───────────────────────┼────────────────────────┐
+                 │                       │                        │
+                 ▼                       ▼                        ▼
+   ┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
+   │ Mission State Manager│  │ Procedure Engine     │  │ Warning / Alert Logic│
+   │ Phase-aware control  │  │ Step-by-step actions │  │ Safety recommendations│
+   └────────────┬─────────┘  └────────────┬─────────┘  └────────────┬─────────┘
+                │                         │                         │
+                └───────────────┬─────────┴───────────────┬─────────┘
+                                │                         │
+                                ▼                         ▼
+                   ┌────────────────────────┐   ┌────────────────────────┐
+                   │ Telemetry Service      │   │ Navigation Service     │
+                   │ (currently mock,       │   │ (currently stub /      │
+                   │ later live TSS feed)   │   │ later live provider)   │
+                   └────────────┬───────────┘   └────────────┬───────────┘
+                                │                            │
+                                └──────────────┬─────────────┘
+                                               ▼
+                              ┌────────────────────────────────┐
+                              │     Response Generator         │
+                              │ Concise, mission-safe output   │
+                              └──────────────┬─────────────────┘
+                                             │
+                       ┌─────────────────────┴─────────────────────┐
+                       │                                           │
+                       ▼                                           ▼
+          ┌────────────────────────────┐             ┌────────────────────────────┐
+          │ Visual Output (Mission UI) │             │ Voice Output (Browser TTS) │
+          │ status / procedure / alert │             │ spoken assistant response   │
+          └────────────────────────────┘             └────────────────────────────┘
+
+
+      External Systems to Integrate Next:
+      ┌──────────────────────┐      ┌──────────────────────┐
+      │ Real TSS Server      │ ---> │ Telemetry Adapter    │
+      └──────────────────────┘      └──────────────────────┘
+
+      ┌──────────────────────┐      ┌──────────────────────┐
+      │ Navigation Provider  │ ---> │ Navigation Adapter   │
+      └──────────────────────┘      └──────────────────────┘
+```
 
 ### 1) High-level architecture
 
@@ -176,6 +265,7 @@ NASA-voice-AI-Assistant/
 │   └── tests/
 ├── frontend/                # Vite React UI (`src/`, `utils/tts.ts`)
 ├── docs/screenshots/        # Optional screenshots for slides/docs
+├── system.md                # ASCII architecture diagram (duplicated in README § System design)
 ├── README.md                # This file
 ├── backend/README.md        # API endpoint summary
 └── frontend/README.md       # Dev server, env, TTS notes
