@@ -308,7 +308,7 @@ npm run dev
 ```
 
 Open the printed URL (usually **http://localhost:5173**).  
-Default API base: `http://localhost:8000` (override with `VITE_API_ORIGIN` if needed).
+Default API base: `http://localhost:8000` in dev; **production Docker** uses the same origin as the page (no override). Set `VITE_API_ORIGIN` only when the API is on another host.
 
 ### 3. Production build (frontend)
 
@@ -348,7 +348,7 @@ First successful transcription downloads model weights (size depends on `EVA_ASR
 
 | Variable | Description |
 |----------|-------------|
-| `VITE_API_ORIGIN` | Override API base URL (default `http://localhost:8000`). |
+| `VITE_API_ORIGIN` | Override API base URL. Dev default `http://localhost:8000`; production build without this uses `window.location.origin` (Docker single-container). |
 
 ---
 
@@ -385,6 +385,35 @@ pytest
 ```
 
 Tests reset mission/telemetry/procedure state so results are stable regardless of `EVA_DEMO_MODE`. Frontend: `npm run build` checks TypeScript and the Vite production build.
+
+---
+
+## Production deployment (Docker, full voice)
+
+One container serves the **Vite build** from `backend/static` and the **FastAPI** app on the same origin, so the browser talks to `window.location.origin` (no separate `VITE_API_ORIGIN` needed in production). **faster-whisper** and **ffmpeg** run in the image; the first ASR request may download model weights unless you bake them in at build time.
+
+**Build and run locally**
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:8000`. For a slimmer/faster image build while iterating, skip pre-downloading the Whisper weights:
+
+```bash
+docker build --build-arg PRELOAD_WHISPER=false -t eva-aia .
+docker run --rm -p 8000:8000 -e EVA_CORS_ORIGINS='["http://localhost:8000"]' eva-aia
+```
+
+**Host on a cloud platform (Railway, Render, Fly.io, Google Cloud Run, etc.)**
+
+1. Connect the Git repo and use **Dockerfile** at the repository root (or run `docker compose` if the platform supports it).
+2. Set **`PORT`** if the platform injects it (the default `CMD` already uses `${PORT:-8000}`).
+3. Set **`EVA_CORS_ORIGINS`** to a JSON array containing your **public https URL**, e.g. `["https://your-app.onrender.com"]`. Same-origin requests are still safest; this covers split origins or tooling.
+4. Allocate enough **RAM** for Whisper (often **≥ 1 GiB** for `base` on CPU; use **`EVA_ASR_MODEL_SIZE=tiny`** if the instance is small).
+5. Serve over **HTTPS** so the browser can use the microphone (`getUserMedia`) on a public site.
+
+Optional: **`EVA_STATIC_DIR`** overrides the path to the built frontend (defaults to `backend/static` inside the image).
 
 ---
 

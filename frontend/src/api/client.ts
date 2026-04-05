@@ -15,7 +15,12 @@ import type {
 
 function apiOrigin(): string {
   const raw = import.meta.env.VITE_API_ORIGIN as string | undefined
-  return raw?.replace(/\/$/, '') || 'http://localhost:8000'
+  const trimmed = raw?.replace(/\/$/, '')
+  if (trimmed) return trimmed
+  // Production Docker / single-origin deploy: API is same host as the SPA.
+  if (import.meta.env.DEV) return 'http://localhost:8000'
+  if (typeof window !== 'undefined') return window.location.origin
+  return ''
 }
 
 async function parseJson<T>(res: Response): Promise<T> {

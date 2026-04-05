@@ -22,11 +22,13 @@ Open the printed URL (typically `http://localhost:5173`).
 
 ### API origin
 
-The client calls `http://localhost:8000` by default. To override:
+In **development**, the client calls `http://localhost:8000` by default. To override:
 
 ```bash
 VITE_API_ORIGIN=http://127.0.0.1:8000 npm run dev
 ```
+
+In a **production build** served from the Docker image (same host as the API), the client uses `window.location.origin` unless `VITE_API_ORIGIN` is set at build time.
 
 ## Build
 
