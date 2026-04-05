@@ -1,6 +1,8 @@
 # EVA AIA — Voice-capable mission assistant 
 
-A **deterministic**, safety-oriented EVA-style copilot demo: **typed or spoken** commands, mock suit telemetry, YAML procedures, guardrails, and a React mission console. **No LLM** and **no cloud speech APIs** — local **Whisper** for speech-to-text and the browser’s **Web Speech API** for read-aloud replies.
+A **deterministic**, safety-oriented EVA-style copilot demo: **typed or spoken** commands, mock suit telemetry, YAML procedures, guardrails, and a React mission console. **No LLM** and **no cloud speech APIs** — local **Whisper** for speech-to-text and the browser’s **Web Speech API** for read-aloud replies. 
+
+**Live demo:** **[https://contract-sentinel.vercel.app](https://nasa-voice-ai-assistant.onrender.com)**
 
 ---
 
