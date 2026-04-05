@@ -16,13 +16,13 @@ The Python service is responsible for:
 ## Current Structure
 
 Important files:
-- [python_server/api.py](C:/Users/kenic/Desktop/SUITS-26/pythonbackend/python_server/api.py): Flask routes
-- [python_server/RoverAgents/RobustNavigator.py](C:/Users/kenic/Desktop/SUITS-26/pythonbackend/python_server/RoverAgents/RobustNavigator.py): robust navigation state machine
-- [python_server/RoverAgents/robust_navigation_service.py](C:/Users/kenic/Desktop/SUITS-26/pythonbackend/python_server/RoverAgents/robust_navigation_service.py): singleton service wrapper used by Flask
-- [python_server/RoverAgents/rover_client.py](C:/Users/kenic/Desktop/SUITS-26/pythonbackend/python_server/RoverAgents/rover_client.py): HTTP client for lidar, telemetry, and rover controls
-- [python_server/RoverAgents/helper_functions.py](C:/Users/kenic/Desktop/SUITS-26/pythonbackend/python_server/RoverAgents/helper_functions.py): shared geometry and lidar helpers
-- [python_server/templates/navigation_vis_robust.html](C:/Users/kenic/Desktop/SUITS-26/pythonbackend/python_server/templates/navigation_vis_robust.html): path/state debug page
-- [python_server/templates/lidar_vis.html](C:/Users/kenic/Desktop/SUITS-26/pythonbackend/python_server/templates/lidar_vis.html): lidar/goal debug page
+- [python_server/api.py](C:/Users/kenic/Desktop/SUITS-26/PythonBackend/python_server/api.py): Flask routes
+- [python_server/RoverAgents/RobustNavigator.py](C:/Users/kenic/Desktop/SUITS-26/PythonBackend/python_server/RoverAgents/RobustNavigator.py): robust navigation state machine
+- [python_server/RoverAgents/robust_navigation_service.py](C:/Users/kenic/Desktop/SUITS-26/PythonBackend/python_server/RoverAgents/robust_navigation_service.py): singleton service wrapper used by Flask
+- [python_server/RoverAgents/rover_client.py](C:/Users/kenic/Desktop/SUITS-26/PythonBackend/python_server/RoverAgents/rover_client.py): HTTP client for lidar, telemetry, and rover controls
+- [python_server/RoverAgents/helper_functions.py](C:/Users/kenic/Desktop/SUITS-26/PythonBackend/python_server/RoverAgents/helper_functions.py): shared geometry and lidar helpers
+- [python_server/templates/navigation_vis_robust.html](C:/Users/kenic/Desktop/SUITS-26/PythonBackend/python_server/templates/navigation_vis_robust.html): path/state debug page
+- [python_server/templates/lidar_vis.html](C:/Users/kenic/Desktop/SUITS-26/PythonBackend/python_server/templates/lidar_vis.html): lidar/goal debug page
 
 ## Run It
 
@@ -57,7 +57,7 @@ Debug/visualization:
 
 ## How Robust Navigation Works
 
-The main controller lives in [RobustNavigator.py](C:/Users/kenic/Desktop/SUITS-26/pythonbackend/python_server/RoverAgents/RobustNavigator.py).
+The main controller lives in [RobustNavigator.py](C:/Users/kenic/Desktop/SUITS-26/PythonBackend/python_server/RoverAgents/RobustNavigator.py).
 
 At a high level, each control loop does this:
 
@@ -248,8 +248,8 @@ This is the best endpoint to inspect when debugging a run that "looks wrong" in 
 Recommended workflow for debugging navigation:
 
 1. Start the stack with `docker compose up --build`.
-2. Open [navigation_vis_robust.html](C:/Users/kenic/Desktop/SUITS-26/pythonbackend/python_server/templates/navigation_vis_robust.html) through `http://localhost:4000/navigation_vis_robust`.
-3. Open [lidar_vis.html](C:/Users/kenic/Desktop/SUITS-26/pythonbackend/python_server/templates/lidar_vis.html) through `http://localhost:4000/lidar_vis`.
+2. Open [navigation_vis_robust.html](C:/Users/kenic/Desktop/SUITS-26/PythonBackend/python_server/templates/navigation_vis_robust.html) through `http://localhost:4000/navigation_vis_robust`.
+3. Open [lidar_vis.html](C:/Users/kenic/Desktop/SUITS-26/PythonBackend/python_server/templates/lidar_vis.html) through `http://localhost:4000/lidar_vis`.
 4. Start a goal with `POST /navigate_robust`.
 5. Watch whether the phase stays in `SEEK`, enters `AVOID`, or escalates to recovery.
 6. If behavior looks wrong, inspect `GET /lidar_debug_state` and compare:
@@ -267,4 +267,20 @@ python -m unittest python_server.RoverAgents.test_robust_navigator
 python -m py_compile python_server/api.py python_server/RoverAgents/rover_client.py python_server/RoverAgents/helper_functions.py python_server/RoverAgents/RobustNavigator.py
 ```
 
-Run those from the `pythonbackend` directory if you want to validate backend changes without starting the full stack.
+Run those from the `PythonBackend` directory if you want to validate backend changes without starting the full stack.
+
+
+## Test Cases
+```bash
+# Case 1
+Invoke-RestMethod -Method POST -Uri "http://localhost:4000/navigate_robust" -ContentType "application/json" -Body '{"x": -5652.0, "y": -10088.0}'
+
+# Case 2
+Invoke-RestMethod -Method POST -Uri "http://localhost:4000/navigate_robust" -ContentType "application/json" -Body '{"x": -5692.0, "y": -10048.0}'
+
+# Case 3
+Invoke-RestMethod -Method POST -Uri "http://localhost:4000/navigate_robust" -ContentType "application/json" -Body '{"x": -5610.0, "y": -10098.0}'
+
+# Case 4
+Invoke-RestMethod -Method POST -Uri "http://localhost:4000/navigate_robust" -ContentType "application/json" -Body '{"x": -5700.0, "y": -10110.0}'
+```
