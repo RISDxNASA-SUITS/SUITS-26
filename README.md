@@ -449,6 +449,7 @@ Adjust **Telemetry** sliders and refresh to see **Alerts** change.
 
 ## Documentation links
 
+- [`docs/DEMO_GUIDE.zh-CN.md`](docs/DEMO_GUIDE.zh-CN.md) — **Demo usage guide (中文)** for presenters and testers.
 - [`backend/README.md`](backend/README.md) — Endpoint table and mission phases.
 - [`frontend/README.md`](frontend/README.md) — `VITE_API_ORIGIN`, build, TTS.
 - [`docs/screenshots/README.md`](docs/screenshots/README.md) — Optional screenshot placeholders.
