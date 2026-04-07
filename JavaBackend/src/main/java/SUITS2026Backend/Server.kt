@@ -5,9 +5,9 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.javalin.Javalin
 import io.javalin.json.JavalinJackson
 import SUITS2026Backend.PoiList.PoiController
-import SUITS2026Backend.PythonCommunication.PythonCommunicationHandler
-import SUITS2026Backend.TssDataSerializations.TssComms
-import SUITS2026Backend.db.GeoDbController
+import SUITS2026Backend.RoverIntegration.RoverTssController
+import SUITS2026Backend.TssIntegration.EvaTssComms
+import SUITS2026Backend.TssIntegration.LtvTssComms
 
 /** Application entry-point */
 object Server {
@@ -29,9 +29,9 @@ object Server {
 
         /* ---------- REST controllers ---------- */
         PoiController.setup(app)
-        PythonCommunicationHandler.setup(app)
-        TssComms.setup(app)
-        GeoDbController.setup(app)
+        RoverTssController.setup(app)
+        EvaTssComms.setup(app)
+        LtvTssComms.setup(app)
 
         /* ---------- Start server ---------- */
         app.start(7070)

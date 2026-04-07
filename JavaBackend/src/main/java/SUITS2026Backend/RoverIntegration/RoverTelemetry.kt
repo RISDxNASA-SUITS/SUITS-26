@@ -1,8 +1,8 @@
-package SUITS2026Backend.PythonCommunication
+package SUITS2026Backend.RoverIntegration
 
 import com.fasterxml.jackson.databind.JsonNode
 
-data class PrTelemetry(
+data class RoverTelemetry(
     var acHeating: Boolean,
     var acCooling: Boolean,
     var co2Scrubber: Boolean,
@@ -64,7 +64,7 @@ data class PrTelemetry(
             return node?.path(key)?.asBoolean(default) ?: default
         }
 
-        fun fromRoverJson(root: JsonNode?): PrTelemetry {
+        fun fromRoverJson(root: JsonNode?): RoverTelemetry {
             val pr = root?.path("pr_telemetry")
             val simRunningNode = pr?.path("sim_running")
             val simPaused = b(pr, "sim_paused")
@@ -93,7 +93,7 @@ data class PrTelemetry(
                 (!simPaused && !simCompleted && roverClearlyActive) ||
                 (simRunningNode == null || simRunningNode.isMissingNode || simRunningNode.isNull) && !simPaused && !simCompleted
 
-            return PrTelemetry(
+            return RoverTelemetry(
                 acHeating = b(pr, "cabin_heating"),
                 acCooling = b(pr, "cabin_cooling"),
                 co2Scrubber = b(pr, "co2_scrubber"),

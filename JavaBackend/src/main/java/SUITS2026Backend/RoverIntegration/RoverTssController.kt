@@ -1,4 +1,4 @@
-package SUITS2026Backend.PythonCommunication
+package SUITS2026Backend.RoverIntegration
 
 import SUITS2026Backend.db.Poi
 import com.fasterxml.jackson.databind.JsonNode
@@ -16,7 +16,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 data class LidarReturn(val data: List<Float>)
 
 
-object PythonCommunicationHandler {
+object RoverTssController {
     private const val ROVER_JSON_CMD = 0
     private const val BRAKE_CMD = 1107
     private const val THROTTLE_CMD = 1109
@@ -96,7 +96,7 @@ object PythonCommunicationHandler {
         return buffer.array()
     }
 
-    // Legacy compatibility wrappers used by tssComms.kt
+    // Legacy compatibility wrappers used by TSS adapter routes
     fun makeSendCommandPacket(commandNumber: Int, input: Float): ByteBuffer {
         return ByteBuffer.wrap(makeWritePacket(commandNumber, input)).order(ByteOrder.BIG_ENDIAN)
     }
@@ -168,8 +168,8 @@ object PythonCommunicationHandler {
         return lidarNode.map { it.asDouble().toFloat() }.take(17)
     }
 
-    fun getTelemetry(): PrTelemetry {
-        return PrTelemetry.fromRoverJson(fetchRoverJson())
+    fun getTelemetry(): RoverTelemetry {
+        return RoverTelemetry.fromRoverJson(fetchRoverJson())
     }
 
     fun setBrakes(brakeInput: Float): Int {
