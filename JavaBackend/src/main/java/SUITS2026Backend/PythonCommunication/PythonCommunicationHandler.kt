@@ -1,6 +1,6 @@
-package SUITS2025Backend.PythonCommunication
+package SUITS2026Backend.PythonCommunication
 
-import SUITS2025Backend.db.Poi
+import SUITS2026Backend.db.Poi
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.javalin.Javalin

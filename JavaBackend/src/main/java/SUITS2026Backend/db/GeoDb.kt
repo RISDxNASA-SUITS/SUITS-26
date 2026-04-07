@@ -1,4 +1,4 @@
-package SUITS2025Backend.db
+package SUITS2026Backend.db
 
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
@@ -18,8 +18,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import SUITS2025Backend.TssDataSerializations.TssComms
-import SUITS2025Backend.TssDataSerializations.SpecState
+import SUITS2026Backend.TssDataSerializations.TssComms
+import SUITS2026Backend.TssDataSerializations.SpecState
 import kotlinx.coroutines.delay
 import org.jetbrains.exposed.sql.SchemaUtils
 data class GeoResponse(

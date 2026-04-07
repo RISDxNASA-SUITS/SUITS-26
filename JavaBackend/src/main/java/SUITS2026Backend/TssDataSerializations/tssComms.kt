@@ -1,8 +1,8 @@
-package SUITS2025Backend.TssDataSerializations
+package SUITS2026Backend.TssDataSerializations
 import io.javalin.Javalin
 import io.javalin.http.Context
 
-import SUITS2025Backend.PythonCommunication.PythonCommunicationHandler
+import SUITS2026Backend.PythonCommunication.PythonCommunicationHandler
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlinx.coroutines.*

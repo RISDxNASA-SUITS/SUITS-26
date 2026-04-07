@@ -1,4 +1,4 @@
-package SUITS2025Backend.PythonCommunication
+package SUITS2026Backend.PythonCommunication
 
 import com.fasterxml.jackson.databind.JsonNode
 

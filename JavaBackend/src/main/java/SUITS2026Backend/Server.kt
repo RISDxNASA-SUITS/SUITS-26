@@ -1,13 +1,13 @@
-package SUITS2025Backend
+package SUITS2026Backend
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.javalin.Javalin
 import io.javalin.json.JavalinJackson
-import SUITS2025Backend.PoiList.PoiController
-import SUITS2025Backend.PythonCommunication.PythonCommunicationHandler
-import SUITS2025Backend.TssDataSerializations.TssComms
-import SUITS2025Backend.db.GeoDbController
+import SUITS2026Backend.PoiList.PoiController
+import SUITS2026Backend.PythonCommunication.PythonCommunicationHandler
+import SUITS2026Backend.TssDataSerializations.TssComms
+import SUITS2026Backend.db.GeoDbController
 
 /** Application entry-point */
 object Server {

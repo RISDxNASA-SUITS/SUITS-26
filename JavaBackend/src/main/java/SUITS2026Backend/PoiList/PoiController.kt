@@ -1,8 +1,8 @@
-package SUITS2025Backend.PoiList
+package SUITS2026Backend.PoiList
 
-import SUITS2025Backend.db.PoiDbController
-import SUITS2025Backend.db.PoiResponse
-import SUITS2025Backend.db.PoiResponseJson
+import SUITS2026Backend.db.PoiDbController
+import SUITS2026Backend.db.PoiResponse
+import SUITS2026Backend.db.PoiResponseJson
 import io.javalin.Javalin
 import io.javalin.http.Context
 

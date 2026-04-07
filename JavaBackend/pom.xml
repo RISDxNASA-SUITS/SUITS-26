@@ -8,7 +8,7 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.example</groupId>
-  <artifactId>SUITS2025Backend</artifactId>
+  <artifactId>SUITS2026Backend</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
@@ -116,7 +116,7 @@
         <goals><goal>java</goal></goals>
       </execution></executions>
       <configuration>
-        <mainClass>SUITS2025Backend.Server</mainClass>
+        <mainClass>SUITS2026Backend.Server</mainClass>
       </configuration>
     </plugin>
 
