@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Robust Navigation Vis</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background: #f4f7fa; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    canvas { width: 100%; height: 540px; border: 1px solid #c7d2de; background: #ffffff; }
+    .meta { margin: 12px 0; font-size: 14px; }
+    code { background: #eef2f7; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Robust Navigation (State Machine View)</h2>
+    <div class="meta" id="meta">Loading...</div>
+    <canvas id="cv" width="980" height="540"></canvas>
+  </div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const meta = document.getElementById('meta');
+
+function worldToCanvas(x, y, minX, minY, scale, pad, height) {
+  const cx = pad + (x - minX) * scale;
+  const cy = height - (pad + (y - minY) * scale);
+  return [cx, cy];
+}
+
+function draw(state) {
+  const width = cv.width;
+  const height = cv.height;
+  ctx.clearRect(0, 0, width, height);
+
+  const path = state.path || [];
+  const goal = state.goal;
+  const start = state.start;
+  const pts = [...path];
+  if (goal) pts.push(goal);
+  if (start) pts.push(start);
+
+  if (pts.length === 0) {
+    ctx.fillStyle = '#334155';
+    ctx.fillText('No robust navigation data yet. Start with POST /navigate_robust.', 20, 30);
+    return;
+  }
+
+  let minX = pts[0][0], maxX = pts[0][0], minY = pts[0][1], maxY = pts[0][1];
+  for (const p of pts) {
+    minX = Math.min(minX, p[0]);
+    maxX = Math.max(maxX, p[0]);
+    minY = Math.min(minY, p[1]);
+    maxY = Math.max(maxY, p[1]);
+  }
+
+  const pad = 42;
+  const dx = Math.max(1, maxX - minX);
+  const dy = Math.max(1, maxY - minY);
+  const scale = Math.min((width - 2 * pad) / dx, (height - 2 * pad) / dy);
+
+  ctx.strokeStyle = '#2563eb';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < path.length; i++) {
+    const [cx, cy] = worldToCanvas(path[i][0], path[i][1], minX, minY, scale, pad, height);
+    if (i === 0) ctx.moveTo(cx, cy);
+    else ctx.lineTo(cx, cy);
+  }
+  ctx.stroke();
+
+  if (start) {
+    const [sx, sy] = worldToCanvas(start[0], start[1], minX, minY, scale, pad, height);
+    ctx.fillStyle = '#16a34a';
+    ctx.beginPath();
+    ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillText('Start', sx + 8, sy - 8);
+  }
+
+  if (goal) {
+    const [gx, gy] = worldToCanvas(goal[0], goal[1], minX, minY, scale, pad, height);
+    ctx.fillStyle = '#dc2626';
+    ctx.beginPath();
+    ctx.arc(gx, gy, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillText('Goal', gx + 8, gy - 8);
+  }
+
+  if (path.length) {
+    const [lx, ly] = worldToCanvas(path[path.length - 1][0], path[path.length - 1][1], minX, minY, scale, pad, height);
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(lx, ly, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+async function tick() {
+  try {
+    const res = await fetch('/navigation_state_robust');
+    const state = await res.json();
+    meta.innerHTML = `<code>status</code>: ${state.status || 'unknown'} | <code>message</code>: ${state.message || ''} | <code>points</code>: ${(state.path || []).length} | <code>recoveries</code>: ${state.recoveries ?? 0} | <code>side</code>: ${state.avoid_side || ''}`;
+    draw(state);
+  } catch (e) {
+    meta.textContent = 'Failed to fetch /navigation_state_robust';
+  }
+}
+
+setInterval(tick, 500);
+tick();
+</script>
+</body>
+</html>

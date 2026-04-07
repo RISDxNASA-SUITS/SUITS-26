@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lidar Visualization</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background: #f4f7fa; }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    canvas { width: 100%; height: 760px; border: 1px solid #c7d2de; background: #ffffff; }
+    .meta { margin: 12px 0; font-size: 14px; line-height: 1.5; }
+    code { background: #eef2f7; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Lidar Visualization</h2>
+    <div class="meta" id="meta">Loading...</div>
+    <canvas id="cv" width="1100" height="760"></canvas>
+  </div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const meta = document.getElementById('meta');
+const MAX_RANGE_CM = 1000;
+const SENSOR_ORIGINS = {
+  0: [250, 245], 1: [325, 75], 2: [325, 0], 3: [325, -75], 4: [250, -245],
+  5: [325, 75], 6: [325, -75], 7: [40, 235], 8: [40, -235], 9: [-215, 270],
+  10: [-320, 80], 11: [-320, -50], 12: [-215, -215], 13: [325, 75],
+  14: [325, -75], 15: [250, 245], 16: [250, -245]
+};
+const RAY_YAWS = {
+  0: 30, 1: 20, 2: 0, 3: -20, 4: -30, 5: 0, 6: 0, 7: 90, 8: -90,
+  9: 140, 10: 180, 11: 180, 12: -140, 13: 20, 14: -20, 15: 15, 16: -15
+};
+
+function cmToCanvas(xForward, yLeft, scale, centerX, centerY) {
+  return [centerX - yLeft * scale, centerY - xForward * scale];
+}
+
+function rayEndpoint(sensor, yawDeg, distanceCm) {
+  const yawRad = yawDeg * Math.PI / 180;
+  const x = sensor[0] + distanceCm * Math.cos(yawRad);
+  const y = sensor[1] + distanceCm * Math.sin(yawRad);
+  return [x, y];
+}
+
+function computeGoalRelativeDeg(telemetry, navState) {
+  if (!telemetry || !navState || !navState.goal) return null;
+  const dx = navState.goal[0] - telemetry.currentPosX;
+  const dy = navState.goal[1] - telemetry.currentPosY;
+  const goalHeadingDeg = (90.0 - Math.atan2(dy, dx) * 180.0 / Math.PI + 360.0) % 360.0;
+  const headingNowDeg = ((telemetry.heading % 360.0) + 360.0) % 360.0;
+  return ((goalHeadingDeg - headingNowDeg + 540.0) % 360.0) - 180.0;
+}
+
+function drawRover(scale, cx, cy) {
+  const body = [
+    [325, 245], [325, -245], [-320, -245], [-320, 245]
+  ];
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  body.forEach((p, i) => {
+    const [x, y] = cmToCanvas(p[0], p[1], scale, cx, cy);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.stroke();
+
+  const [fx, fy] = cmToCanvas(460, 0, scale, cx, cy);
+  ctx.strokeStyle = '#1d4ed8';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(fx, fy);
+  ctx.stroke();
+}
+
+function drawGoalArrow(goalDeg, scale, cx, cy) {
+  if (goalDeg == null || !Number.isFinite(goalDeg)) return;
+  const dist = 520;
+  const yawRad = goalDeg * Math.PI / 180;
+  const x = dist * Math.cos(yawRad);
+  const y = dist * Math.sin(yawRad);
+  const [gx, gy] = cmToCanvas(x, y, scale, cx, cy);
+  ctx.strokeStyle = '#16a34a';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(gx, gy);
+  ctx.stroke();
+  ctx.fillStyle = '#16a34a';
+  ctx.fillText(`Goal ${goalDeg.toFixed(1)} deg`, gx + 8, gy - 8);
+}
+
+function drawLidar(lidar, scale, cx, cy) {
+  Object.entries(SENSOR_ORIGINS).forEach(([indexStr, sensor]) => {
+    const index = Number(indexStr);
+    const yawDeg = RAY_YAWS[index];
+    const raw = Array.isArray(lidar) && index < lidar.length ? Number(lidar[index]) : NaN;
+    const hit = Number.isFinite(raw) && raw > 0 && raw <= MAX_RANGE_CM;
+    const distance = hit ? raw : MAX_RANGE_CM;
+    const end = rayEndpoint(sensor, yawDeg, distance);
+    const [sx, sy] = cmToCanvas(sensor[0], sensor[1], scale, cx, cy);
+    const [ex, ey] = cmToCanvas(end[0], end[1], scale, cx, cy);
+
+    ctx.setLineDash(hit ? [] : [6, 6]);
+    ctx.strokeStyle = hit ? '#dc2626' : '#94a3b8';
+    ctx.lineWidth = hit ? 2.2 : 1.2;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(sx, sy, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = hit ? '#dc2626' : '#64748b';
+    ctx.beginPath();
+    ctx.arc(ex, ey, hit ? 3 : 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#334155';
+    ctx.font = '11px Arial';
+    ctx.fillText(String(index), sx + 4, sy - 4);
+  });
+}
+
+function drawGrid(scale, cx, cy) {
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  for (let cm = -1000; cm <= 1000; cm += 250) {
+    let a = cmToCanvas(-1000, cm, scale, cx, cy);
+    let b = cmToCanvas(1000, cm, scale, cx, cy);
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+
+    a = cmToCanvas(cm, -1000, scale, cx, cy);
+    b = cmToCanvas(cm, 1000, scale, cx, cy);
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+  }
+}
+
+function drawScene(telemetry, lidarPayload, navState) {
+  const width = cv.width;
+  const height = cv.height;
+  const cx = width / 2;
+  const cy = height / 2 + 40;
+  const scale = Math.min(width, height) / 2600;
+  ctx.clearRect(0, 0, width, height);
+
+  drawGrid(scale, cx, cy);
+  drawRover(scale, cx, cy);
+  drawGoalArrow(computeGoalRelativeDeg(telemetry, navState), scale, cx, cy);
+  drawLidar(lidarPayload?.data || [], scale, cx, cy);
+
+  ctx.fillStyle = '#334155';
+  ctx.font = '13px Arial';
+  ctx.fillText('Forward', cx + 10, cy - 260);
+  ctx.fillText('Left', cx - 290, cy + 18);
+  ctx.fillText('Right', cx + 250, cy + 18);
+}
+
+async function tick() {
+  try {
+    const res = await fetch('/lidar_debug_state');
+    const payload = await res.json();
+    if (payload.error) throw new Error(payload.error);
+    const telemetry = payload.telemetry || {};
+    const lidar = payload.lidar || {};
+    const navState = payload.navigation || {};
+    const goalDeg = computeGoalRelativeDeg(telemetry, navState);
+    meta.innerHTML =
+      `<code>status</code>: ${navState.status || 'unknown'} | ` +
+      `<code>message</code>: ${navState.message || ''} | ` +
+      `<code>heading</code>: ${Number(telemetry.heading || 0).toFixed(1)} deg | ` +
+      `<code>speed</code>: ${Number(telemetry.speed || 0).toFixed(2)} m/s | ` +
+      `<code>goal_rel</code>: ${goalDeg == null ? 'n/a' : goalDeg.toFixed(1) + ' deg'} | ` +
+      `<code>lidar_points</code>: ${Array.isArray(lidar.data) ? lidar.data.length : 0}`;
+    drawScene(telemetry, lidar, navState);
+  } catch (e) {
+    meta.textContent = 'Failed to fetch lidar/telemetry/navigation state';
+  }
+}
+
+setInterval(tick, 250);
+tick();
+</script>
+</body>
+</html>

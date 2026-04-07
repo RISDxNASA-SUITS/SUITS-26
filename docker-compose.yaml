@@ -1,0 +1,50 @@
+﻿version: "3.9"
+
+services:
+  c-backend:
+    build:
+      context: ./TSS
+      dockerfile: Dockerfile
+    ports:
+      - "14141:14141"
+      - "14141:14141/udp"
+    stdin_open: true
+    tty: true
+
+  java-backend:
+    build:
+      context: ./JavaBackend
+      dockerfile: Dockerfile
+    environment:
+      TSS_HOST: c-backend
+      TSS_UDP_PORT: "14141"
+      TSS_TIMEOUT_MS: "3000"
+    ports:
+      - "7070:7070"
+    depends_on:
+      - c-backend
+
+  python-backend:
+    build:
+      context: ./PythonBackend
+      dockerfile: Dockerfile
+    command: ["poetry", "run", "python", "python_server/api.py"]
+    environment:
+      JAVA_BACKEND_URL: "http://java-backend:7070"
+      POETRY_VIRTUALENVS_CREATE: "false"
+    ports:
+      - "4000:4000"
+    depends_on:
+      - java-backend
+
+# services:
+#   nextjs-frontend:
+#     build: ./next-frontend
+#     ports:
+#       - "3000:3000"
+#     environment:
+#       # Only used by Next.js server‑side calls, not browser JS!
+#       NEXT_PUBLIC_IP: "java-backend:7070"
+#     depends_on:
+#       - python-backend
+#       - java-backend
