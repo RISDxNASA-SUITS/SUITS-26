@@ -2,6 +2,10 @@
 
 Vite + React + TypeScript. Single-page **mission console**: command input, prominent assistant reply, mission status, telemetry (with mock patch), procedures, and alerts.
 
+## Prerequisites
+
+**Node.js 20.19+ or 22.12+** (Vite 8). Check with `node -v`. On macOS, install via [nodejs.org](https://nodejs.org), **Homebrew** (`brew install node@22`), or **nvm**: `nvm install 22 && nvm use 22`.
+
 ## Setup
 
 ```bash

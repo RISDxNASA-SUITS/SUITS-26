@@ -1,4 +1,6 @@
 import type {
+  AgentAlertItem,
+  AgentStatusResponse,
   AsrTranscribeResponse,
   CommandRequest,
   CommandResponse,
@@ -71,6 +73,16 @@ export async function postCommand(body: CommandRequest): Promise<CommandResponse
     body: JSON.stringify(body),
   })
   return parseJson<CommandResponse>(res)
+}
+
+export async function getAgentStatus(): Promise<AgentStatusResponse> {
+  const res = await fetch(`${apiOrigin()}/agent/status`)
+  return parseJson<AgentStatusResponse>(res)
+}
+
+export async function getAgentAlerts(): Promise<AgentAlertItem[]> {
+  const res = await fetch(`${apiOrigin()}/agent/alerts`)
+  return parseJson<AgentAlertItem[]>(res)
 }
 
 /** Upload recorded audio to local Whisper; optional auto-route through /command pipeline. */

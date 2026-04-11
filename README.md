@@ -1,6 +1,6 @@
 # EVA AIA — Voice-capable mission assistant 
 
-A **deterministic**, safety-oriented EVA-style copilot demo: **typed or spoken** commands, mock suit telemetry, YAML procedures, guardrails, and a React mission console. **No LLM** and **no cloud speech APIs** — local **Whisper** for speech-to-text and the browser’s **Web Speech API** for read-aloud replies. 
+A **deterministic**, safety-oriented EVA-style copilot demo: **typed or spoken** commands, mock suit telemetry, YAML procedures, guardrails, and a React mission console. **Optional agentic mode** uses a **local LLM** ([Ollama](https://ollama.com)) for intent routing, telemetry Q&A, and spoken alerts—still **no cloud speech APIs**; local **Whisper** handles speech-to-text and the browser’s **Web Speech API** handles read-aloud. 
 
 **Live demo:** **[https://nasa-voice-ai-assistant.onrender.com](https://nasa-voice-ai-assistant.onrender.com)**
 
@@ -10,7 +10,7 @@ A **deterministic**, safety-oriented EVA-style copilot demo: **typed or spoken**
 
 | Capability | Description |
 |------------|-------------|
-| **Commands** | Rule-based parser + guardrails; same pipeline for text and voice. |
+| **Commands** | Rule-based parser + guardrails by default; optional **agentic** router (`EVA_AGENTIC_ENABLED`) replaces that path with a local LLM. |
 | **Voice in** | Browser records short audio → `POST /asr/transcribe` → [faster-whisper](https://github.com/SYSTRAN/faster-whisper) → phrase normalization → parse → respond. |
 | **Voice out** | Optional **Voice output** toggle; successful assistant replies use `speechSynthesis` (English-friendly). |
 | **Mission / telemetry** | In-memory state; demo defaults for a realistic walkthrough. |
@@ -278,7 +278,7 @@ NASA-voice-AI-Assistant/
 ## Prerequisites
 
 - **Python** 3.11+ recommended (3.9+ generally works).
-- **Node.js** 18+ and npm.
+- **Node.js** **20.19+** or **22.12+** (required by Vite 8; Node 16/18 are too old) and a recent **npm**.
 - **ffmpeg** on `PATH` if you use **voice input** (browser often sends WebM).  
   - macOS: `brew install ffmpeg`  
   - Ubuntu/Debian: `sudo apt install ffmpeg`
@@ -345,6 +345,34 @@ All backend app settings use the **`EVA_`** prefix (see `backend/app/core/config
 | `EVA_ASR_MAX_NO_SPEECH_PROB` | `0.75` | Reject when Whisper reports high non-speech probability. |
 
 First successful transcription downloads model weights (size depends on `EVA_ASR_MODEL_SIZE`).
+
+### Agentic mode (local LLM, offline on your laptop)
+
+Requires **[Ollama](https://ollama.com)** running locally (`ollama serve`) and a pulled model, for example:
+
+```bash
+ollama pull llama3.2
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `EVA_AGENTIC_ENABLED` | `false` | `true`: `POST /command` and ASR auto-route use the LLM router (`agent_navigate` / `agent_telemetry` / `agent_unknown`) instead of the phrase parser. |
+| `EVA_OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama API base (no trailing slash). |
+| `EVA_OLLAMA_MODEL` | `llama3.2` | Model name for router, telemetry answers, and alert phrasing. |
+| `EVA_OLLAMA_TIMEOUT_S` | `120` | HTTP timeout for chat requests. |
+| `EVA_TELEMETRY_JSON_PATH` | *(unset)* | If set, the API **polls** this file (same JSON shape as `GET /telemetry`) and overwrites the in-memory telemetry—simulates a connection server writing a shared JSON file. |
+| `EVA_TELEMETRY_JSON_POLL_INTERVAL_S` | `1.0` | Poll interval for the file above. |
+| `EVA_ALERT_POLL_INTERVAL_S` | `2.0` | How often the alert monitor checks thresholds (only when agentic mode is on). |
+| `EVA_AGENT_ALERTS_MAX` | `50` | Max alert records returned via `GET /agent/alerts`. |
+
+Endpoints: **`GET /agent/status`** (`agentic_enabled`, `telemetry_json_poll`), **`GET /agent/alerts`** (recent LLM-phrased threshold alerts). With **Voice output** on, the UI polls alerts and **queues** speech for new items (see `speakQueued` in `frontend/src/utils/tts.ts`).
+
+Sample connection-server file: [`backend/data/telemetry_connection.json`](backend/data/telemetry_connection.json). Example `.env` snippet:
+
+```bash
+EVA_AGENTIC_ENABLED=true
+EVA_TELEMETRY_JSON_PATH=./data/telemetry_connection.json
+```
 
 ### Frontend
 

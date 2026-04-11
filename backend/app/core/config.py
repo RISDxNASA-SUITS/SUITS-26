@@ -28,5 +28,27 @@ class Settings(BaseSettings):
         description="Reject when Whisper reports no_speech_prob above this.",
     )
 
+    # Agentic mode: local LLM (Ollama) router, telemetry Q&A, voiced alerts.
+    agentic_enabled: bool = Field(
+        default=False,
+        description="If true, POST /command and ASR auto-route use LLM router instead of rule parser.",
+    )
+    ollama_base_url: str = Field(
+        default="http://127.0.0.1:11434",
+        description="Ollama API base URL (no trailing slash).",
+    )
+    ollama_model: str = Field(
+        default="llama3.2",
+        description="Model name as known to Ollama (ollama pull <name>).",
+    )
+    ollama_timeout_s: float = Field(default=120.0, description="HTTP timeout for Ollama chat requests.")
+    telemetry_json_path: str | None = Field(
+        default=None,
+        description="Optional path to JSON file (TelemetrySnapshot shape); poller syncs into telemetry service.",
+    )
+    telemetry_json_poll_interval_s: float = Field(default=1.0, description="How often to re-read telemetry JSON.")
+    alert_poll_interval_s: float = Field(default=2.0, description="How often the alert monitor checks warnings.")
+    agent_alerts_max: int = Field(default=50, description="Max alert entries kept in memory for GET /agent/alerts.")
+
 
 settings = Settings()

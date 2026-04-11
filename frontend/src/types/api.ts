@@ -104,3 +104,17 @@ export interface AsrTranscribeResponse {
   command_result: AsrCommandResultPayload | null
   avg_logprob?: number | null
 }
+
+/** GET /agent/status */
+export interface AgentStatusResponse {
+  agentic_enabled: boolean
+  telemetry_json_poll: boolean
+}
+
+/** GET /agent/alerts — LLM-phrased threshold alerts */
+export interface AgentAlertItem {
+  id: number
+  timestamp_unix: number
+  codes: string[]
+  spoken_text: string
+}

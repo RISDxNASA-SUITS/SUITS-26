@@ -1,6 +1,8 @@
 from fastapi.testclient import TestClient
 
+from app.core.config import settings
 from app.main import app
+from app.models.response import CommandResponse
 
 client = TestClient(app)
 
@@ -125,3 +127,25 @@ def test_post_command_unknown():
     assert body["parsed_intent"] == "unknown"
     assert body["entity"] is None
     assert "not recognized" in body["response_text"].lower()
+
+
+def test_post_command_uses_agentic_when_enabled(monkeypatch):
+    monkeypatch.setattr(settings, "agentic_enabled", True)
+
+    def fake_agentic(text: str) -> CommandResponse:
+        return CommandResponse(
+            success=True,
+            error_code=None,
+            input_text=text,
+            parsed_intent="agent_navigate",
+            entity="hab",
+            response_text="Demo Navigate: routing to hab.",
+        )
+
+    monkeypatch.setattr("app.services.command_dispatch.run_agentic_pipeline", fake_agentic)
+    r = client.post("/command", json={"text": "navigate to hab"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["parsed_intent"] == "agent_navigate"
+    assert body["entity"] == "hab"
+    assert body["success"] is True

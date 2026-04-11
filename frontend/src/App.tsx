@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  getAgentAlerts,
+  getAgentStatus,
   getMission,
   getProcedureCurrent,
   getTelemetry,
@@ -24,7 +26,7 @@ import type {
   WarningItem,
 } from './types/api'
 import './App.css'
-import { speak, stop } from './utils/tts'
+import { speak, speakQueued, stop } from './utils/tts'
 
 export default function App() {
   const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null)
@@ -44,6 +46,9 @@ export default function App() {
   /** Read aloud assistant reply (Web Speech API); default on for demo. */
   const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(true)
   const lastSpokenSigRef = useRef<string | null>(null)
+  const [agenticEnabled, setAgenticEnabled] = useState(false)
+  const lastAgentAlertIdRef = useRef(0)
+  const agentAlertsBootstrappedRef = useRef(false)
 
   const refreshContext = useCallback(async () => {
     setCtxError(null)
@@ -70,6 +75,57 @@ export default function App() {
   useEffect(() => {
     void refreshContext()
   }, [refreshContext])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const s = await getAgentStatus()
+        if (!cancelled) setAgenticEnabled(s.agentic_enabled)
+      } catch {
+        if (!cancelled) setAgenticEnabled(false)
+      }
+    }
+    void load()
+    const id = window.setInterval(() => void load(), 30_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!agenticEnabled || !voiceOutputEnabled) return
+    agentAlertsBootstrappedRef.current = false
+    lastAgentAlertIdRef.current = 0
+    let cancelled = false
+    const tick = async () => {
+      try {
+        const items = await getAgentAlerts()
+        if (cancelled) return
+        const maxId = items.length > 0 ? Math.max(...items.map((a) => a.id)) : 0
+        if (!agentAlertsBootstrappedRef.current) {
+          agentAlertsBootstrappedRef.current = true
+          lastAgentAlertIdRef.current = maxId
+          return
+        }
+        const prev = lastAgentAlertIdRef.current
+        const fresh = items.filter((a) => a.id > prev).sort((a, b) => a.id - b.id)
+        for (const a of fresh) {
+          speakQueued(a.spoken_text.trim())
+          lastAgentAlertIdRef.current = a.id
+        }
+      } catch {
+        /* ignore poll errors */
+      }
+    }
+    void tick()
+    const id = window.setInterval(() => void tick(), 2500)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [agenticEnabled, voiceOutputEnabled])
 
   useEffect(() => {
     if (!voiceOutputEnabled) return
@@ -152,8 +208,16 @@ export default function App() {
           <p className="console-kicker">Mission console</p>
           <h1 className="console-title">EVA AIA</h1>
           <p className="console-subtitle">
-            <span className="console-subtitle-line">Deterministic copilot — same parser for text and voice.</span>
-            <span className="console-subtitle-meta">Demo defaults: EGRESS · mock suit telemetry</span>
+            <span className="console-subtitle-line">
+              {agenticEnabled
+                ? 'Agentic mode — local LLM routes navigation vs telemetry; alerts use the same voice output.'
+                : 'Deterministic copilot — same parser for text and voice.'}
+            </span>
+            <span className="console-subtitle-meta">
+              {agenticEnabled
+                ? 'Set EVA_AGENTIC_ENABLED=true · Ollama required for commands/alerts'
+                : 'Demo defaults: EGRESS · mock suit telemetry'}
+            </span>
           </p>
         </div>
         <div className="console-header-meta">

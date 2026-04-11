@@ -1,0 +1,9 @@
+{
+  "primary_o2_pct": 96.2,
+  "secondary_o2_pct": 94.8,
+  "battery_pct": 82.0,
+  "co2_status": "nominal",
+  "comms_status": "nominal",
+  "safe_range_m": 142.0,
+  "ltv_status": "idle"
+}

@@ -84,3 +84,49 @@ export function speak(text: string): void {
     if (!played) once()
   }, 200)
 }
+
+/**
+ * Queue speech after any in-progress utterance (does not cancel). Use for background alerts.
+ */
+export function speakQueued(text: string): void {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+  const raw = text.trim()
+  if (!raw) return
+
+  const prepared = prepareTextForSpeech(raw)
+  if (!prepared) return
+
+  const syn = window.speechSynthesis
+  try {
+    if (syn.paused) syn.resume()
+  } catch {
+    /* ignore */
+  }
+
+  const run = (): void => {
+    const u = new SpeechSynthesisUtterance(prepared)
+    u.lang = 'en-US'
+    u.rate = 0.95
+    u.volume = 1
+    const voice = pickEnglishVoice()
+    if (voice) u.voice = voice
+    syn.speak(u)
+  }
+
+  if (syn.getVoices().length > 0) {
+    run()
+    return
+  }
+
+  let played = false
+  const once = () => {
+    if (played) return
+    played = true
+    syn.removeEventListener('voiceschanged', once)
+    run()
+  }
+  syn.addEventListener('voiceschanged', once)
+  window.setTimeout(() => {
+    if (!played) once()
+  }, 200)
+}

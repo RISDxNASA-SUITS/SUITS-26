@@ -1,6 +1,6 @@
 # Backend — EVA AIA API
 
-FastAPI service: deterministic `POST /command`, in-memory **mission**, **telemetry**, **procedures** (YAML), **warnings**, and **guardrails**. No database, no LLM.
+FastAPI service: `POST /command`, in-memory **mission**, **telemetry**, **procedures** (YAML), **warnings**, and **guardrails**. No database. Optional **agentic** path uses a local **Ollama** LLM (see root README).
 
 ## Demo mode and defaults
 
@@ -45,6 +45,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | `POST` | `/procedure/next` | Next step |
 | `POST` | `/procedure/repeat` | Repeat step |
 | `POST` | `/asr/transcribe` | Multipart: `audio` file + `auto_route_to_command` — local Whisper → normalize → optional same pipeline as `/command` |
+| `GET` | `/agent/status` | `agentic_enabled`, `telemetry_json_poll` |
+| `GET` | `/agent/alerts` | Recent threshold alerts with LLM-phrased `spoken_text` |
 
 CORS allows the Vite dev server on **5173** by default.
 
@@ -74,6 +76,10 @@ Environment variables (prefix **`EVA_`**):
 | `EVA_ASR_MODEL_SIZE` | Whisper model id (default `base`) |
 | `EVA_ASR_DEVICE` | `cpu` or `cuda` |
 | `EVA_ASR_COMPUTE_TYPE` | e.g. `int8`, `float16` |
+| `EVA_AGENTIC_ENABLED` | `true` / `false` — LLM router + alert phrasing (Ollama) |
+| `EVA_OLLAMA_BASE_URL` | Ollama base URL (default `http://127.0.0.1:11434`) |
+| `EVA_OLLAMA_MODEL` | Model id (default `llama3.2`) |
+| `EVA_TELEMETRY_JSON_PATH` | Optional path to polled telemetry JSON |
 
 ## Mission phases
 

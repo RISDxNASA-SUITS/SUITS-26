@@ -47,5 +47,10 @@ class TelemetryService:
             self._available = True
             self._snapshot = initial_telemetry_snapshot()
 
+    def replace_snapshot(self, snapshot: TelemetrySnapshot) -> None:
+        """Replace the full snapshot (e.g. connection-server JSON sync)."""
+        with self._lock:
+            self._snapshot = snapshot.model_copy(deep=True)
+
 
 telemetry_service = TelemetryService()
