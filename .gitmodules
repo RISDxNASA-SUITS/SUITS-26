@@ -1,0 +1,3 @@
+[submodule "TSS2026"]
+	path = TSS2026
+	url = https://github.com/SUITS-Techteam/TSS2026.git
