@@ -53,6 +53,9 @@ class NavConfig:
     """
     goal_tolerance_m: float = 5.0
     control_period_s: float = 0.12
+    min_command_hold_s: float = 0.6
+    throttle_deadband: float = 2.0
+    steering_deadband: float = 0.10
     throttle_fast: float = 18.0
     throttle_crawl: float = 9.0
     throttle_reverse: float = -16.0
@@ -96,6 +99,10 @@ class RobustNavigator:
         self._last_progress_position: Optional[List[float]] = None
         self._last_progress_time = time.monotonic()
         self._blocked_since: Optional[float] = None
+        self._last_command_time = 0.0
+        self._last_sent_throttle = 0.0
+        self._last_sent_steering = 0.0
+        self._last_sent_brakes = False
 
         self.navigation_state = {
             "status": "idle",
@@ -219,6 +226,10 @@ class RobustNavigator:
         self._last_progress_position = None
         self._last_progress_time = time.monotonic()
         self._blocked_since = None
+        self._last_command_time = 0.0
+        self._last_sent_throttle = 0.0
+        self._last_sent_steering = 0.0
+        self._last_sent_brakes = False
 
         with self._state_lock:
             self.navigation_state = {
@@ -449,7 +460,35 @@ class RobustNavigator:
         self._command(0.0, 0.0, brakes)
 
     def _command(self, throttle: float, steering: float, brakes: bool) -> None:
-        """Send a single low-level control command set to the rover backend."""
-        post_steering(float(clamp(steering, -self.config.steering_limit, self.config.steering_limit)))
-        post_throttle(float(throttle))
+        """Send a low-level control command set, rate-limited for actuator lag."""
+        steering = float(clamp(steering, -self.config.steering_limit, self.config.steering_limit))
+        throttle = float(throttle)
+        now = time.monotonic()
+
+        hold_elapsed = (now - self._last_command_time) >= self.config.min_command_hold_s
+        brakes_changed = brakes != self._last_sent_brakes
+        throttle_changed = abs(throttle - self._last_sent_throttle) >= self.config.throttle_deadband
+        steering_changed = abs(steering - self._last_sent_steering) >= self.config.steering_deadband
+
+        safety_critical = (
+            brakes_changed
+            or brakes
+            or throttle < -1.0
+            or self._phase in {Phase.HOLD, Phase.RECOVER_REVERSE, Phase.RECOVER_TURN}
+        )
+
+        if self._last_command_time > 0.0 and not safety_critical and not hold_elapsed:
+            # Keep the prior command briefly so the rover has time to react.
+            return
+
+        if self._last_command_time > 0.0 and hold_elapsed and not safety_critical:
+            if not throttle_changed and not steering_changed:
+                return
+
+        post_steering(steering)
+        post_throttle(throttle)
         post_brakes(1 if brakes else 0)
+        self._last_command_time = now
+        self._last_sent_throttle = throttle
+        self._last_sent_steering = steering
+        self._last_sent_brakes = brakes
