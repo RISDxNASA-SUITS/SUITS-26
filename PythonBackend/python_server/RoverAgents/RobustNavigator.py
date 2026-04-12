@@ -56,6 +56,15 @@ class NavConfig:
     min_command_hold_s: float = 0.6
     throttle_deadband: float = 2.0
     steering_deadband: float = 0.10
+    lag_hold_scale: float = 0.75
+    lag_blocked_scale: float = 0.9
+    lag_estimate_initial_s: float = 0.8
+    lag_estimate_alpha: float = 0.2
+    lag_estimate_min_s: float = 0.35
+    lag_estimate_max_s: float = 1.8
+    lag_response_timeout_s: float = 3.0
+    lag_speed_response_mps: float = 0.2
+    lag_heading_response_deg: float = 2.0
     throttle_fast: float = 18.0
     throttle_crawl: float = 9.0
     throttle_reverse: float = -16.0
@@ -74,6 +83,15 @@ class NavConfig:
     reverse_duration_s: float = 1.8
     turn_duration_s: float = 1.4
     max_sensor_failures: int = 8
+
+
+@dataclass
+class PendingLagSample:
+    send_time: float
+    baseline_speed: float
+    baseline_heading: float
+    watch_speed: bool
+    watch_heading: bool
 
 
 class RobustNavigator:
@@ -103,6 +121,10 @@ class RobustNavigator:
         self._last_sent_throttle = 0.0
         self._last_sent_steering = 0.0
         self._last_sent_brakes = False
+        self._lag_estimate_s = self.config.lag_estimate_initial_s
+        self._pending_lag_sample: Optional[PendingLagSample] = None
+        self._latest_speed = 0.0
+        self._latest_heading_deg = 0.0
 
         self.navigation_state = {
             "status": "idle",
@@ -114,6 +136,7 @@ class RobustNavigator:
             "recoveries": 0,
             "avoid_side": self._avoid_side,
             "distance_to_goal": None,
+            "lag_estimate_s": self._lag_estimate_s,
         }
 
     def start_navigation(self, goal_x: float, goal_y: float) -> bool:
@@ -156,6 +179,7 @@ class RobustNavigator:
                 "recoveries": self.navigation_state["recoveries"],
                 "avoid_side": self.navigation_state["avoid_side"],
                 "distance_to_goal": self.navigation_state["distance_to_goal"],
+                "lag_estimate_s": self.navigation_state["lag_estimate_s"],
             }
 
     def follow_path(self, goal: List[float]) -> bool:
@@ -188,10 +212,13 @@ class RobustNavigator:
             ]
             heading_deg = float(telemetry["heading"])
             speed = float(telemetry.get("speed", 0.0))
+            self._latest_speed = speed
+            self._latest_heading_deg = heading_deg
 
             self._record_position(position)
             distance_to_goal = euclidean_distance(position, goal)
             self._set_distance(distance_to_goal)
+            self._update_lag_estimate(speed, heading_deg, time.monotonic())
 
             if distance_to_goal <= self.config.goal_tolerance_m:
                 self._stop_motion(brakes=True)
@@ -230,6 +257,10 @@ class RobustNavigator:
         self._last_sent_throttle = 0.0
         self._last_sent_steering = 0.0
         self._last_sent_brakes = False
+        self._lag_estimate_s = self.config.lag_estimate_initial_s
+        self._pending_lag_sample = None
+        self._latest_speed = 0.0
+        self._latest_heading_deg = 0.0
 
         with self._state_lock:
             self.navigation_state = {
@@ -242,6 +273,7 @@ class RobustNavigator:
                 "recoveries": 0,
                 "avoid_side": self._avoid_side,
                 "distance_to_goal": None,
+                "lag_estimate_s": self._lag_estimate_s,
             }
 
     def _finish_navigation(self, success: bool, message: str) -> None:
@@ -253,6 +285,7 @@ class RobustNavigator:
             self.navigation_state["phase"] = self._phase.value
             self.navigation_state["recoveries"] = self._recoveries
             self.navigation_state["avoid_side"] = self._avoid_side
+            self.navigation_state["lag_estimate_s"] = self._lag_estimate_s
 
     def _set_message(self, message: str) -> None:
         """Update the human-readable status message exposed by the API."""
@@ -266,6 +299,7 @@ class RobustNavigator:
         """Update the reported remaining distance to the active goal."""
         with self._state_lock:
             self.navigation_state["distance_to_goal"] = float(distance_to_goal)
+            self.navigation_state["lag_estimate_s"] = self._lag_estimate_s
 
     def _record_position(self, position: List[float]) -> None:
         """Append a new rover position to the recorded path and progress tracker."""
@@ -407,7 +441,7 @@ class RobustNavigator:
             if self._blocked_since is None:
                 self._blocked_since = now
                 return False
-            return now - self._blocked_since >= self.config.blocked_detection_s
+            return now - self._blocked_since >= self._effective_blocked_detection_s()
         self._blocked_since = None
         return False
 
@@ -459,13 +493,62 @@ class RobustNavigator:
         """Issue a neutral steering and zero-throttle command."""
         self._command(0.0, 0.0, brakes)
 
+    def _effective_command_hold_s(self) -> float:
+        adaptive_hold = self._lag_estimate_s * self.config.lag_hold_scale
+        return clamp(adaptive_hold, self.config.min_command_hold_s, self.config.lag_estimate_max_s)
+
+    def _effective_blocked_detection_s(self) -> float:
+        adaptive_blocked = self._lag_estimate_s * self.config.lag_blocked_scale
+        return clamp(adaptive_blocked, self.config.blocked_detection_s, self.config.lag_estimate_max_s)
+
+    def _update_lag_estimate(self, speed: float, heading_deg: float, now: float) -> None:
+        sample = self._pending_lag_sample
+        if sample is None:
+            return
+
+        if now - sample.send_time > self.config.lag_response_timeout_s:
+            self._pending_lag_sample = None
+            return
+
+        speed_responded = sample.watch_speed and abs(speed - sample.baseline_speed) >= self.config.lag_speed_response_mps
+        heading_responded = sample.watch_heading and abs(heading_deg - sample.baseline_heading) >= self.config.lag_heading_response_deg
+        if not speed_responded and not heading_responded:
+            return
+
+        observed_lag = clamp(
+            now - sample.send_time,
+            self.config.lag_estimate_min_s,
+            self.config.lag_estimate_max_s,
+        )
+        alpha = self.config.lag_estimate_alpha
+        self._lag_estimate_s = clamp(
+            ((1.0 - alpha) * self._lag_estimate_s) + (alpha * observed_lag),
+            self.config.lag_estimate_min_s,
+            self.config.lag_estimate_max_s,
+        )
+        self._pending_lag_sample = None
+        with self._state_lock:
+            self.navigation_state["lag_estimate_s"] = self._lag_estimate_s
+
+    def _arm_lag_sample(self, now: float, watch_speed: bool, watch_heading: bool) -> None:
+        if not watch_speed and not watch_heading:
+            self._pending_lag_sample = None
+            return
+        self._pending_lag_sample = PendingLagSample(
+            send_time=now,
+            baseline_speed=self._latest_speed,
+            baseline_heading=self._latest_heading_deg,
+            watch_speed=watch_speed,
+            watch_heading=watch_heading,
+        )
+
     def _command(self, throttle: float, steering: float, brakes: bool) -> None:
         """Send a low-level control command set, rate-limited for actuator lag."""
         steering = float(clamp(steering, -self.config.steering_limit, self.config.steering_limit))
         throttle = float(throttle)
         now = time.monotonic()
 
-        hold_elapsed = (now - self._last_command_time) >= self.config.min_command_hold_s
+        hold_elapsed = (now - self._last_command_time) >= self._effective_command_hold_s()
         brakes_changed = brakes != self._last_sent_brakes
         throttle_changed = abs(throttle - self._last_sent_throttle) >= self.config.throttle_deadband
         steering_changed = abs(steering - self._last_sent_steering) >= self.config.steering_deadband
@@ -488,6 +571,12 @@ class RobustNavigator:
         post_steering(steering)
         post_throttle(throttle)
         post_brakes(1 if brakes else 0)
+        watch_speed = not brakes and throttle_changed and abs(throttle) >= self.config.throttle_deadband
+        watch_heading = not brakes and steering_changed and abs(steering) >= self.config.steering_deadband
+        if not safety_critical:
+            self._arm_lag_sample(now, watch_speed=watch_speed, watch_heading=watch_heading)
+        else:
+            self._pending_lag_sample = None
         self._last_command_time = now
         self._last_sent_throttle = throttle
         self._last_sent_steering = steering
