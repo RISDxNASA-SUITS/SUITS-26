@@ -1,0 +1,56 @@
+.mission-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 3px solid #191f3c;
+  border-radius: 12px;
+  background: #060f1c;
+  min-height: 80px;
+}
+
+.mission-bar-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.mission-map-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background: rgba(70, 98, 163, 0.5);
+  border: 1px solid #4662a3;
+  border-radius: 12px;
+  color: #fff;
+  font: 500 18px/1 "IBM Plex Sans", sans-serif;
+  cursor: pointer;
+  backdrop-filter: blur(50px);
+  white-space: nowrap;
+}
+
+.mission-stats {
+  display: flex;
+  gap: 80px;
+  align-items: flex-start;
+  padding-right: 32px;
+}
+
+.mission-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mission-stat-label {
+  color: #fff;
+  font: 400 13px/1 "IBM Plex Sans", sans-serif;
+  white-space: nowrap;
+}
+
+.mission-stat-value {
+  color: #fff;
+  font: 500 26px/1 "IBM Plex Sans", sans-serif;
+  white-space: nowrap;
+}

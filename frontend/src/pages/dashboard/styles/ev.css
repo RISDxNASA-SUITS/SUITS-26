@@ -1,0 +1,571 @@
+.ev-panel {
+  grid-area: ev;
+  min-height: 590px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ev-title-row {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0.45rem;
+}
+
+.ev-title-dot {
+  width: 26px;
+  height: 25px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 245, 134, 0.42) 0%, rgba(0, 245, 134, 0) 72%);
+}
+
+.ev-title-dot span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #00f586;
+  box-shadow: 0 0 12px rgba(0, 245, 134, 0.9);
+}
+
+.ev-title-pill {
+  width: 90px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.052px solid rgba(185, 211, 205, 0.8);
+  border-radius: 12.75px;
+  padding: 2.8px 22px;
+  background: rgba(6, 20, 38, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(18, 58, 94, 0.32);
+}
+
+.ev-title-pill h2 {
+  margin: 0;
+  color: #b9d3cd;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 21px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.crew-card {
+  border: 0.99px solid rgba(82, 109, 130, 0.1);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(6, 15, 28, 0.15) 0%, rgba(82, 109, 130, 0.15) 100%);
+  padding: 11px 16px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.avatar {
+  width: 60px;
+  height: 60px;
+  margin-left: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  transform: scale(1.28);
+  transform-origin: center;
+  border: 0;
+  border-radius: 50%;
+}
+
+.crew-card h3 {
+  margin: 0;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1;
+  color: #ffffff;
+  font-feature-settings: "zero" 1;
+}
+
+.crew-meta {
+  margin-left: 150px;
+}
+
+.crew-name-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.crew-card p {
+  margin: 5px 0 0;
+  color: rgba(145, 158, 173, 0.85);
+  font-family: "Inter", "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  font-feature-settings: "zero" 1;
+}
+
+.crew-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8dffe3;
+  box-shadow:
+    0 0 8px rgba(141, 255, 227, 1),
+    0 0 16px rgba(141, 255, 227, 1),
+    0 0 24px rgba(141, 255, 227, 0.9);
+}
+
+.ev-alert {
+  margin-top: 0.16rem;
+  min-height: 31px;
+  border: 1px solid #ffa600;
+  border-radius: 5px;
+  background: rgba(0, 178, 136, 0.07);
+  color: #ffa600;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1;
+  font-feature-settings: "zero" 1;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+}
+
+.astronaut-wrap {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: start center;
+  padding: 0;
+  margin-top: -0.35rem;
+  margin-bottom: -0.35rem;
+}
+
+.astronaut {
+  width: min(96%, 390px);
+  height: 370px;
+  border-radius: 54% 54% 46% 46%;
+  overflow: hidden;
+  background: transparent;
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.35));
+}
+
+.astronaut img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center top;
+  transform: translateY(-10px);
+  display: block;
+}
+
+.vitals-container {
+  margin-top: 0.8rem;
+  border-radius: 15px;
+  background: linear-gradient(180deg, #060f1c 0%, rgba(82, 109, 130, 0.10) 0.01%, #060f1c 96.15%);
+  padding: 10px;
+}
+
+.vitals-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 0.36rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.vital-card {
+  border: 1px solid #163b60;
+  border-radius: 0.36rem;
+  padding: 0.3rem;
+  background: rgba(5, 19, 35, 0.9);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.vital-label {
+  color: #6f8fab;
+  font-size: 0.72rem;
+}
+
+.vital-main-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.vital-value-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.vital-unit {
+  color: #fff;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1;
+  margin-top: 6px;
+  margin-left: 6px;
+}
+
+.vital-card h4 {
+  margin-top: 0.15rem;
+  font: 700 2.15rem/1 "Rajdhani", sans-serif;
+}
+
+.vital-card h4 small {
+  margin-left: 0.18rem;
+  font: 600 0.78rem/1 "Rajdhani", sans-serif;
+}
+
+.trend {
+  float: right;
+  font: 700 1.25rem/1 "Rajdhani", sans-serif;
+}
+
+.sparkline {
+  margin-top: auto;
+  height: 1.3rem;
+  border-bottom: 1px solid currentColor;
+  background: linear-gradient(120deg, transparent 26%, currentColor 26%, currentColor 31%, transparent 31%, transparent 49%, currentColor 49%, currentColor 54%, transparent 54%, transparent 72%, currentColor 72%, currentColor 77%, transparent 77%);
+  opacity: 0.55;
+}
+
+.hr-card {
+  background: #060f1c;
+  border: 1.25px solid rgba(82, 109, 130, 0.5);
+  border-radius: 10px;
+  padding: 0;
+  min-height: 120px;
+}
+
+.hr-card .vital-label {
+  margin: 0;
+  min-height: 34px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  color: #919ead;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 17px;
+  line-height: 1;
+  font-feature-settings: "zero" 1;
+  border: 1.25px solid rgba(82, 109, 130, 0.5);
+  border-radius: 10px;
+}
+
+.hr-card .vital-main-row {
+  margin-top: 10px;
+  align-items: center;
+  padding: 0 10px 0 8px;
+}
+
+.hr-card h4 {
+  margin: 0;
+  color: #ffa600;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 42px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  font-feature-settings: "zero" 1;
+}
+
+.hr-card h4 small {
+  margin-left: 6px;
+  color: #ffa600;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 28%;
+  font-weight: 400;
+}
+
+.hr-arrow {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  display: block;
+}
+
+.hr-card .sparkline {
+  margin: 4px 6px 4px;
+  height: 54px;
+  border-bottom: 0;
+  background: transparent;
+  opacity: 1;
+  overflow: hidden;
+}
+
+.hr-sparkline img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  transform: scale(1.52) translateY(1px);
+  transform-origin: center;
+  display: block;
+}
+
+.spo2-card {
+  background: #060f1c;
+  border: 1.25px solid rgba(82, 109, 130, 0.5);
+  border-radius: 10px;
+  padding: 0;
+  min-height: 120px;
+}
+
+.spo2-card .vital-label {
+  margin: 0;
+  min-height: 34px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  color: #919ead;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 17px;
+  line-height: 1;
+  font-feature-settings: "zero" 1;
+  border: 1.25px solid rgba(82, 109, 130, 0.5);
+  border-radius: 10px;
+}
+
+.spo2-card .vital-main-row {
+  margin-top: 10px;
+  align-items: center;
+  padding: 0 10px 0 8px;
+}
+
+.spo2-card h4 {
+  margin: 0;
+  color: #00b288;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 42px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  font-feature-settings: "zero" 1;
+}
+
+.spo2-card h4 small {
+  margin-left: 6px;
+  color: #ffffff;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 28%;
+  font-weight: 400;
+}
+
+.spo2-arrow {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  display: block;
+}
+
+.spo2-card .sparkline {
+  margin: 4px 6px 4px;
+  height: 54px;
+  border-bottom: 0;
+  background: transparent;
+  opacity: 1;
+  overflow: hidden;
+}
+
+.spo2-sparkline img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  transform: scale(1.52) translateY(1px);
+  transform-origin: center;
+  display: block;
+}
+
+.bodytemp-card {
+  background: #060f1c;
+  border: 1.25px solid rgba(82, 109, 130, 0.5);
+  border-radius: 10px;
+  padding: 0;
+  min-height: 120px;
+}
+
+.bodytemp-card .vital-label {
+  margin: 0;
+  min-height: 34px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  color: #919ead;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 17px;
+  line-height: 1;
+  font-feature-settings: "zero" 1;
+  border: 1.25px solid rgba(82, 109, 130, 0.5);
+  border-radius: 10px;
+}
+
+.bodytemp-card .vital-main-row {
+  margin-top: 10px;
+  align-items: center;
+  padding: 0 10px 0 8px;
+}
+
+.bodytemp-card h4 {
+  margin: 0;
+  color: #00b288;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 42px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  font-feature-settings: "zero" 1;
+}
+
+.bodytemp-card h4 small {
+  margin-left: 6px;
+  color: #ffffff;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 28%;
+  font-weight: 400;
+}
+
+.bodytemp-arrow {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  display: block;
+}
+
+.bodytemp-card .sparkline {
+  margin: 4px 6px 4px;
+  height: 54px;
+  border-bottom: 0;
+  background: transparent;
+  opacity: 1;
+  overflow: hidden;
+}
+
+.bodytemp-sparkline img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  transform: scale(1.52) translateY(1px);
+  transform-origin: center;
+  display: block;
+}
+
+.rr-card {
+  background: #060f1c;
+  border: 1.25px solid rgba(82, 109, 130, 0.5);
+  border-radius: 10px;
+  padding: 0;
+  min-height: 120px;
+}
+
+.rr-card .vital-label {
+  margin: 0;
+  min-height: 34px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  color: #919ead;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 17px;
+  line-height: 1;
+  font-feature-settings: "zero" 1;
+  border: 1.25px solid rgba(82, 109, 130, 0.5);
+  border-radius: 10px;
+}
+
+.rr-card .vital-main-row {
+  margin-top: 10px;
+  align-items: center;
+  padding: 0 10px 0 8px;
+}
+
+.rr-card h4 {
+  margin: 0;
+  color: #ffa600;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 42px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  font-feature-settings: "zero" 1;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.rr-card h4 small {
+  margin-left: 0;
+  color: #ffffff;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1;
+  padding-bottom: 4px;
+}
+
+.rr-arrow {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  display: block;
+}
+
+.rr-card .sparkline {
+  margin: 4px 6px 4px;
+  height: 54px;
+  border-bottom: 0;
+  background: transparent;
+  opacity: 1;
+  overflow: hidden;
+}
+
+.rr-sparkline img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  transform: scale(1.52) translateY(1px);
+  transform-origin: center;
+  display: block;
+}
+
+.vital-card.amber {
+  color: var(--amber);
+}
+
+.vital-card.teal {
+  color: var(--teal);
+}
+
+.vital-card.green {
+  color: #13e8a5;
+}
+
+.vital-card.magenta {
+  color: var(--magenta);
+}
+

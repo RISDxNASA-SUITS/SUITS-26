@@ -1,0 +1,764 @@
+/* ── Expanded path opt overlay ── */
+.path-opt-expanded {
+  position: fixed;
+  bottom: calc(0.55rem + 0.7rem);
+  left: calc(0.55rem + 0.8rem);
+  right: calc(0.55rem + 0.8rem);
+  z-index: 100;
+  border: 3px solid transparent;
+  border-radius: 36px;
+  background:
+    linear-gradient(#060f1c, #060f1c) padding-box,
+    conic-gradient(
+      from 0deg at 50% 50%,
+      #1a2545 0deg,
+      #1a2545 83deg,
+      #7595e8 90deg,
+      #4a68b8 180deg,
+      #7595e8 270deg,
+      #1a2545 277deg,
+      #1a2545 360deg
+    ) border-box;
+  padding: 1.1rem 1.2rem 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  height: 130px;
+  box-sizing: border-box;
+}
+
+.path-opt-expanded-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  width: calc(380px - 1.6rem - 2.4rem - 6px);
+}
+
+
+.path-opt-route {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  padding-bottom: 1rem;
+}
+
+.route-labels {
+  position: relative;
+  height: 24px;
+  margin-bottom: 0.5rem;
+}
+
+.route-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font: 400 0.8rem/1 "IBM Plex Sans", sans-serif;
+  color: #fbfbfb;
+  white-space: nowrap;
+}
+
+.route-track {
+  position: relative;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+}
+
+.route-line-upcoming {
+  position: absolute;
+  height: 2px;
+  background: #fbfbfb;
+  border-radius: 1px;
+}
+
+.route-line-done {
+  position: absolute;
+  height: 2px;
+  background: repeating-linear-gradient(
+    to right,
+    #191f3c 0px,
+    #191f3c 8px,
+    transparent 8px,
+    transparent 14px
+  );
+}
+
+.route-node-wrapper {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.route-node {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.poi-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  background: linear-gradient(to bottom, #191f3c, rgba(26, 61, 100, 0.7));
+  border: 1.2px solid #4662a3;
+  border-radius: 10px;
+  padding: 3px 4px;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.poi-popup-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.route-node-done {
+  background: #191f3c;
+  border: 2px solid #191f3c;
+}
+
+.route-node-upcoming {
+  background: #fbfbfb;
+  border: 2px solid #fbfbfb;
+}
+
+.route-current-marker {
+  position: absolute;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.route-progress-badge {
+  position: absolute;
+  bottom: -18px;
+  left: 36%;
+  transform: translateX(-50%);
+  background: #526d82;
+  color: #fbfbfb;
+  font: 400 0.75rem/1 "IBM Plex Sans", sans-serif;
+  border-radius: 28px;
+  padding: 0.2rem 0.6rem;
+}
+
+.path-opt-expanded-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  width: 180px;
+}
+
+.path-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 36px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid #6b8bae;
+  color: #b9d3cd;
+  font: 500 0.9rem/1 "IBM Plex Sans", sans-serif;
+  cursor: pointer;
+  backdrop-filter: blur(50px);
+}
+
+
+.path-optimize-btn {
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(70, 98, 163, 0.5);
+  border: 1px solid #6b8bae;
+  color: #fff;
+  font: 500 0.9rem/1 "IBM Plex Sans", sans-serif;
+  cursor: pointer;
+}
+
+.path-opt-collapse {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Panel shell ── */
+.task-panel {
+  background: transparent;
+  padding: 0.8rem 0.8rem 0.7rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+/* ── Big container (Tasks 2/6 + scroll area) ── */
+.task-big-container {
+  border: 4px solid #191f3c;
+  border-radius: 36px;
+  background: rgba(3, 16, 31, 0.86);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: calc(100vh - 3.2rem - 130px);
+}
+
+.task-panel--manual .task-big-container {
+  height: calc(100vh - 3.2rem - 300px);
+}
+
+.task-panel--manual .path-opt-card {
+  height: 300px;
+}
+
+/* ── Header ── */
+.task-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.7rem 0.8rem 0.4rem;
+}
+
+.task-title,
+.task-count {
+  font: 500 1.5rem/1 "IBM Plex Sans", sans-serif;
+  color: #fbfbfb;
+}
+
+/* ── Tabs ── */
+.task-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.task-tab {
+  border: 0;
+  border-bottom: 2px solid #6b8bae;
+  background: transparent;
+  backdrop-filter: blur(50px);
+  color: #fff;
+  font: 500 1rem/1 "IBM Plex Sans", sans-serif;
+  padding: 0.62rem 1rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.task-tab-active {
+  background: linear-gradient(180deg, #191f3c 0%, rgba(82, 109, 130, 0.1) 50%, rgba(26, 61, 100, 0.7) 100%);
+  border-bottom-color: #fff;
+}
+
+/* ── Scroll area ── */
+.task-scroll-area {
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: #191f3c transparent;
+}
+
+.task-scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.task-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.task-scroll-area::-webkit-scrollbar-thumb {
+  background: #191f3c;
+  border-radius: 4px;
+}
+
+/* ── Task card ── */
+.task-card {
+  padding: 0.7rem 1.2rem;
+}
+
+.task-card h2 {
+  font: 700 1.15rem/1 "IBM Plex Sans", sans-serif;
+  margin: 0 0 0.44rem;
+  color: #fff;
+}
+
+.task-meta {
+  display: flex;
+  justify-content: space-between;
+  color: #6b8bae;
+  font: 400 0.95rem/1 "IBM Plex Sans", sans-serif;
+}
+
+/* ── Progress blocks ── */
+.task-progress {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.progress-blocks-wrap {
+  background: rgba(0, 8, 20, 0.6);
+  border: 1px solid #191f3c;
+  border-radius: 0.6rem;
+  padding: 0.35rem;
+}
+
+.progress-blocks {
+  display: grid;
+  grid-template-columns: 29fr 53fr 29fr 89fr 39fr 73fr;
+  gap: 0.28rem;
+}
+
+.progress-blocks span {
+  height: 1.9rem;
+  border-radius: 0.55rem;
+  background: #111a30;
+  border: 1px solid #1e3057;
+}
+
+.progress-blocks .active {
+  background: rgba(0, 178, 136, 0.5);
+  border-color: #00b288;
+  border-radius: 4px;
+  position: relative;
+  overflow: visible;
+}
+
+.progress-blocks .active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -0.4rem;
+  bottom: -0.4rem;
+  width: 2px;
+  transform: translateX(-50%);
+  background: #00d4b8;
+  border-radius: 1px;
+}
+
+.task-progress-meta {
+  margin-top: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  color: #6b8bae;
+  font: 400 0.72rem/1 "IBM Plex Sans", sans-serif;
+}
+
+/* ── Step list ── */
+.task-step-list {
+  margin: 0.68rem 0 0;
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+}
+
+.task-step-list::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 7px;
+  bottom: 7px;
+  width: 1px;
+  background: linear-gradient(to bottom, #4662a3 0%, #4662a3 67%, #191f3c 67%, #191f3c 100%);
+}
+
+.task-step-list li {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 0 0 0 0.625rem;
+  position: relative;
+  z-index: 1;
+}
+
+.task-step-list li.step-current {
+  padding: 0;
+  gap: 5px;
+  align-items: center;
+  margin-top: -13px;
+  margin-bottom: -13px;
+}
+
+.step-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.step-done .step-dot {
+  background: #4662a3;
+  border: 1px solid #4662a3;
+}
+
+.step-upcoming .step-dot {
+  background: #191f3c;
+  border: 1.5px solid #191f3c;
+}
+
+.step-dot-active {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: rgba(0, 178, 136, 0.25);
+  border: none;
+  position: relative;
+  margin-left: -3px;
+}
+
+.step-dot-active::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: rgba(0, 178, 136, 0.5);
+}
+
+.step-dot-active::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #00b288;
+}
+
+.step-text {
+  font: 400 0.95rem/1.2 "IBM Plex Sans", sans-serif;
+  white-space: nowrap;
+}
+
+.step-done .step-text    { color: #6b8bae; }
+.step-current .step-text { color: #fff; }
+.step-upcoming .step-text { color: #b9d3cd; }
+
+/* ── Action buttons ── */
+.task-actions {
+  margin-top: 0.7rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.task-actions button {
+  height: 36px;
+  border-radius: 12px;
+  color: #fbfbfb;
+  font: 400 1rem/1 "IBM Plex Sans", sans-serif;
+  cursor: pointer;
+}
+
+.task-actions button:first-child {
+  background: transparent;
+  border: 2px solid #4662a3;
+}
+
+.task-actions button:last-child {
+  background: rgba(70, 98, 163, 0.5);
+  border: 1px solid #4662a3;
+}
+
+/* ── Upcoming card ── */
+.upcoming-card::before {
+  content: "";
+  display: block;
+  height: 1px;
+  background: #6b8bae;
+  margin: 0 0.1rem 0.6rem 0.1rem;
+}
+
+.upcoming-card {
+  padding: 0.66rem 1.2rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.upcoming-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.upcoming-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.upcoming-card h3 {
+  font: 400 1.1rem/1 "IBM Plex Sans", sans-serif;
+  color: #fff;
+}
+
+.add-task-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px;
+  background: rgba(185, 211, 205, 0.1);
+  border: none;
+  border-radius: 10px;
+  color: #b9d3cd;
+  font: 400 13px/normal "IBM Plex Sans", sans-serif;
+  cursor: pointer;
+  width: fit-content;
+  margin-bottom: 0.3rem;
+}
+
+.upcoming-item {
+  background: #191f3c;
+  border-radius: 18px;
+  padding: 18px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.upcoming-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.upcoming-drag-handle {
+  font-size: 20px;
+  color: #6b8bae;
+  letter-spacing: -1px;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+}
+
+.upcoming-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.upcoming-item-title {
+  font: 400 17px/normal "IBM Plex Sans", sans-serif;
+  color: #fff;
+}
+
+.upcoming-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.upcoming-item-meta span {
+  font: 400 13px/normal "IBM Plex Sans", sans-serif;
+  color: #6b8bae;
+}
+
+.upcoming-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.upcoming-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6b8bae;
+  flex-shrink: 0;
+}
+
+/* ── Path optimization card ── */
+.path-opt-card {
+  border: 3px solid transparent;
+  border-radius: 36px;
+  background:
+    linear-gradient(#060f1c, #060f1c) padding-box,
+    conic-gradient(
+      from 0deg at 50% 50%,
+      #1a2545 0deg,
+      #1a2545 60deg,
+      #7595e8 90deg,
+      #4a68b8 180deg,
+      #7595e8 270deg,
+      #1a2545 300deg,
+      #1a2545 360deg
+    ) border-box;
+  padding: 1.1rem 1.2rem 0.8rem;
+  position: relative;
+  height: 130px;
+  box-sizing: border-box;
+}
+
+.path-opt-card--hidden {
+  visibility: hidden;
+}
+
+.path-opt-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.path-opt-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.path-opt-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.path-opt-title {
+  font: 500 1.5rem/1 "IBM Plex Sans", sans-serif;
+  color: #fbfbfb;
+}
+
+.path-opt-status {
+  font: 400 0.75rem/1 "IBM Plex Sans", sans-serif;
+  color: rgba(154, 200, 202, 0.57);
+  margin-top: 0.25rem;
+}
+
+.path-opt-actions {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.path-btn {
+  flex: 0 0 100px;
+  height: 38px;
+  border-radius: 12px;
+  color: #fbfbfb;
+  font: 400 1rem/1 "IBM Plex Sans", sans-serif;
+  text-align: center;
+  cursor: pointer;
+}
+
+.path-btn-active {
+  background: rgba(70, 98, 163, 0.5);
+  border: 1px solid #4662a3;
+}
+
+.path-btn:not(.path-btn-active) {
+  background: transparent;
+  border: 2px solid #4662a3;
+}
+
+.path-opt-chevron {
+  position: absolute;
+  top: 50%;
+  right: 1.2rem;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+/* ── D-Pad controller ── */
+.dpad-container {
+  position: relative;
+  width: 165px;
+  height: 165px;
+  border-radius: 22px;
+  background: #191f3c;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.dpad-btn {
+  position: absolute;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.dpad-up,
+.dpad-down {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.dpad-left,
+.dpad-right {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.dpad-up    { top: 8px; }
+.dpad-down  { bottom: 8px; }
+.dpad-left  { left: 8px; }
+.dpad-right { right: 8px; }
+
+
+.dpad-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #9aaac4, #5a6b8a);
+}
+
+@media (max-width: 1300px) {
+  .task-title,
+  .task-count {
+    font-size: 1.75rem;
+  }
+
+  .task-card h2,
+  .upcoming-card h3 {
+    font-size: 1.35rem;
+  }
+}

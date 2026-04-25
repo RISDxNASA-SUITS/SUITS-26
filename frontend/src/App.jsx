@@ -1,16 +1,14 @@
-import './App.css'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import SuitsDashboard from './pages/SuitsDashboard'
-import TasksMapDashboard from './pages/TasksMapDashboard'
+import { Navigate, Route, Routes } from "react-router-dom"
+import { DashboardPage } from "./pages/dashboard/DashboardPage"
+import { MapPage } from "./pages/map/MapPage"
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<SuitsDashboard />} />
-        <Route path="/tasks" element={<TasksMapDashboard />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/" element={<DashboardPage />} />
+      <Route path="/map" element={<MapPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 
