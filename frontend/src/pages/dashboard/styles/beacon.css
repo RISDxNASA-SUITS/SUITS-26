@@ -751,14 +751,11 @@
   width: min(100%, 525px);
   height: 96px;
   margin-top: 2px;
+  display: flex;
+  align-items: flex-end;
 }
 
 .signal-bars-main {
-  position: absolute;
-  left: auto;
-  right: 2px;
-  width: max-content;
-  bottom: 0;
   display: flex;
   align-items: flex-end;
   gap: 3px;
@@ -778,13 +775,12 @@
 }
 
 .signal-divider {
-  position: absolute;
-  right: 0;
-  bottom: 0;
+  flex-shrink: 0;
   width: 2px;
   height: 112px;
   background: #ffffff;
   opacity: 0.95;
+  align-self: flex-end;
 }
 
 .signal-readout {
