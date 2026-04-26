@@ -1,3 +1,4 @@
+import { useState } from "react"
 import caretIcon from "../../../assets/map/Caret_Circle_Up.svg"
 import addPlusCircleIcon from "../../../assets/map/Add_Plus_Circle.png"
 import trashIcon from "../../../assets/map/Task_Trash.svg"
@@ -8,6 +9,8 @@ import chevronRightIcon from "../../../assets/map/Chevron_Right.svg"
 import { DPad } from "./DPad"
 
 export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand }) {
+  const [activeTab, setActiveTab] = useState("tasks")
+
   return (
     <aside className={`task-panel${isManual ? " task-panel--manual" : ""}`} aria-label="Task panel">
       <div className="task-big-container">
@@ -17,16 +20,17 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
         </header>
 
         <nav className="task-tabs" aria-label="Task sections">
-          <button type="button" className="task-tab task-tab-active">
+          <button type="button" className={`task-tab ${activeTab === "tasks" ? "task-tab-active" : ""}`} onClick={() => setActiveTab("tasks")}>
             Tasks
           </button>
-          <button type="button" className="task-tab">
+          <button type="button" className={`task-tab ${activeTab === "notifications" ? "task-tab-active" : ""}`} onClick={() => setActiveTab("notifications")}>
             Notifications
           </button>
         </nav>
 
         <div className="task-scroll-area">
-          <section className="task-card">
+          {activeTab === "notifications" && <div />}
+          {activeTab === "tasks" && <><section className="task-card">
             <h2>Execute LTV Search Pattern</h2>
             <div className="task-meta">
               <span>Estimated time: 45 min</span>
@@ -125,7 +129,7 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
                 </div>
               </article>
             ))}
-          </section>
+          </section></>}
         </div>
       </div>
 
