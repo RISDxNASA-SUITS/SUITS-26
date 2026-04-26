@@ -51,7 +51,7 @@ export function PathOptExpanded({ isManual, onToggleManual, onCollapse }) {
           <button
             type="button"
             className={`path-btn ${isManual ? "path-btn-active" : ""}`}
-            onClick={() => onToggleManual(true)}
+            onClick={() => { onToggleManual(true); onCollapse(); }}
           >
             Manual
           </button>
