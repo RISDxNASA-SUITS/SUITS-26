@@ -601,6 +601,7 @@
   border-radius: 50%;
   background: #6b8bae;
   flex-shrink: 0;
+  align-self: center;
 }
 
 /* ── Path optimization card ── */

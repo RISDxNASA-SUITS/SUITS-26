@@ -10,6 +10,19 @@ import { DPad } from "./DPad"
 
 export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand }) {
   const [activeTab, setActiveTab] = useState("tasks")
+  const [upcomingTasks, setUpcomingTasks] = useState([
+    { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
+    { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
+    { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
+  ])
+
+  const addTask = () => {
+    setUpcomingTasks(prev => [...prev, { title: "New Task", time: "- minutes", sub: "- sub-tasks" }])
+  }
+
+  const removeTask = (i) => {
+    setUpcomingTasks(prev => prev.filter((_, idx) => idx !== i))
+  }
 
   return (
     <aside className={`task-panel${isManual ? " task-panel--manual" : ""}`} aria-label="Task panel">
@@ -89,7 +102,7 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
 
           <section className="upcoming-card">
             <header className="upcoming-header">
-              <h3>Upcoming Tasks (3)</h3>
+              <h3>Upcoming Tasks ({upcomingTasks.length})</h3>
               <div className="upcoming-icons">
                 <button type="button" className="icon-btn" aria-label="Expand">
                   <img src={caretIcon} alt="" width={28} height={28} />
@@ -97,16 +110,12 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
               </div>
             </header>
 
-            <button type="button" className="add-task-btn">
+            <button type="button" className="add-task-btn" onClick={addTask}>
               <img src={addPlusCircleIcon} alt="" width={18} height={18} />
               Add Task
             </button>
 
-            {[
-              { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
-              { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
-              { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
-            ].map((task, i) => (
+            {upcomingTasks.map((task, i) => (
               <article key={i} className="upcoming-item">
                 <div className="upcoming-item-left">
                   <span className="upcoming-drag-handle">⋮⋮</span>
@@ -120,7 +129,7 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
                   </div>
                 </div>
                 <div className="upcoming-item-actions">
-                  <button type="button" className="icon-btn" aria-label="Delete">
+                  <button type="button" className="icon-btn" aria-label="Delete" onClick={() => removeTask(i)}>
                     <img src={trashIcon} alt="" width={18} height={18} />
                   </button>
                   <button type="button" className="icon-btn" aria-label="Expand">
