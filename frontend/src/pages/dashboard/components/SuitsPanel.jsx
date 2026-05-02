@@ -102,6 +102,32 @@ function CO2Card({ mmHg, scrubberPct, co2TankPct, co2Segments }) {
   )
 }
 
+function LcvgGauge({ norm }) {
+  const r = 36
+  const cx = 50
+  const cy = 54
+  const circumference = 2 * Math.PI * r
+  const arcLength = (300 / 360) * circumference
+  const fillLength = Math.min(norm, 1) * arcLength
+  const rotation = `rotate(120, ${cx}, ${cy})`
+
+  return (
+    <svg viewBox="0 0 100 100" className="lcvg-gauge-svg" aria-hidden="true">
+      <circle cx={cx} cy={cy} r={r} fill="none"
+        stroke="rgba(185,211,205,0.1)" strokeWidth="5"
+        strokeDasharray={`${arcLength} ${circumference}`}
+        strokeLinecap="round" transform={rotation}
+      />
+      <circle cx={cx} cy={cy} r={r} fill="none"
+        stroke="#00b288" strokeWidth="5"
+        strokeDasharray={`${fillLength} ${circumference}`}
+        strokeLinecap="round" transform={rotation}
+        style={{ filter: "drop-shadow(0 0 4px rgba(0,178,136,0.8))" }}
+      />
+    </svg>
+  )
+}
+
 function LcvgBlock({ flowLbHr, lcvgFlowNorm, fanPriRpm, fanSecRpm }) {
   const fanPriPct = Math.min(100, (fanPriRpm / 18) * 100)
   const fanSecPct = Math.min(100, (fanSecRpm / 2.5) * 100)
@@ -110,11 +136,9 @@ function LcvgBlock({ flowLbHr, lcvgFlowNorm, fanPriRpm, fanSecRpm }) {
     <div className="lcvg-block">
       <article className="lcvg-left">
         <p className="lcvg-title">LCVG Flow Rate</p>
-        <div className="lcvg-bar-row">
-          <div className="lcvg-bar">
-            <div className="lcvg-bar-fill" style={{ height: `${Math.round(lcvgFlowNorm * 100)}%` }} />
-          </div>
-          <div className="lcvg-bar-label">
+        <div className="lcvg-gauge-wrap">
+          <LcvgGauge norm={lcvgFlowNorm} />
+          <div className="lcvg-gauge-label">
             <strong>{Math.round(flowLbHr)}</strong>
             <span>lb/hr</span>
           </div>
@@ -216,9 +240,6 @@ function EvLabel({ evLabel = "EV 1" }) {
     <div className="ev-label-row">
       <span className="ev-label-dot" aria-hidden="true" />
       <span className="ev-label-text">{evLabel}</span>
-      <div className="ev-label-avatar">
-        <img src={headshotIcon} alt="" className="ev-label-icon" aria-hidden="true" />
-      </div>
     </div>
   )
 }
@@ -233,6 +254,9 @@ export function SuitsPanel({ label = "Suits 1", panelClass = "suits-panel", evLa
           <span className="suits-title-dot" aria-hidden="true" />
           {label}
         </button>
+        <div className="suits-headshot-wrap">
+          <img src={headshotIcon} alt="" className="suits-headshot-icon" aria-hidden="true" />
+        </div>
       </header>
       <p className="system-status">SYSTEMS NOMINAL</p>
 
@@ -254,8 +278,10 @@ export function SuitsPanel({ label = "Suits 1", panelClass = "suits-panel", evLa
         fanPriRpm={s.fanPriRpm}
         fanSecRpm={s.fanSecRpm}
       />
-      <EvLabel evLabel={evLabel} />
-      <p className="crew-id">Crew ID 1231231243</p>
+      <div className="ev-label-group">
+        <EvLabel evLabel={evLabel} />
+        <span className="ev-status-tag">OFF-NOMINAL</span>
+      </div>
       <VitalsBlock crewVitals={crewVitals} crewHistory={crewHistory} />
     </Panel>
   )

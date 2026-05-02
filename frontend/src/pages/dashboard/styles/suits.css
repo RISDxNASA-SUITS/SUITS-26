@@ -9,15 +9,37 @@
 }
 
 .suits-title-row {
-  width: fit-content;
+  width: 100%;
   margin-bottom: 0.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.suits-headshot-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.suits-headshot-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  transform: scale(1.5) translateY(-10px);
+  transform-origin: center top;
+  display: block;
 }
 
 .suits-title-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 16px;
+  height: 36px;
+  padding: 0 16px;
   background: transparent;
   border: 1px solid #6b8bae;
   border-radius: 12px;
@@ -514,6 +536,43 @@
   font-feature-settings: "zero" 1;
 }
 
+.lcvg-gauge-wrap {
+  position: relative;
+  width: 130px;
+  height: 120px;
+  margin: 0 auto;
+  margin-top: 1.6rem;
+}
+
+.lcvg-gauge-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.lcvg-gauge-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding-top: 8px;
+}
+
+.lcvg-gauge-label strong {
+  font: 500 24px/1 "IBM Plex Sans", sans-serif;
+  color: #fff;
+  font-feature-settings: "zero" 1;
+}
+
+.lcvg-gauge-label span {
+  font: 400 13px/1 "IBM Plex Sans", sans-serif;
+  color: #526d82;
+  font-feature-settings: "zero" 1;
+}
+
 .lcvg-bar-row {
   display: flex;
   align-items: center;
@@ -916,14 +975,23 @@
   font-size: 0.74rem;
 }
 
+.ev-label-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1rem;
+  margin-left: 0.6rem;
+  width: calc(100% - 0.6rem);
+}
+
 .ev-label-row {
   display: flex;
   align-items: center;
   gap: 12px;
   width: fit-content;
-  padding: 4px 16px 4px 20px;
-  margin-top: 1rem;
-  margin-left: 0.6rem;
+  height: 36px;
+  padding: 0 16px 0 20px;
   border: 1px solid #6b8bae;
   border-radius: 12px;
   backdrop-filter: blur(50px);
@@ -944,6 +1012,25 @@
   font-weight: 500;
   color: #b9d3cd;
   white-space: nowrap;
+}
+
+.ev-status-tag {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffa600;
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: normal;
+  white-space: nowrap;
+  font-feature-settings: "zero" 1;
 }
 
 .ev-label-avatar {

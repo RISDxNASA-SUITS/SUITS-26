@@ -301,8 +301,8 @@
 }
 
 .hr-arrow {
-  width: 42px;
-  height: 42px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   display: block;
 }
@@ -375,8 +375,8 @@
 }
 
 .spo2-arrow {
-  width: 42px;
-  height: 42px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   display: block;
 }
@@ -449,8 +449,8 @@
 }
 
 .bodytemp-arrow {
-  width: 42px;
-  height: 42px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   display: block;
 }
@@ -528,8 +528,8 @@
 }
 
 .rr-arrow {
-  width: 42px;
-  height: 42px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   display: block;
 }
