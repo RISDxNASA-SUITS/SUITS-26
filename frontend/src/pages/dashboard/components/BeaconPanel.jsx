@@ -2,6 +2,7 @@ import { beaconData } from "../data/dashboardData"
 import { useLtvBeacon } from "../../../hooks/useLtvBeacon"
 import lunarSurfaceImage from "../../../assets/dashboard/lunar_surface.png"
 import roverImage from "../../../assets/dashboard/rover.png"
+import polygon37 from "../../../assets/dashboard/polygon37.svg"
 import { Panel } from "./Panel"
 
 const SIGNAL_BAR_COUNT = 35
@@ -41,6 +42,56 @@ export function BeaconPanel() {
           <span className="mode-value"> {modeValue}</span>
         </span>
         <strong>Duration: {beacon.formattedDuration}</strong>
+      </div>
+
+      <div className="distance-row">
+        <div className="distance-header">
+          <p className="distance-label">Distance to Beacon</p>
+          <strong className="distance-current-val">~{beacon.bottomDistanceM} m</strong>
+        </div>
+        <div className="distance-track-section">
+          <span className="distance-end-label distance-end-label--start">500 m</span>
+          <div className="distance-track-wrapper">
+            <div className="distance-track">
+              <div className="distance-track-line" />
+              <div
+                className="distance-track-fill"
+                style={{ width: `${((beacon.bottomGoalM - beacon.bottomDistanceM) / beacon.bottomGoalM * 100).toFixed(1)}%` }}
+              />
+              {[0, 20, 40, 60, 80, 100].map((pct, i) => (
+                <span key={i} className={`distance-dot${i === 0 || i === 5 ? " large" : ""}`} style={{ left: `${pct}%` }} />
+              ))}
+            </div>
+            <img
+              src={polygon37}
+              alt=""
+              aria-hidden="true"
+              className="distance-position-marker"
+              style={{ left: `${((beacon.bottomGoalM - beacon.bottomDistanceM) / beacon.bottomGoalM * 100).toFixed(1)}%` }}
+            />
+          </div>
+          <span className="distance-end-label distance-end-label--end">0 m</span>
+        </div>
+        <div className="distance-start-end-labels">
+          <span className="distance-labels-start">Start</span>
+          <span className="distance-labels-spacer" />
+          <span className="distance-labels-end">Beacon</span>
+        </div>
+      </div>
+
+      <div className="kv-row">
+        <article className="pr-ltv-card">
+          <p className="pr-ltv-label">PR - LTV Direction</p>
+          <strong className="pr-ltv-value">{beacon.cardinalLabel}</strong>
+        </article>
+        <article className="bearing-card">
+          <p className="bearing-label">Bearing to Rover</p>
+          <strong className="bearing-value">{Math.round(beacon.bearingDeg)}°</strong>
+        </article>
+        <article className="coords-card">
+          <p className="coords-label">LTV Coordinates</p>
+          <strong className="coords-value">{beacon.formattedCoords}</strong>
+        </article>
       </div>
 
       <div className="beacon-main">
@@ -104,32 +155,6 @@ export function BeaconPanel() {
             </li>
           </ul>
         </article>
-      </div>
-
-      <div className="kv-row">
-        <article className="pr-ltv-card">
-          <p className="pr-ltv-label">PR - LTV Direction</p>
-          <strong className="pr-ltv-value">{beacon.cardinalLabel}</strong>
-        </article>
-        <article className="bearing-card">
-          <p className="bearing-label">Bearing to Rover</p>
-          <strong className="bearing-value">{Math.round(beacon.bearingDeg)} deg</strong>
-        </article>
-        <article className="coords-card">
-          <p className="coords-label">LTV Coordinates</p>
-          <strong className="coords-value">{beacon.formattedCoords}</strong>
-        </article>
-      </div>
-
-      <div className="distance-row">
-        <p>Distance to Beacon</p>
-        <div className="progress large">
-          <span style={{ width: `${((beacon.bottomDistanceM / beacon.bottomGoalM) * 100).toFixed(1)}%` }} />
-        </div>
-        <strong className="distance-value">
-          <span className="distance-value-current">{beacon.bottomDistanceM} m</span>
-          <span className="distance-value-min"> / {beacon.bottomGoalM} m</span>
-        </strong>
       </div>
 
       <section className="signal-section">
