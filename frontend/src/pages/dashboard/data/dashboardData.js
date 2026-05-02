@@ -1,8 +1,12 @@
 export const commsData = {
-  tags: ["PR", "EV", "EV1 crash near POI 2", "EV2 low O2 levels", "EV2 high heart rate"],
+  tags: ["EV", "PR", "LTV", "EV low O2 levels", "LTV crash near POI 2"],
   entries: [
-    { message: "PR - Change path to go to POI 2 first.", time: "00:12:23" },
-    { message: "Path Changed", time: "00:12:23" },
+    { message: "Change path to go to POI 2 first", time: "00:12:10", badge: "PR" },
+    { message: "Path Changed", time: "00:12:15" },
+    { message: "Check my heart rate. I fell", time: "00:12:23", badge: "EV" },
+    { message: "Updated Hazard Information", time: "00:12:34" },
+    { message: "Sudden stop.", time: "00:12:42", badge: "LTV" },
+    { message: "Initiated Repair Protocol.", time: "00:12:45" },
   ],
 }
 

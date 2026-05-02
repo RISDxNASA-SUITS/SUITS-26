@@ -2,16 +2,17 @@ import { useMemo, useState } from "react"
 import { commsData } from "../data/dashboardData"
 import starsIcon from "../../../assets/dashboard/stars.svg"
 
+function normalizeText(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 export function CommsHistory() {
   const [query, setQuery] = useState("")
   const [activeTag, setActiveTag] = useState(commsData.tags[0] ?? "")
-
-  const normalizeText = (value) =>
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
 
   const filteredEntries = useMemo(() => {
     const value = normalizeText(query)
@@ -26,14 +27,14 @@ export function CommsHistory() {
 
   return (
     <section className="comms-panel comms-figma">
-      <header className="comms-head">
+      <div className="comms-left">
         <h2 className="comms-title">COMMS HISTORY</h2>
         <form className="comms-search" role="search" onSubmit={(event) => event.preventDefault()}>
           <input
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder=""
+            placeholder="search for..."
             aria-label="Search communications"
           />
           <button type="submit" className="comms-search-icon" aria-label="Search">
@@ -53,16 +54,19 @@ export function CommsHistory() {
               onClick={() => setActiveTag(tag)}
             >
               <span>{tag}</span>
-              {index > 0 ? <img className="comms-chip-icon" src={starsIcon} alt="" aria-hidden="true" /> : null}
+              <img className="comms-chip-icon" src={starsIcon} alt="" aria-hidden="true" />
             </button>
           ))}
         </div>
-      </header>
+      </div>
 
       <div className="comms-body">
         {filteredEntries.map((entry, index) => (
-          <div key={`${entry.message}-${entry.time}`} className={`comms-row ${index === 0 ? "figma-first" : "figma-second"}`}>
-            <p>{entry.message}</p>
+          <div key={`${entry.message}-${entry.time}`} className={`comms-row ${entry.badge ? "figma-first" : "figma-second"}`}>
+            <p>
+              {entry.badge && <span className="comms-badge">{entry.badge}</span>}
+              {entry.message}
+            </p>
             <time>{entry.time}</time>
           </div>
         ))}
