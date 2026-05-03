@@ -9,12 +9,12 @@ import trashIcon from "../../../assets/map/Trash.png"
 
 const waypoints = [
   { label: "Start", progress: 15, done: true },
-  { label: "POI 1", progress: 25, done: true },
-  { label: "POI 2", progress: 38, done: false, current: true },
-  { label: "POI 3", progress: 50, done: false },
-  { label: "POI 3", progress: 62, done: false },
-  { label: "POI 3", progress: 74, done: false },
-  { label: "Destination", progress: 85, done: false },
+  { label: "POI 1", progress: 25, done: true, poiIndex: 1 },
+  { label: "POI 2", progress: 38, done: false, current: true, poiIndex: 2 },
+  { label: "POI 3", progress: 50, done: false, poiIndex: 3 },
+  { label: "POI 4", progress: 62, done: false, poiIndex: 4 },
+  { label: "POI 5", progress: 74, done: false, poiIndex: 5 },
+  { label: "Destination", progress: 85, done: false, destination: true },
 ]
 
 export function PathOptExpanded({ isManual, onToggleManual, onCollapse }) {
@@ -75,7 +75,7 @@ export function PathOptExpanded({ isManual, onToggleManual, onCollapse }) {
             ) : (
               <div key={i} className="route-node-wrapper" style={{ left: `${wp.progress}%` }}>
                 <span
-                  className={`route-node ${wp.done ? "route-node-done" : "route-node-upcoming"}`}
+                  className={`route-node ${wp.done ? "route-node-done" : wp.destination ? "route-node-upcoming" : "route-node-poi"}`}
                   style={{
                     ...(!wp.done && selectedPois.has(i) && {
                       background: "#00b288",
@@ -84,7 +84,9 @@ export function PathOptExpanded({ isManual, onToggleManual, onCollapse }) {
                     })
                   }}
                   onClick={() => !wp.done && togglePoi(i)}
-                />
+                >
+                  {wp.poiIndex && !wp.done && <span className="route-node-label">{wp.poiIndex}</span>}
+                </span>
                 {!wp.done && selectedPois.has(i) && (
                   <div className="poi-popup">
                     <button type="button" className="poi-popup-btn" aria-label="Edit">
@@ -107,7 +109,7 @@ export function PathOptExpanded({ isManual, onToggleManual, onCollapse }) {
           <img src={addPlusCircle} alt="" width={22} height={22} />
           Add To Path
         </button>
-        <button type="button" className="path-optimize-btn">Optimize Path</button>
+        <button type="button" className="path-optimize-btn">Recall PR</button>
       </div>
 
       <button type="button" className="path-opt-collapse" aria-label="Collapse" onClick={onCollapse}>
