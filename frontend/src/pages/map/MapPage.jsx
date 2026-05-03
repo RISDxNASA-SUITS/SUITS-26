@@ -5,6 +5,7 @@ import { MapStage } from "./components/MapStage"
 import { PathOptExpanded } from "./components/PathOptExpanded"
 import { PoiPanel } from "./components/PoiPanel"
 import { AddPoiPanel } from "./components/AddPoiPanel"
+import { AddHazardPanel } from "./components/AddHazardPanel"
 import "./styles/index.css"
 
 export function MapPage() {
@@ -12,6 +13,7 @@ export function MapPage() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [showPoiPanel, setShowPoiPanel] = useState(false)
   const [showAddPoi, setShowAddPoi] = useState(false)
+  const [showAddHazard, setShowAddHazard] = useState(false)
 
   return (
     <main className="map-page-shell">
@@ -27,10 +29,13 @@ export function MapPage() {
           showPoiPanel={showPoiPanel}
           onAddPoiClick={() => setShowAddPoi(p => !p)}
           showAddPoi={showAddPoi}
+          onAddHazardClick={() => setShowAddHazard(p => !p)}
+          showAddHazard={showAddHazard}
         />
         <MapStage
           poiPanel={showPoiPanel ? <PoiPanel onClose={() => setShowPoiPanel(false)} /> : null}
           addPoiPanel={showAddPoi ? <AddPoiPanel onClose={() => setShowAddPoi(false)} /> : null}
+          addHazardPanel={showAddHazard ? <AddHazardPanel onClose={() => setShowAddHazard(false)} /> : null}
         />
       </section>
       {isExpanded && (

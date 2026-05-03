@@ -2,7 +2,7 @@ import chevronDownIcon from "../../../assets/map/Chevron_Down.svg"
 import mapPinIcon from "../../../assets/map/Map_Pin.svg"
 import warningIcon from "../../../assets/map/Triangle_Warning.svg"
 
-export function MissionBar({ onPoiClick, showPoiPanel, onAddPoiClick, showAddPoi }) {
+export function MissionBar({ onPoiClick, showPoiPanel, onAddPoiClick, showAddPoi, onAddHazardClick, showAddHazard }) {
   return (
     <header className="mission-bar">
       <div className="mission-bar-buttons">
@@ -28,7 +28,11 @@ export function MissionBar({ onPoiClick, showPoiPanel, onAddPoiClick, showAddPoi
           <img src={mapPinIcon} alt="" width={24} height={24} />
           Add POI
         </button>
-        <button type="button" className="mission-map-btn">
+        <button
+          type="button"
+          className={`mission-map-btn${showAddHazard ? " mission-map-btn--active" : ""}`}
+          onClick={onAddHazardClick}
+        >
           <img src={warningIcon} alt="" width={24} height={24} />
           Add Hazard
         </button>
