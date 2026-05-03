@@ -56,12 +56,29 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
     { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
   ])
 
+  const [dragIndex, setDragIndex] = useState(null)
+
   const toggleTaskExpand = (i) => {
     setExpandedTasks(prev => {
       const next = new Set(prev)
       next.has(i) ? next.delete(i) : next.add(i)
       return next
     })
+  }
+
+  const handleDragStart = (i) => setDragIndex(i)
+  const handleDragEnd = () => setDragIndex(null)
+  const handleDragOver = (e, i) => {
+    e.preventDefault()
+    if (dragIndex === null || dragIndex === i) return
+    setUpcomingTasks(prev => {
+      const next = [...prev]
+      const [moved] = next.splice(dragIndex, 1)
+      next.splice(i, 0, moved)
+      return next
+    })
+    setExpandedTasks(new Set())
+    setDragIndex(i)
   }
 
   const task = TASK_CONFIGS[currentTaskKey]
@@ -177,7 +194,14 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
               const isExpanded = expandedTasks.has(i)
               const config = TASK_CONFIGS[upTask.title]
               return (
-                <article key={i} className="upcoming-item">
+                <article
+                  key={i}
+                  className={`upcoming-item${dragIndex === i ? " upcoming-item--dragging" : ""}`}
+                  draggable
+                  onDragStart={() => handleDragStart(i)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e, i)}
+                >
                   <div className="upcoming-item-row">
                     <div className="upcoming-item-left">
                       <span className="upcoming-drag-handle">⋮⋮</span>

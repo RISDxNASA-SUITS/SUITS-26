@@ -71,7 +71,7 @@
 .route-line-upcoming {
   position: absolute;
   height: 2px;
-  background: #fbfbfb;
+  background: #4662a3;
   border-radius: 1px;
 }
 
@@ -94,11 +94,20 @@
 }
 
 .route-node {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 18px;
   height: 18px;
   border-radius: 50%;
   cursor: pointer;
+}
+
+.route-node-label {
+  font: 700 12px/1 "IBM Plex Sans", sans-serif;
+  color: #ffffff;
+  pointer-events: none;
+  user-select: none;
 }
 
 .poi-popup {
@@ -136,6 +145,13 @@
 .route-node-upcoming {
   background: #fbfbfb;
   border: 2px solid #fbfbfb;
+}
+
+.route-node-poi {
+  width: 28px;
+  height: 28px;
+  background: #2e3f52;
+  border: 1px solid #ffffff;
 }
 
 .route-current-marker {
@@ -844,4 +860,13 @@
 .upcoming-step-text {
   color: #b9d3cd;
   font: 400 16px/1.3 "IBM Plex Sans", sans-serif;
+}
+
+.upcoming-item--dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.upcoming-drag-handle {
+  cursor: grab;
 }
