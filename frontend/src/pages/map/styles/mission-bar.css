@@ -30,6 +30,11 @@
   white-space: nowrap;
 }
 
+.mission-map-btn--active {
+  background: rgba(48, 146, 255, 0.3);
+  border-color: #3092ff;
+}
+
 .mission-stats {
   display: flex;
   gap: 80px;

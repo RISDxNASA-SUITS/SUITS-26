@@ -215,6 +215,13 @@
   background: rgba(24, 42, 82, 0.9);
   color: #edf4ff;
   font: 700 1.08rem/1 "Rajdhani", sans-serif;
+  cursor: pointer;
+}
+
+.map-tools button.map-tool-active {
+  background: rgba(48, 146, 255, 0.3);
+  border-color: #3092ff;
+  color: #ffffff;
 }
 
 @media (max-width: 680px) {

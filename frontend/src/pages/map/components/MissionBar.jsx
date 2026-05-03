@@ -2,12 +2,22 @@ import chevronDownIcon from "../../../assets/map/Chevron_Down.svg"
 import mapPinIcon from "../../../assets/map/Map_Pin.svg"
 import warningIcon from "../../../assets/map/Triangle_Warning.svg"
 
-export function MissionBar() {
+export function MissionBar({ onPoiClick, showPoiPanel }) {
   return (
     <header className="mission-bar">
       <div className="mission-bar-buttons">
-        <button type="button" className="mission-map-btn">
-          <img src={chevronDownIcon} alt="" width={24} height={24} />
+        <button
+          type="button"
+          className={`mission-map-btn${showPoiPanel ? " mission-map-btn--active" : ""}`}
+          onClick={onPoiClick}
+        >
+          <img
+            src={chevronDownIcon}
+            alt=""
+            width={24}
+            height={24}
+            style={showPoiPanel ? { transform: "rotate(180deg)" } : undefined}
+          />
           POI
         </button>
         <button type="button" className="mission-map-btn">

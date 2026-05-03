@@ -17,7 +17,7 @@ const waypoints = [
   { label: "Destination", progress: 85, done: false, destination: true },
 ]
 
-export function PathOptExpanded({ isManual, onToggleManual, onCollapse }) {
+export function PathOptExpanded({ isManual, onToggleManual, onCollapse, onOpenPoiPanel }) {
   const [selectedPois, setSelectedPois] = useState(new Set())
 
   const togglePoi = (i) => {
