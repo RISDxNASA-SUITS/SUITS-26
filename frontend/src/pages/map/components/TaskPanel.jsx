@@ -3,18 +3,85 @@ import caretIcon from "../../../assets/map/Caret_Circle_Up.svg"
 import addPlusCircleIcon from "../../../assets/map/Add_Plus_Circle.png"
 import trashIcon from "../../../assets/map/Task_Trash.svg"
 import expandIcon from "../../../assets/map/Expand.svg"
+import shrinkIcon from "../../../assets/map/Shrink.svg"
 import dotsIcon from "../../../assets/map/dots.png"
 import pathOptIcon from "../../../assets/map/Path_opt.svg"
 import chevronRightIcon from "../../../assets/map/Chevron_Right.svg"
 import { DPad } from "./DPad"
 
+const TASK_CONFIGS = {
+  "Execute LTV Search Pattern": {
+    remainingTime: "25 min",
+    pct: "56%",
+    gridCols: "29fr 53fr 29fr 89fr 39fr 73fr",
+    steps: [
+      "Generate Search Pattern",
+      "Broadcast LTV wake up signal",
+      "Navigate Search Waypoints",
+      "Detect Beacon Response <500m",
+      "Confirm LTV location",
+      "Navigate PR to LTV site",
+    ],
+    defaultActiveStep: 3,
+    defaultHasAdvanced: false,
+    upcomingEntry: { title: "Execute LTV Search Pattern", time: "25 minutes", sub: "6 sub-tasks" },
+  },
+  "Point A Terrain Scan": {
+    remainingTime: "45 min",
+    pct: "0%",
+    gridCols: "repeat(4, 1fr)",
+    steps: [
+      "Detect Beacon Response < 500 m",
+      "Confirm LTV location",
+      "Navigate PR to LTV site",
+      "Navigate PR to LTV site",
+    ],
+    defaultActiveStep: 0,
+    defaultHasAdvanced: true,
+    upcomingEntry: { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
+  },
+}
+
 export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand }) {
   const [activeTab, setActiveTab] = useState("tasks")
+  const [currentTaskOpen, setCurrentTaskOpen] = useState(true)
+  const [currentTaskKey, setCurrentTaskKey] = useState("Execute LTV Search Pattern")
+  const [activeStep, setActiveStep] = useState(3)
+  const [hasAdvanced, setHasAdvanced] = useState(false)
+  const [upcomingOpen, setUpcomingOpen] = useState(true)
+  const [expandedTasks, setExpandedTasks] = useState(new Set())
   const [upcomingTasks, setUpcomingTasks] = useState([
     { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
     { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
     { title: "Point A Terrain Scan", time: "45 minutes", sub: "4 sub-tasks" },
   ])
+
+  const toggleTaskExpand = (i) => {
+    setExpandedTasks(prev => {
+      const next = new Set(prev)
+      next.has(i) ? next.delete(i) : next.add(i)
+      return next
+    })
+  }
+
+  const task = TASK_CONFIGS[currentTaskKey]
+
+  const advanceStep = () => {
+    setHasAdvanced(true)
+    setActiveStep(s => Math.min(s + 1, task.steps.length - 1))
+  }
+
+  const skipTask = () => {
+    if (upcomingTasks.length === 0) return
+    const next = upcomingTasks[0]
+    const nextConfig = TASK_CONFIGS[next.title]
+    setUpcomingTasks(prev => [...prev.slice(1), task.upcomingEntry])
+    if (nextConfig) {
+      setCurrentTaskKey(next.title)
+      setActiveStep(nextConfig.defaultActiveStep)
+      setHasAdvanced(nextConfig.defaultHasAdvanced)
+    }
+  }
 
   const addTask = () => {
     setUpcomingTasks(prev => [...prev, { title: "New Task", time: "- minutes", sub: "- sub-tasks" }])
@@ -43,60 +110,52 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
 
         <div className="task-scroll-area">
           {activeTab === "notifications" && <div />}
-          {activeTab === "tasks" && <><section className="task-card">
-            <h2>Execute LTV Search Pattern</h2>
+          {activeTab === "tasks" && <><section className="current-task-section">
+            <header className="current-task-header" onClick={() => setCurrentTaskOpen(o => !o)}>
+              <h3 className="current-task-title">Current Task</h3>
+              <button type="button" className="icon-btn" aria-label={currentTaskOpen ? "Collapse" : "Expand"}>
+                <img src={caretIcon} alt="" width={28} height={28} style={{ transform: currentTaskOpen ? "none" : "rotate(180deg)", transition: "transform 0.2s" }} />
+              </button>
+            </header>
+          </section>
+          <section className="task-card" style={{ display: currentTaskOpen ? undefined : "none" }}>
+            <h2>{currentTaskKey}</h2>
             <div className="task-meta">
-              <span>Estimated time: 45 min</span>
-              <span>6 sub-tasks</span>
+              <span>Remaining time: {task.remainingTime}</span>
+              <span>|</span>
+              <span>{task.steps.length} steps</span>
+              <span>|</span>
+              <span>{task.pct}</span>
             </div>
 
             <div className="task-progress">
               <div className="progress-blocks-wrap">
-                <div className="progress-blocks" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                  <span className="active" />
-                  <span />
-                  <span />
+                <div className="progress-blocks" aria-hidden="true" style={{ gridTemplateColumns: task.gridCols }}>
+                  {task.steps.map((_, i) => {
+                    let cls = ""
+                    if (i === activeStep) cls = `active${hasAdvanced ? " active--advanced" : ""}`
+                    else if (i < activeStep) cls = "done"
+                    return <span key={i} className={cls} />
+                  })}
                 </div>
-              </div>
-              <div className="task-progress-meta">
-                <span>Remaining time: 25 min</span>
-                <span>56%</span>
               </div>
             </div>
 
             <ol className="task-step-list">
-              <li className="step-done">
-                <span className="step-dot" />
-                <span className="step-text">Generate Search Pattern</span>
-              </li>
-              <li className="step-done">
-                <span className="step-dot" />
-                <span className="step-text">Broadcast LTV wake up signal</span>
-              </li>
-              <li className="step-done">
-                <span className="step-dot" />
-                <span className="step-text">Navigate Search Waypoints</span>
-              </li>
-              <li className="step-current">
-                <span className="step-dot-active" />
-                <span className="step-text">Detect Beacon Response &lt;500m</span>
-              </li>
-              <li className="step-upcoming">
-                <span className="step-dot" />
-                <span className="step-text">Confirm LTV location</span>
-              </li>
-              <li className="step-upcoming">
-                <span className="step-dot" />
-                <span className="step-text">Navigate PR to LTV site</span>
-              </li>
+              {task.steps.map((label, i) => {
+                const cls = i < activeStep ? "step-done" : i === activeStep ? "step-current" : "step-upcoming"
+                return (
+                  <li key={i} className={cls}>
+                    {i === activeStep ? <span className="step-dot-active" /> : <span className="step-dot" />}
+                    <span className="step-text">{label}</span>
+                  </li>
+                )
+              })}
             </ol>
 
             <div className="task-actions">
-              <button type="button">Skip task</button>
-              <button type="button">Next Step</button>
+              <button type="button" onClick={skipTask}>Skip task</button>
+              <button type="button" onClick={advanceStep}>Next Step</button>
             </div>
           </section>
 
@@ -104,40 +163,55 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
             <header className="upcoming-header">
               <h3>Upcoming Tasks ({upcomingTasks.length})</h3>
               <div className="upcoming-icons">
-                <button type="button" className="icon-btn" aria-label="Expand">
-                  <img src={caretIcon} alt="" width={28} height={28} />
+                <button type="button" className="add-task-btn" onClick={addTask}>
+                  <img src={addPlusCircleIcon} alt="" width={18} height={18} />
+                  Add Task
+                </button>
+                <button type="button" className="icon-btn" aria-label={upcomingOpen ? "Collapse" : "Expand"} onClick={() => setUpcomingOpen(o => !o)}>
+                  <img src={caretIcon} alt="" width={28} height={28} style={{ transform: upcomingOpen ? "none" : "rotate(180deg)", transition: "transform 0.2s" }} />
                 </button>
               </div>
             </header>
 
-            <button type="button" className="add-task-btn" onClick={addTask}>
-              <img src={addPlusCircleIcon} alt="" width={18} height={18} />
-              Add Task
-            </button>
-
-            {upcomingTasks.map((task, i) => (
-              <article key={i} className="upcoming-item">
-                <div className="upcoming-item-left">
-                  <span className="upcoming-drag-handle">⋮⋮</span>
-                  <div className="upcoming-item-text">
-                    <p className="upcoming-item-title">{task.title}</p>
-                    <div className="upcoming-item-meta">
-                      <span>{task.time}</span>
-                      <span className="upcoming-dot" />
-                      <span>{task.sub}</span>
+            {upcomingOpen && upcomingTasks.map((upTask, i) => {
+              const isExpanded = expandedTasks.has(i)
+              const config = TASK_CONFIGS[upTask.title]
+              return (
+                <article key={i} className="upcoming-item">
+                  <div className="upcoming-item-row">
+                    <div className="upcoming-item-left">
+                      <span className="upcoming-drag-handle">⋮⋮</span>
+                      <div className="upcoming-item-text">
+                        <p className="upcoming-item-title">{upTask.title}</p>
+                        <div className="upcoming-item-meta">
+                          <span>{upTask.time}</span>
+                          <span className="upcoming-dot" />
+                          <span>{upTask.sub}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="upcoming-item-actions">
+                      <button type="button" className="icon-btn" aria-label="Delete" onClick={() => removeTask(i)}>
+                        <img src={trashIcon} alt="" width={18} height={18} />
+                      </button>
+                      <button type="button" className="icon-btn" aria-label={isExpanded ? "Shrink" : "Expand"} onClick={() => toggleTaskExpand(i)}>
+                        <img src={isExpanded ? shrinkIcon : expandIcon} alt="" width={20} height={20} />
+                      </button>
                     </div>
                   </div>
-                </div>
-                <div className="upcoming-item-actions">
-                  <button type="button" className="icon-btn" aria-label="Delete" onClick={() => removeTask(i)}>
-                    <img src={trashIcon} alt="" width={18} height={18} />
-                  </button>
-                  <button type="button" className="icon-btn" aria-label="Expand">
-                    <img src={expandIcon} alt="" width={20} height={20} />
-                  </button>
-                </div>
-              </article>
-            ))}
+                  {isExpanded && config && (
+                    <ol className="upcoming-step-list">
+                      {config.steps.map((label, j) => (
+                        <li key={j} className="upcoming-step-item">
+                          <span className="upcoming-step-dot" />
+                          <span className="upcoming-step-text">{label}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </article>
+              )
+            })}
           </section></>}
         </div>
       </div>
