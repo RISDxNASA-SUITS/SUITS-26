@@ -4,12 +4,14 @@ import { MissionBar } from "./components/MissionBar"
 import { MapStage } from "./components/MapStage"
 import { PathOptExpanded } from "./components/PathOptExpanded"
 import { PoiPanel } from "./components/PoiPanel"
+import { AddPoiPanel } from "./components/AddPoiPanel"
 import "./styles/index.css"
 
 export function MapPage() {
   const [isManual, setIsManual] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [showPoiPanel, setShowPoiPanel] = useState(false)
+  const [showAddPoi, setShowAddPoi] = useState(false)
 
   return (
     <main className="map-page-shell">
@@ -20,8 +22,16 @@ export function MapPage() {
         onToggleExpand={() => setIsExpanded(true)}
       />
       <section className="map-workspace" aria-label="Map workspace">
-        <MissionBar onPoiClick={() => setShowPoiPanel(p => !p)} showPoiPanel={showPoiPanel} />
-        <MapStage poiPanel={showPoiPanel ? <PoiPanel onClose={() => setShowPoiPanel(false)} /> : null} />
+        <MissionBar
+          onPoiClick={() => setShowPoiPanel(p => !p)}
+          showPoiPanel={showPoiPanel}
+          onAddPoiClick={() => setShowAddPoi(p => !p)}
+          showAddPoi={showAddPoi}
+        />
+        <MapStage
+          poiPanel={showPoiPanel ? <PoiPanel onClose={() => setShowPoiPanel(false)} /> : null}
+          addPoiPanel={showAddPoi ? <AddPoiPanel onClose={() => setShowAddPoi(false)} /> : null}
+        />
       </section>
       {isExpanded && (
         <PathOptExpanded
