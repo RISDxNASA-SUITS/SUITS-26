@@ -1,5 +1,5 @@
 .map-page-shell {
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   padding: 0.55rem;
   display: grid;
@@ -10,7 +10,10 @@
 
 .map-workspace {
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: start;
   gap: 0.6rem;
+  min-height: 0;
 }
 
 .mission-bar,
@@ -30,10 +33,6 @@
 @media (max-width: 1024px) {
   .map-page-shell {
     grid-template-columns: 1fr;
-  }
-
-  .map-stage {
-    min-height: 70vh;
   }
 
   .task-panel {
