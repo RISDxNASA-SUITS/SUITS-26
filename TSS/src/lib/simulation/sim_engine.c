@@ -506,6 +506,8 @@ void sim_engine_update(sim_engine_t* engine, float delta_time) {
             if(engine->num_task_board_errors == 0 && eva1->simulation_time == (engine->time_to_complete_task_board + engine->error_time)) {
                 throw_random_error(engine);
                 printf("Error thrown at simulation time: %.2f seconds\n", eva1->simulation_time);
+            } else if(eva1->simulation_time == (engine->time_to_complete_task_board + engine->error_time)) {
+                engine->time_to_complete_task_board = engine->time_to_complete_task_board+1;
             }
         } else {
             printf("Simulation tried to access non-existent component 'eva1'\n");
@@ -631,6 +633,16 @@ void sim_engine_reset_component(sim_engine_t* engine, const char* component_name
         sim_field_t* field = &target_component->fields[j];
         field->algorithm = field->starting_algorithm; // Reset to starting algorithm
         field->current_value.f = field->start_value.f; // Reset to starting value
+    }
+
+    //send reset command to LTV
+    if (engine->ltv_reset) {
+        engine->ltv_reset(engine->ltv_ctx);
+    }
+
+    //also reset errors on our end just in case LTV isn't connected
+    if (engine->reset_errors) {
+        engine->reset_errors(engine->reset_ctx);
     }
 
     printf("Reset component '%s' simulation\n", component_name);

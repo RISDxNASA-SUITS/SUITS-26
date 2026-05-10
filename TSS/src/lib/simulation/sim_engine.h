@@ -38,6 +38,10 @@ typedef union {
     float f;
 } sim_value_t;
 
+//typedef for ltv reset function
+typedef void (*ltv_reset_fn)(void* ctx);
+typedef void (*sim_reset_errors_fn)(void* ctx);
+
 typedef struct {
     char* field_name;
     char* component_name;
@@ -111,6 +115,12 @@ typedef struct {
 
     sim_DCU_field_settings_t* dcu_field_settings;
     sim_UIA_field_settings_t* uia_field_settings;
+
+    ltv_reset_fn ltv_reset;
+    void* ltv_ctx;
+
+    sim_reset_errors_fn reset_errors;
+    void* reset_ctx;
 
     bool initialized;
 } sim_engine_t;

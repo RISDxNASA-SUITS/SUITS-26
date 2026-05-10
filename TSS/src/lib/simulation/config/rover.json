@@ -15,13 +15,6 @@
       "field_path": "pr_telemetry.cabin_cooling",
       "reset_value": false
     },
-    "co2_scrubber": {
-      "type": "float",
-      "algorithm": "external_value",
-      "file_path": "ROVER.json",
-      "field_path": "pr_telemetry.co2_scrubber",
-      "reset_value": false
-    },
     "lights_on": {
       "type": "float",
       "algorithm": "external_value",
@@ -144,7 +137,7 @@
     "cabin_temperature": {
       "type": "float",
       "algorithm": "linear_growth",
-      "start_value": 0,
+      "start_value": 10,
       "max_value": 50.0,
       "min_value": -50,
       "rate": 0.1
@@ -153,13 +146,13 @@
     "cabin_temperature_target": {
       "type": "float",
       "algorithm": "dependent_value",
-      "formula": "external_temp * 0.15 + cabin_heating * 15.0 - cabin_cooling * 10.0 + 20.0",
+      "formula": "external_temp * 0.07 + cabin_heating * 10.0 - cabin_cooling * 10.0 + 25.0",
       "depends_on": ["external_temp", "cabin_heating", "cabin_cooling"]
     },
     "external_temp": {
       "type": "float",
       "algorithm": "dependent_value",
-      "formula": "-173.0 + sunlight * 3.0",
+      "formula": "-173.0 + sunlight * 0.03",
       "depends_on": ["sunlight"]
     },
     "coolant_storage": {
@@ -183,8 +176,9 @@
     },
     "secondary_battery_level": {
       "type": "float",
-      "algorithm": "constant_value",
-      "value": 100.0
+      "algorithm": "linear_decay",
+      "start_value": 100.0,
+      "rate": 0.0
     },
     "rover_elapsed_time": {
       "type": "float",

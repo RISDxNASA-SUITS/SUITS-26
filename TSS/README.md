@@ -100,7 +100,7 @@ The umbilical interface assembly (UIA) is a component used at the beginning of a
 
 The display and control unit (DCU) used for this challenge is a component that allows the user to control various settings of their suit's operation during an EVA. For example, if scrubber A's CO2 storage fills up, you could flip a switch on the DCU to flush it while switching to scrubber B.
 
-<img src="documents/peripherals/dcu.jpeg" style="height: 300px"/>
+<img src="documents/peripherals/dcu_front_new.jpg" style="height: 225px"/> <img src="documents/peripherals/dcu_top_new.jpg" style="height: 225px"/>
 
 | Sensor  | Value True | Value False     | Description                                                                                           |
 | ------- | ---------- | --------------- | ----------------------------------------------------------------------------------------------------- |
@@ -172,6 +172,8 @@ These are the commands you can send to the server to fetch the telemetry data as
 | 1              | [EVA.json](/data/EVA.json)     |
 | 2              | [LTV.json](/data/LTV.json)     |
 | 3              | [LTV_ERRORS.json](data/LTV_ERRORS.json) |
+
+<mark>NOTE on the LTV_ERRORS.json file: you will not be able to access any error codes nor procedures besides the Recovery Mode error code and procedures until the Recovery Mode error is resolved. Once the Recovery Mode error is resolved, you can see the Recovery Mode error code and procedures as well as other error codes and procedures. Be sure to keep polling for errors as other error codes and procedures may arise once others are resolved.</mark>
 
 When fetching data, we recommend doing so in one second intervals. Telemetry data is calculated and updated in one second increments, so increasing the request rate in your programs will not make any difference.
 

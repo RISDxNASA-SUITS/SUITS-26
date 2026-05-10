@@ -151,7 +151,7 @@
       "algorithm": "linear_decay",
       "min_value": 0.0,
       "max_value": 100.0,
-      "start_value": 100.0,
+      "start_value": 0.0,
       "rate": 0.05
     },
     "coolant_gas_pressure": {

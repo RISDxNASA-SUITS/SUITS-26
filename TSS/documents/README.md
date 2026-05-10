@@ -10,6 +10,7 @@
 |               | [suits-acronym-list.pdf](./mission_description/suits-acronym-list.pdf) | Shorthand terminology reference |
 | **[peripherals](./peripherals/)** | [dcu.jpeg](./peripherals/dcu.jpeg) | Display Control Unit image |
 |               | [uia.jpeg](./peripherals/uia.jpeg) | User Interface Assembly image |
+| **[peripherals/task_board](./peripherals/task_board/)** | Numerous photos | Full suite of task board images |
 | **[procedures](./procedures/)** | [ev-team-procedure-timeline.pdf](./procedures/ev-team-procedure-timeline.pdf) | EV team session timeline |
 |               | [ev-team-coordinates.pdf](./procedures/ev-team-coordinates.pdf) | Fixed Rockyard Coordinates for LTV |
 |               | [ltv-repair-procedures.pdf](./procedures/ltv-repair-procedures.pdf) | LTV procedures for repair |

@@ -51,6 +51,7 @@ void send_json_file(const char* filename, unsigned char* data);
 void send_recovery_mode_json_file(const char* filename, unsigned char* data);
 void update_eva_station_timing(void);
 void reset_eva_station_timing(void);
+void backend_reset_errors(void* ctx);
 void update_sim_DCU_field_settings(sim_engine_t* sim_engine);
 void update_error_states(sim_engine_t* sim_engine);
 void update_EVA_error_simulation_error_states(sim_engine_t* sim_engine);
@@ -59,6 +60,7 @@ void update_fan_error_state(sim_engine_t* sim_engine);
 void update_power_error_state(sim_engine_t* sim_engine);
 void update_scrubber_state_EVA(sim_engine_t* sim_engine);
 void update_num_remaining_errors_LTV(sim_engine_t* engine);
+void update_ltv_error_dependencies();
 
 //UIA related functions
 void update_sim_UIA_field_settings(sim_engine_t* sim_engine);
@@ -131,14 +133,15 @@ static const udp_command_mapping_t udp_command_mappings[] = {
     {2021, "eva.imu.eva2.posy", "float"},
     {2022, "eva.imu.eva2.heading", "float"},
 
-    //LTV command
-    {2023, "ltv_errors.error_procedures.4.needs_resolved", "bool"},
-    {2024, "ltv_errors.error_procedures.5.needs_resolved", "bool"},
-    {2025, "ltv_errors.error_procedures.6.needs_resolved", "bool"},
-    {2026, "ltv.errors.nav_system", "bool"},
-    {2027, "ltv.errors.electronic_heater", "bool"},
-    {2028, "ltv.errors.comms", "bool"},
-    {2029, "ltv.errors.fuse", "bool"},
+    //LTV Error commands
+    {2023, "ltv_errors.error_procedures.0.needs_resolved", "bool"},
+    {2024, "ltv_errors.error_procedures.1.needs_resolved", "bool"},
+    {2025, "ltv_errors.error_procedures.2.needs_resolved", "bool"},
+    {2026, "ltv_errors.error_procedures.3.needs_resolved", "bool"},
+    {2027, "ltv_errors.error_procedures.4.needs_resolved", "bool"},
+    {2028, "ltv_errors.error_procedures.5.needs_resolved", "bool"},
+    {2029, "ltv_errors.error_procedures.6.needs_resolved", "bool"},
+    {2030, "ltv_errors.error_procedures.7.needs_resolved", "bool"},
 
     
     // Ping LTV command

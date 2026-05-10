@@ -352,7 +352,6 @@ bool initialize_LTV_ERRORS_json_switch_states() {
         return false;
     }
 
-    ///////////////get error_procedures array///////////////
     cJSON* error_procedures = cJSON_GetObjectItem(errors_json, "error_procedures");
     if (!error_procedures || !cJSON_IsArray(error_procedures)) {
         printf("Error: Failed to get error_procedures array from LTV_ERRORS config file\n");
@@ -360,20 +359,25 @@ bool initialize_LTV_ERRORS_json_switch_states() {
         return false;
     }
 
-    ///////////////set all needs_resolved values to true///////////////
     cJSON* error = NULL;
+    int index = 0;
+
     cJSON_ArrayForEach(error, error_procedures) {
 
-        cJSON_ReplaceItemInObject(error, "needs_resolved", cJSON_CreateBool(1));
+        // Set index 4 and 5 to false, everything else true
+        int value = (index == 4 || index == 5) ? 0 : 1;
+
+        cJSON_ReplaceItemInObject(error, "needs_resolved", cJSON_CreateBool(value));
 
         if (!cJSON_GetObjectItem(error, "needs_resolved")) {
             printf("Error: Failed to set needs_resolved in LTV_ERRORS config file\n");
             cJSON_Delete(errors_json);
             return false;
         }
+
+        index++;
     }
 
-    ///////////////write to JSON file///////////////
     char *json_string = cJSON_Print(errors_json);
 
     FILE *file = fopen("data/LTV_ERRORS.json", "w");
@@ -930,6 +934,83 @@ void update_num_remaining_errors_LTV(sim_engine_t* engine) {
     cJSON_Delete(ltv_errors_json);
 }
 
+void update_ltv_error_dependencies() {
+    cJSON* root = get_json_file("LTV_ERRORS");
+    if (!root) return;
+
+    cJSON* arr = cJSON_GetObjectItem(root, "error_procedures");
+    if (!cJSON_IsArray(arr)) {
+        cJSON_Delete(root);
+        return;
+    }
+
+    cJSON* poor_comms = NULL;     // 3452
+    cJSON* comms_reboot = NULL;   // 2441
+    cJSON* subsystem_bus = NULL;  // 4968
+
+    // Find the relevant errors by code
+    cJSON* item = NULL;
+    cJSON_ArrayForEach(item, arr) {
+        cJSON* code = cJSON_GetObjectItem(item, "code");
+        if (!cJSON_IsString(code)) continue;
+
+        if (strcmp(code->valuestring, "3452") == 0) {
+            poor_comms = item;
+        } else if (strcmp(code->valuestring, "2441") == 0) {
+            comms_reboot = item;
+        } else if (strcmp(code->valuestring, "4968") == 0) {
+            subsystem_bus = item;
+        }
+    }
+
+    if (!poor_comms || !comms_reboot || !subsystem_bus) {
+        printf("Error: Missing required error codes\n");
+        cJSON_Delete(root);
+        return;
+    }
+
+    cJSON* poor_val = cJSON_GetObjectItem(poor_comms, "needs_resolved");
+    cJSON* reboot_val = cJSON_GetObjectItem(comms_reboot, "needs_resolved");
+
+    if (!cJSON_IsBool(poor_val) || !cJSON_IsBool(reboot_val)) {
+        cJSON_Delete(root);
+        return;
+    }
+
+
+    bool poor_resolved = !cJSON_IsTrue(poor_val);
+    bool reboot_resolved = !cJSON_IsTrue(reboot_val);
+
+    static bool poor_resolved_previous = 0;
+    static bool reboot_resolved_previous = 1;
+
+    if ((poor_resolved && poor_resolved_previous!=poor_resolved) || (reboot_resolved && reboot_resolved_previous!=reboot_resolved)) {
+        // Turn ON subsystem power bus error (needs_resolved = true)
+        cJSON_ReplaceItemInObject(subsystem_bus, "needs_resolved", cJSON_CreateBool(1));
+        printf("Subsystem Power Bus Error triggered due to dependencies\n");
+    }
+
+    if ((!poor_resolved && poor_resolved_previous!=poor_resolved) || (!reboot_resolved && reboot_resolved_previous!=reboot_resolved)) {
+        // Turn ON subsystem power bus error (needs_resolved = true)
+        cJSON_ReplaceItemInObject(subsystem_bus, "needs_resolved", cJSON_CreateBool(0));
+        printf("Subsystem Power Bus Error untriggered due to dependencies\n");
+    }
+
+    poor_resolved_previous = poor_resolved;
+    reboot_resolved_previous = reboot_resolved;
+
+    // Write back to file
+    char* out = cJSON_Print(root);
+    FILE* fp = fopen("data/LTV_ERRORS.json", "w");
+    if (fp) {
+        fputs(out, fp);
+        fclose(fp);
+    }
+
+    free(out);
+    cJSON_Delete(root);
+}
+
 /**
 * updates the O2 error state based on the current DCU field settings and o2 value.
 * If the DCU command for O2 is set to false, the O2 error state will be set to false (no error).
@@ -1253,6 +1334,7 @@ void increment_simulation(struct backend_data_t *backend) {
             update_sim_UIA_connected(backend->sim_engine);
             cabin_temperature_control(backend->sim_engine);
             sim_engine_update(backend->sim_engine, delta_time);
+            update_ltv_error_dependencies();
             update_num_remaining_errors_LTV(backend->sim_engine);
             
 
@@ -1286,47 +1368,34 @@ void cleanup_backend(struct backend_data_t *backend) {
 */
 bool is_recovery_mode_resolved() {
     cJSON* ltv_errors_json = get_json_file("LTV_ERRORS");
-    if (!ltv_errors_json) {
-        printf("Error: Failed to load LTV_ERRORS config file in is_recovery_mode_resolved\n");
-        return false;
-    }
+    if (!ltv_errors_json) return false;
 
+    bool result = false;
     cJSON* error_array = cJSON_GetObjectItem(ltv_errors_json, "error_procedures");
-    if (!cJSON_IsArray(error_array)) {
-        printf("Failed to get 'error_procedures' array from LTV_ERRORS JSON\n");
-        cJSON_Delete(ltv_errors_json);
-        return false;
-    }
+    
+    if (cJSON_IsArray(error_array)) {
+        int count = cJSON_GetArraySize(error_array);
+        for (int i = 0; i < count; i++) {
+            cJSON* error_item = cJSON_GetArrayItem(error_array, i);
+            if (!error_item) continue;
 
-    int count = cJSON_GetArraySize(error_array);
-
-    for (int i = 0; i < count; i++) {
-        cJSON* error_item = cJSON_GetArrayItem(error_array, i);
-        if (!cJSON_IsObject(error_item)) {
-            continue;
-        }
-
-        cJSON* description = cJSON_GetObjectItem(error_item, "description");
-        if (cJSON_IsString(description) &&
-            strcmp(description->valuestring, "Recovery Mode") == 0) {
-
-            cJSON* needs_resolved =
-                cJSON_GetObjectItem(error_item, "needs_resolved");
-
-            if (cJSON_IsBool(needs_resolved)) {
-                bool resolved = !cJSON_IsTrue(needs_resolved);
-                cJSON_Delete(ltv_errors_json);
-                return resolved;
+            cJSON* desc_obj = cJSON_GetObjectItem(error_item, "description");
+            
+            // Explicit check to ensure valuestring exists
+            if (cJSON_IsString(desc_obj) && desc_obj->valuestring != NULL) {
+                if (strcmp(desc_obj->valuestring, "Exit Recovery Mode (ERM)") == 0) {
+                    cJSON* needs_resolved = cJSON_GetObjectItem(error_item, "needs_resolved");
+                    if (cJSON_IsBool(needs_resolved)) {
+                        result = !cJSON_IsTrue(needs_resolved);
+                    }
+                    break; 
+                }
             }
-
-            printf("'needs_resolved' missing or invalid for Recovery Mode\n");
-            break;
         }
     }
 
-    printf("Recovery Mode entry not found in LTV_ERRORS\n");
     cJSON_Delete(ltv_errors_json);
-    return false;
+    return result;
 }
 
 
@@ -1858,6 +1927,21 @@ void sync_simulation_to_json(struct backend_data_t* backend) {
     
     free(rover_json_str);
     cJSON_Delete(rover_root);
+}
+
+void backend_reset_errors(void* ctx) {
+    struct backend_data_t* backend = ctx;
+
+    update_json_file("LTV_ERRORS", "error_procedures", "0.needs_resolved", "true");
+    update_json_file("LTV_ERRORS", "error_procedures", "1.needs_resolved", "true");
+    update_json_file("LTV_ERRORS", "error_procedures", "2.needs_resolved", "true");
+    update_json_file("LTV_ERRORS", "error_procedures", "3.needs_resolved", "true");
+    update_json_file("LTV_ERRORS", "error_procedures", "4.needs_resolved", "false");
+    update_json_file("LTV_ERRORS", "error_procedures", "5.needs_resolved", "false");
+    //update_json_file("LTV_ERRORS", "error_procedures", "6.needs_resolved", "true");
+    //update_json_file("LTV_ERRORS", "error_procedures", "7.needs_resolved", "true");
+
+    printf("LTV errors reset via update_json_file\n");
 }
 
 /**

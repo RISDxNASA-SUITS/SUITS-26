@@ -17,11 +17,21 @@
 #define TSS_TO_UNREAL_THROTTLE_COMMAND 2003
 #define TSS_TO_UNREAL_PING_COMMAND 2005
 
+//LTV Communication Command
+#define TSS_TO_LTV_RESET_COMMAND 4001
+
 // Server Configuration
 #define UNREAL_UPDATE_INTERVAL_SEC 1.0
 
 #define LIDAR_NUM_POINTS 17 // number of LiDAR points expected from the DUST sim to allocate in memory
 
 extern struct profile_context_t profile_context;
+
+typedef struct server_context_t {
+    SOCKET udp_socket;
+    struct sockaddr_in ltv_addr;
+    socklen_t ltv_addr_len;
+    struct backend_data_t *backend;
+} server_context_t; 
 
 #endif // SERVER_H
