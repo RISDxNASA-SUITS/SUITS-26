@@ -1,0 +1,15 @@
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+def test_agent_status_and_alerts():
+    client = TestClient(app)
+    r = client.get("/agent/status")
+    assert r.status_code == 200
+    data = r.json()
+    assert "agentic_enabled" in data
+    assert "telemetry_json_poll" in data
+    r2 = client.get("/agent/alerts")
+    assert r2.status_code == 200
+    assert r2.json() == []

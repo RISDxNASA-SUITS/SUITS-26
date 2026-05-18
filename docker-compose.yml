@@ -1,0 +1,11 @@
+services:
+  eva:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Same-origin in browser; adjust if you expose a different public URL.
+      EVA_CORS_ORIGINS: '["http://localhost:8000"]'
+      EVA_ASR_ENABLED: "true"
