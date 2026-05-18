@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.models.live_telemetry import LiveTelemetryBundle
 from app.models.telemetry import TelemetrySnapshot
 
 # Scrubber storage fill levels (0–100 scale from TSS).
@@ -20,6 +21,10 @@ def _float(value: Any, default: float = 0.0) -> float:
 
 def _clamp_pct(value: float) -> float:
     return max(0.0, min(100.0, value))
+
+
+def _dcu_from_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
+    return bundle.get("dcu1") or bundle.get("dcu") or {}
 
 
 def map_co2_status(ev1: dict[str, Any], errors: dict[str, Any]) -> str:
@@ -60,14 +65,19 @@ def map_ltv_status(ltv: dict[str, Any], ltv_errors: dict[str, Any]) -> str:
     return "idle"
 
 
-def build_snapshot(bundle: dict[str, Any]) -> TelemetrySnapshot:
-    """Build TelemetrySnapshot from fetch_live_telemetry_bundle() output."""
-    ev1 = bundle["ev1"]
-    dcu = bundle["dcu"]
-    errors = bundle["errors"]
-    rover = bundle["rover"]
-    ltv = bundle["ltv"]
-    ltv_errors = bundle["ltv_errors"]
+def build_snapshot(bundle: LiveTelemetryBundle | dict[str, Any]) -> TelemetrySnapshot:
+    """Build TelemetrySnapshot from a live telemetry bundle."""
+    if isinstance(bundle, LiveTelemetryBundle):
+        data = bundle.model_dump()
+    else:
+        data = bundle
+
+    ev1 = data["ev1"]
+    dcu = _dcu_from_bundle(data)
+    errors = data["errors"]
+    rover = data["rover"]
+    ltv = data["ltv"]
+    ltv_errors = data["ltv_errors"]
 
     safe_range = _float(rover.get("pointOfNoReturn"), default=0.0)
     if safe_range <= 0.0:

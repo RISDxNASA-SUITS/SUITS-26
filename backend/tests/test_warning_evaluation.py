@@ -4,6 +4,7 @@ from app.services.warning_evaluation import (
     PRIMARY_O2_CAUTION_PCT,
     list_warnings,
 )
+from tests.fixtures.live_telemetry_bundle import FIXTURE_BUNDLE
 
 
 def _snap(**kwargs) -> TelemetrySnapshot:
@@ -48,3 +49,29 @@ def test_return_margin_low():
 def test_comms_degraded():
     w = list_warnings(_snap(comms_status="degraded"))
     assert any(x.code == "COMMS_DEGRADED" for x in w)
+
+
+def test_bundle_fan_error():
+    bundle = FIXTURE_BUNDLE.model_copy(deep=True)
+    bundle.errors = {"fan_error": True, "oxy_error": False, "pump_error": False}
+    w = list_warnings(_snap(), bundle)
+    assert any(x.code == "FAN_ERROR" for x in w)
+
+
+def test_bundle_secondary_o2_low_ev2():
+    w = list_warnings(_snap(), FIXTURE_BUNDLE)
+    codes = [x.code for x in w]
+    assert "SECONDARY_O2_LOW_EV2" in codes
+    assert "HEART_RATE_HIGH_EV2" in codes
+    assert "DCU_FAN_DEGRADED_EV2" in codes
+
+
+def test_bundle_ltv_fault():
+    bundle = FIXTURE_BUNDLE.model_copy(deep=True)
+    bundle.ltv_errors = {
+        "error_procedures": [
+            {"code": "4155", "needs_resolved": True, "description": "LTV fault", "procedures": []}
+        ]
+    }
+    w = list_warnings(_snap(), bundle)
+    assert any(x.code == "LTV_FAULT" for x in w)

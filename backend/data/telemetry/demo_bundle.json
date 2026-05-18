@@ -1,0 +1,80 @@
+{
+  "ev1": {
+    "oxy_pri_storage": 96.2,
+    "oxy_sec_storage": 94.8,
+    "batt_time_left": 82.0,
+    "scrubber_a_co2_storage": 15.0,
+    "scrubber_b_co2_storage": 18.0,
+    "helmet_pressure_co2": 2.0,
+    "heart_rate": 78.0,
+    "temperature": 22.0
+  },
+  "ev2": {
+    "oxy_pri_storage": 95.5,
+    "oxy_sec_storage": 94.0,
+    "batt_time_left": 81.0,
+    "scrubber_a_co2_storage": 16.0,
+    "scrubber_b_co2_storage": 19.0,
+    "helmet_pressure_co2": 2.1,
+    "heart_rate": 76.0,
+    "temperature": 22.0
+  },
+  "dcu1": {
+    "battery": "LOCAL",
+    "oxygen": "PRI",
+    "comms": "A",
+    "fan": "PRI",
+    "pump": "OPEN",
+    "co2": "A"
+  },
+  "dcu2": {
+    "battery": "LOCAL",
+    "oxygen": "PRI",
+    "comms": "A",
+    "fan": "PRI",
+    "pump": "OPEN",
+    "co2": "A"
+  },
+  "errors": {
+    "fan_error": false,
+    "oxy_error": false,
+    "pump_error": false
+  },
+  "imu1": { "posx": 10.0, "posy": 20.0, "heading": 31.0 },
+  "imu2": { "posx": 12.0, "posy": 22.0, "heading": 35.0 },
+  "uia": {
+    "eva1_power": true,
+    "eva1_oxy": true,
+    "eva1_water_supply": true,
+    "eva1_water_waste": true,
+    "eva2_power": true,
+    "eva2_oxy": true,
+    "eva2_water_supply": true,
+    "eva2_water_waste": true,
+    "oxy_vent": false,
+    "depress": false
+  },
+  "eva_states": {
+    "started": true,
+    "paused": false,
+    "completed": false,
+    "total_time": 1115.0
+  },
+  "rover": {
+    "pointOfNoReturn": 142.0,
+    "distanceFromBase": 180.0,
+    "batteryLevel": 82.0,
+    "currentPosX": -5800.0,
+    "currentPosY": -10400.0
+  },
+  "lidar": { "data": [120.0, 250.0, -1.0] },
+  "ltv": {
+    "location": { "last_known_x": -5839.0, "last_known_y": -10460.0 },
+    "signal": {
+      "strength": -50.0,
+      "ping_requested": false,
+      "ping_unlimited_requested": false
+    }
+  },
+  "ltv_errors": { "error_procedures": [] }
+}

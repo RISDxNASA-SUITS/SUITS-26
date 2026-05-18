@@ -12,7 +12,6 @@ from app.services.java_telemetry_client import (
     JavaTelemetryError,
     fetch_live_telemetry_bundle,
 )
-from app.services.java_telemetry_mapper import build_snapshot
 from app.services.live_telemetry_state import live_telemetry_state
 from app.services.telemetry_service import telemetry_service
 
@@ -22,12 +21,11 @@ _java_error_logged = False
 
 
 def poll_java_telemetry_once(client: JavaTelemetryClient | None = None) -> None:
-    """Fetch from Java, update snapshot, and set live_telemetry_state."""
+    """Fetch from Java, update bundle + snapshot, and set live_telemetry_state."""
     global _java_error_logged
     try:
         bundle = fetch_live_telemetry_bundle(client)
-        snap = build_snapshot(bundle)
-        telemetry_service.replace_snapshot(snap)
+        telemetry_service.replace_bundle(bundle)
         live_telemetry_state.set_ok(True)
         _java_error_logged = False
     except JavaTelemetryError as exc:

@@ -26,13 +26,13 @@ _prev_codes: frozenset[str] = frozenset()
 _seq = 0
 
 
-def _alert_messages(warnings: list[WarningItem], snapshot_dict: dict) -> list[dict[str, str]]:
+def _alert_messages(warnings: list[WarningItem], telemetry_context: dict) -> list[dict[str, str]]:
     lines = [f"- {w.code} ({w.severity}): {w.message}" for w in warnings]
-    payload = json.dumps(snapshot_dict, indent=2)
+    payload = json.dumps(telemetry_context, indent=2)
     user = (
         "New warnings just appeared:\n"
         + "\n".join(lines)
-        + "\n\nTelemetry context (subset):\n"
+        + "\n\nFull mission telemetry JSON:\n"
         + payload
         + "\n\nSpeak the alert to the astronaut."
     )
@@ -45,7 +45,8 @@ def _alert_messages(warnings: list[WarningItem], snapshot_dict: dict) -> list[di
 def _tick() -> None:
     global _prev_codes, _seq
     snap = telemetry_service.get_snapshot()
-    warnings = list_warnings(snap)
+    bundle = telemetry_service.get_bundle()
+    warnings = list_warnings(snap, bundle)
     codes = frozenset(w.code for w in warnings)
     gained = codes - _prev_codes
     _prev_codes = codes
@@ -54,8 +55,10 @@ def _tick() -> None:
     triggered = [w for w in warnings if w.code in gained]
     if not triggered:
         return
-    snap_dict = snap.model_dump()
-    out = llm_client.chat_completion(_alert_messages(triggered, snap_dict))
+    context: dict = {"summary": snap.model_dump()}
+    if bundle is not None:
+        context["bundle"] = bundle.model_dump()
+    out = llm_client.chat_completion(_alert_messages(triggered, context))
     if not out.ok:
         event_log_service.append_event(
             "error",

@@ -6,6 +6,9 @@ def test_default_snapshot_fields():
     svc = TelemetryService()
     svc.seed_training()
     snap = svc.get_snapshot()
+    bundle = svc.get_bundle()
+    assert bundle is not None
+    assert bundle.ev1["oxy_pri_storage"] == 99.0
     assert snap.primary_o2_pct == 99.0
     assert snap.secondary_o2_pct == 98.5
     assert snap.battery_pct == 87.0

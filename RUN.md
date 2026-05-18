@@ -105,9 +105,11 @@ Check:
 curl -s http://localhost:8000/health
 curl -s http://localhost:8000/agent/status
 curl -s http://localhost:8000/telemetry
+curl -s http://localhost:8000/telemetry/full | head -c 200
 ```
 
-If `/telemetry` returns **503**, TSS/Java is not reachable — fix Step 1 first.
+If `/telemetry` returns **503**, TSS/Java is not reachable — fix Step 1 first.  
+**`/telemetry/full`** returns the full Java mission bundle (EV1/EV2, DCU, errors, IMU, UIA, EVA state, rover, lidar, LTV) used by AIA for warnings and agentic Q&A.
 
 ---
 
@@ -158,7 +160,7 @@ With agentic **off**, use **exact** phrases (see below).
 
 | Variable | Typical value | Meaning |
 |----------|---------------|---------|
-| `EVA_LIVE_TELEMETRY` | `true` | Read real suit data from Java/TSS |
+| `EVA_LIVE_TELEMETRY` | `true` | Poll all Java mission telemetry endpoints into AIA |
 | `EVA_JAVA_BACKEND_URL` | `http://localhost:7070` | Java API (Docker maps 7070) |
 | `EVA_DEMO_MODE` | `true` | Mission starts in `EGRESS` for demos |
 | `EVA_ASR_ENABLED` | `true` | Microphone → local Whisper |

@@ -40,6 +40,10 @@ def test_agentic_telemetry_branch():
     assert r.success
     assert r.parsed_intent == "agent_telemetry"
     assert r.response_text == "Oxygen is fine."
+    telemetry_user = calls[1][1]["content"]
+    assert "bundle" in telemetry_user
+    assert "ev1" in telemetry_user
+    assert "ev2" in telemetry_user
 
 
 def test_agentic_router_llm_error():

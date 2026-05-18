@@ -19,7 +19,7 @@ def process_new_warnings() -> None:
     """Log warning events for newly gained codes."""
     global _prev_codes
     snap = telemetry_service.get_snapshot()
-    warnings = list_warnings(snap)
+    warnings = list_warnings(snap, telemetry_service.get_bundle())
     codes = frozenset(w.code for w in warnings)
     gained = codes - _prev_codes
     _prev_codes = codes

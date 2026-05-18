@@ -13,6 +13,8 @@ def test_telemetry_503_when_live_enabled_and_java_unreachable(monkeypatch):
     assert r.status_code == 503
     r2 = client.get("/telemetry/warnings")
     assert r2.status_code == 503
+    r3 = client.get("/telemetry/full")
+    assert r3.status_code == 503
 
 
 def test_telemetry_update_409_when_live_enabled(monkeypatch):

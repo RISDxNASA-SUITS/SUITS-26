@@ -34,8 +34,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | Method | Path | Purpose |
 |--------|------|---------|
 | `POST` | `/command` | Natural-language command; returns `success`, `error_code`, `response_text`, etc. |
-| `GET` | `/telemetry` | Suit telemetry (live from Java when enabled; 503 if unreachable) |
-| `GET` | `/telemetry/warnings` | Derived warnings from thresholds |
+| `GET` | `/telemetry` | 7-field suit summary (derived from Java bundle) |
+| `GET` | `/telemetry/full` | Full raw Java mission telemetry bundle (EV1/EV2, DCU, rover, LTV, etc.) |
+| `GET` | `/telemetry/warnings` | Derived warnings from summary + raw bundle |
 | `POST` | `/telemetry/update` | Partial update (disabled when live telemetry is on) |
 | `GET` | `/mission` | Current phase |
 | `POST` | `/mission/phase` | Set phase |

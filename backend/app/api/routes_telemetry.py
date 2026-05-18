@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import settings
+from app.models.live_telemetry import LiveTelemetryBundle
 from app.models.telemetry import TelemetrySnapshot, TelemetryUpdate
 from app.models.warning import WarningItem
 from app.services.live_telemetry_state import live_telemetry_state
@@ -24,11 +25,21 @@ def get_telemetry() -> TelemetrySnapshot:
     return telemetry_service.get_snapshot()
 
 
+@router.get("/full", response_model=LiveTelemetryBundle)
+def get_telemetry_full() -> LiveTelemetryBundle:
+    """Full raw Java mission telemetry bundle from last successful poll."""
+    _require_live_telemetry_available()
+    bundle = telemetry_service.get_bundle()
+    if bundle is None:
+        raise HTTPException(status_code=503, detail="Telemetry bundle not available.")
+    return bundle
+
+
 @router.get("/warnings", response_model=list[WarningItem])
 def get_telemetry_warnings() -> list[WarningItem]:
-    """Derived caution/warning list from current telemetry."""
+    """Derived caution/warning list from summary and raw Java bundle."""
     _require_live_telemetry_available()
-    return list_warnings(telemetry_service.get_snapshot())
+    return list_warnings(telemetry_service.get_snapshot(), telemetry_service.get_bundle())
 
 
 @router.post("/update", response_model=TelemetrySnapshot)

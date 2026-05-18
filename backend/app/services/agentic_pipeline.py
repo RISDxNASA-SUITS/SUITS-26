@@ -29,6 +29,7 @@ Rules:
 - "reason" is optional short note for logging; may be null."""
 
 TELEMETRY_SYSTEM = """You are EVA suit telemetry voice assistant. Answer ONLY using the JSON data provided.
+The payload includes summary (derived fields) and bundle (raw Java: ev1, ev2, dcu1, dcu2, errors, imu, uia, eva_states, rover, lidar, ltv).
 If the data does not contain the answer, say you cannot determine from current telemetry.
 Keep answers to one or two short sentences, plain text, suitable for text-to-speech (spell out units, avoid symbols like subscripts)."""
 
@@ -114,8 +115,11 @@ def run_agentic_pipeline(input_text: str) -> CommandResponse:
                 response_text="Telemetry unavailable. Unable to answer status questions.",
             )
         snap = telemetry_service.get_snapshot()
-        snap_dict: dict[str, Any] = snap.model_dump()
-        t_out = llm_client.chat_completion(_telemetry_messages(snap_dict, raw_in))
+        bundle = telemetry_service.get_bundle()
+        telemetry_context: dict[str, Any] = {"summary": snap.model_dump()}
+        if bundle is not None:
+            telemetry_context["bundle"] = bundle.model_dump()
+        t_out = llm_client.chat_completion(_telemetry_messages(telemetry_context, raw_in))
         if not t_out.ok:
             return CommandResponse(
                 success=False,
