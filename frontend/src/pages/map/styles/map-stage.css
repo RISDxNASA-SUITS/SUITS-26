@@ -272,16 +272,6 @@
   height: 1.78rem;
 }
 
-.map-aia-icon {
-  position: absolute;
-  right: 1.1rem;
-  bottom: 1rem;
-  z-index: 7;
-  width: 4rem;
-  height: auto;
-  pointer-events: none;
-}
-
 .map-mode-control,
 .map-quick-tools {
   position: absolute;

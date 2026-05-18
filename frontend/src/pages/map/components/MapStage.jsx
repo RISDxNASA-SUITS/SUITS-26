@@ -12,7 +12,6 @@ import evNavigationIcon from "../../../assets/map/EV_Navigation.svg"
 import prNavigationIcon from "../../../assets/map/PR_Navigation.svg"
 import mapCircleWarningIcon from "../../../assets/map/Map_Circle_Warning.svg"
 import mapTriangleWarningIcon from "../../../assets/map/Map_Triangle_Warning.svg"
-import aiaIcon from "../../../assets/map/AIA_Icon.svg"
 import { hazardZones } from "../data/mapData"
 import { tssToMapCoordinate } from "../utils/coordinates"
 
@@ -628,7 +627,6 @@ export function MapStage({
           <img src={stackSimpleIcon} alt="" aria-hidden="true" />
         </button>
       </div>
-      <img src={aiaIcon} alt="" aria-hidden="true" className="map-aia-icon" />
       {poiPanel}
       {addPoiPanel}
       {addHazardPanel}

@@ -1,16 +1,40 @@
-# React + Vite
+# SUITS EVA Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Dashboard and map UI (React + Vite). EVA assistant overlays (command dock + alert bubbles) are app-wide on `/` and `/map`.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+cd frontend
+npm install
+```
 
-## React Compiler
+Create `.env` (optional):
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```env
+VITE_API_ORIGIN=http://localhost:8000
+```
 
-## Expanding the ESLint configuration
+Defaults to `http://localhost:8000` in dev when unset.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Run
+
+```bash
+npm run dev
+```
+
+- **Dashboard:** http://localhost:5173/
+- **Map:** http://localhost:5173/map
+
+Requires the EVA backend on port 8000 for commands, warnings, and agent alerts.
+
+## EVA overlays
+
+- **AIA button (bottom-right):** Opens text command input and microphone on both dashboard and map.
+- **Alert bubbles (bottom-center):** Red badges for telemetry warnings and agent alerts from the backend.
+
+## Build
+
+```bash
+npm run build
+```

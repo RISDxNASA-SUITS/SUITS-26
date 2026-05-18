@@ -1,0 +1,235 @@
+/* App-wide EVA overlays — fixed to viewport (not clipped by dashboard zoom) */
+
+.eva-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Alert bubbles — bottom center */
+.eva-alert-bubbles {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(calc(-50% - 2.5rem));
+  z-index: 1000;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  max-width: min(90vw, 32rem);
+  pointer-events: auto;
+}
+
+.eva-alert-bubble {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  cursor: default;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease;
+}
+
+.eva-alert-bubble:hover {
+  transform: scale(1.08);
+}
+
+.eva-alert-bubble--warning {
+  background: #dc2626;
+}
+
+.eva-alert-bubble--caution {
+  background: #d97706;
+}
+
+.eva-alert-bubble--agent {
+  background: #b91c1c;
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.5), 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+/* Command dock — bottom right */
+.eva-command-dock {
+  position: fixed;
+  right: 1.1rem;
+  bottom: 1rem;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.eva-command-dock__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  min-width: min(18rem, calc(100vw - 2.5rem));
+}
+
+.eva-command-fab {
+  width: 4rem;
+  height: 4rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eva-command-fab img {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+}
+
+.eva-command-fab:hover {
+  transform: scale(1.05);
+}
+
+.eva-command-fab:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 3px;
+}
+
+.eva-command-fab--open {
+  transform: scale(0.95);
+}
+
+.eva-command-toast {
+  background: rgba(10, 6, 22, 0.92);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  max-width: 18rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #eae4f5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.eva-command-toast__status {
+  margin: 0;
+  opacity: 0.75;
+}
+
+.eva-command-toast__error {
+  margin: 0;
+  color: #fca5a5;
+}
+
+.eva-command-toast__trace {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.eva-command-toast__label {
+  font-weight: 600;
+}
+
+.eva-command-toast__message {
+  margin: 0;
+}
+
+.eva-command-toast__message--warn {
+  color: #fcd34d;
+}
+
+.eva-command-form {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem;
+  background: rgba(10, 6, 22, 0.94);
+  border: 1px solid rgba(167, 139, 250, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.eva-command-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 8px;
+  background: rgba(8, 4, 18, 0.6);
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.eva-command-form input::placeholder {
+  color: rgba(201, 189, 220, 0.65);
+}
+
+.eva-command-form input:focus {
+  outline: none;
+  border-color: #a78bfa;
+}
+
+.eva-command-mic,
+.eva-command-send {
+  flex-shrink: 0;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  background: rgba(139, 92, 246, 0.25);
+  color: #e9d5ff;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.eva-command-mic {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem;
+}
+
+.eva-command-mic--active {
+  animation: eva-pulse-mic 1.2s ease-in-out infinite;
+  background: rgba(248, 113, 113, 0.35);
+  border-color: #f87171;
+  color: #fecaca;
+}
+
+@keyframes eva-pulse-mic {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(248, 113, 113, 0);
+  }
+}
+
+.eva-command-send:disabled,
+.eva-command-mic:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.eva-command-voice-status,
+.eva-command-voice-error {
+  margin: 0;
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.eva-command-voice-error {
+  color: #fca5a5;
+}
