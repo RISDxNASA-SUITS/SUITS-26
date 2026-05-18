@@ -360,18 +360,21 @@ ollama pull llama3.2
 | `EVA_OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama API base (no trailing slash). |
 | `EVA_OLLAMA_MODEL` | `llama3.2` | Model name for router, telemetry answers, and alert phrasing. |
 | `EVA_OLLAMA_TIMEOUT_S` | `120` | HTTP timeout for chat requests. |
-| `EVA_TELEMETRY_JSON_PATH` | *(unset)* | If set, the API **polls** this file (same JSON shape as `GET /telemetry`) and overwrites the in-memory telemetry—simulates a connection server writing a shared JSON file. |
-| `EVA_TELEMETRY_JSON_POLL_INTERVAL_S` | `1.0` | Poll interval for the file above. |
+| `EVA_LIVE_TELEMETRY` | `true` | Poll the Java backend for suit telemetry; `GET /telemetry` returns 503 until Java responds. |
+| `EVA_JAVA_BACKEND_URL` | `http://localhost:7070` | Kotlin/Javalin API (TSS bridge). |
+| `EVA_LIVE_TELEMETRY_POLL_INTERVAL_S` | `1.0` | How often to poll Java for telemetry. |
+| `EVA_JAVA_HTTP_TIMEOUT_S` | `2.0` | HTTP timeout per Java request. |
 | `EVA_ALERT_POLL_INTERVAL_S` | `2.0` | How often the alert monitor checks thresholds (only when agentic mode is on). |
 | `EVA_AGENT_ALERTS_MAX` | `50` | Max alert records returned via `GET /agent/alerts`. |
 
-Endpoints: **`GET /agent/status`** (`agentic_enabled`, `telemetry_json_poll`), **`GET /agent/alerts`** (recent LLM-phrased threshold alerts). With **Voice output** on, the UI polls alerts and **queues** speech for new items (see `speakQueued` in `frontend/src/utils/tts.ts`).
+Endpoints: **`GET /agent/status`** (`agentic_enabled`, `live_telemetry_enabled`, `java_backend_reachable`), **`GET /agent/alerts`** (recent LLM-phrased threshold alerts). With **Voice output** on, the UI polls alerts and **queues** speech for new items (see `speakQueued` in `frontend/src/utils/tts.ts`).
 
-Sample connection-server file: [`backend/data/telemetry_connection.json`](backend/data/telemetry_connection.json). Example `.env` snippet:
+Example `.env` snippet for live TSS/Java telemetry:
 
 ```bash
+EVA_LIVE_TELEMETRY=true
+EVA_JAVA_BACKEND_URL=http://localhost:7070
 EVA_AGENTIC_ENABLED=true
-EVA_TELEMETRY_JSON_PATH=./data/telemetry_connection.json
 ```
 
 ### Frontend

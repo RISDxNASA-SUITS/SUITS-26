@@ -6,8 +6,8 @@ FastAPI service: `POST /command`, in-memory **mission**, **telemetry**, **proced
 
 | `EVA_DEMO_MODE` | Mission phase at startup | Telemetry |
 |-----------------|-------------------------|-----------|
-| `true` (default) | `EGRESS` | `DEMO_TELEMETRY` — realistic mock readouts (`demo_seed.py`) |
-| `false` | `INIT` | Training snapshot (used by tests as well) |
+| `true` (default) | `EGRESS` | Live from Java when `EVA_LIVE_TELEMETRY=true`; mock when `false` |
+| `false` | `INIT` | Live from Java or training snapshot when live mode off |
 
 Tests call `seed_training()` and `set_phase(INIT)` in `conftest.py` so they do not depend on demo defaults.
 
@@ -34,9 +34,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | Method | Path | Purpose |
 |--------|------|---------|
 | `POST` | `/command` | Natural-language command; returns `success`, `error_code`, `response_text`, etc. |
-| `GET` | `/telemetry` | Full mock snapshot |
+| `GET` | `/telemetry` | Suit telemetry (live from Java when enabled; 503 if unreachable) |
 | `GET` | `/telemetry/warnings` | Derived warnings from thresholds |
-| `POST` | `/telemetry/update` | Partial telemetry update |
+| `POST` | `/telemetry/update` | Partial update (disabled when live telemetry is on) |
 | `GET` | `/mission` | Current phase |
 | `POST` | `/mission/phase` | Set phase |
 | `GET` | `/procedure/list` | Loaded procedures |
@@ -45,7 +45,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | `POST` | `/procedure/next` | Next step |
 | `POST` | `/procedure/repeat` | Repeat step |
 | `POST` | `/asr/transcribe` | Multipart: `audio` file + `auto_route_to_command` — local Whisper → normalize → optional same pipeline as `/command` |
-| `GET` | `/agent/status` | `agentic_enabled`, `telemetry_json_poll` |
+| `GET` | `/agent/status` | `agentic_enabled`, `live_telemetry_enabled`, `java_backend_reachable` |
 | `GET` | `/agent/alerts` | Recent threshold alerts with LLM-phrased `spoken_text` |
 
 CORS allows the Vite dev server on **5173** by default.
@@ -79,7 +79,10 @@ Environment variables (prefix **`EVA_`**):
 | `EVA_AGENTIC_ENABLED` | `true` / `false` — LLM router + alert phrasing (Ollama) |
 | `EVA_OLLAMA_BASE_URL` | Ollama base URL (default `http://127.0.0.1:11434`) |
 | `EVA_OLLAMA_MODEL` | Model id (default `llama3.2`) |
-| `EVA_TELEMETRY_JSON_PATH` | Optional path to polled telemetry JSON |
+| `EVA_LIVE_TELEMETRY` | `true` / `false` — poll Java for suit telemetry (default `true`) |
+| `EVA_JAVA_BACKEND_URL` | Java API base URL (default `http://localhost:7070`) |
+| `EVA_LIVE_TELEMETRY_POLL_INTERVAL_S` | Poll interval in seconds (default `1.0`) |
+| `EVA_JAVA_HTTP_TIMEOUT_S` | Per-request HTTP timeout (default `2.0`) |
 
 ## Mission phases
 

@@ -15,14 +15,14 @@ from app.api.routes_procedure import router as procedure_router
 from app.api.routes_telemetry import router as telemetry_router
 from app.core.config import settings
 from app.services.alert_service import start_alert_monitor_thread
-from app.services.telemetry_json_poller import start_telemetry_json_poller_thread
+from app.services.java_telemetry_poller import start_java_telemetry_poller_thread
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     stop = threading.Event()
     threads: list[threading.Thread] = []
-    t_poll = start_telemetry_json_poller_thread(stop)
+    t_poll = start_java_telemetry_poller_thread(stop)
     if t_poll is not None:
         threads.append(t_poll)
     t_alert = start_alert_monitor_thread(stop)

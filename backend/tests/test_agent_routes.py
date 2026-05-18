@@ -9,7 +9,8 @@ def test_agent_status_and_alerts():
     assert r.status_code == 200
     data = r.json()
     assert "agentic_enabled" in data
-    assert "telemetry_json_poll" in data
+    assert "live_telemetry_enabled" in data
+    assert "java_backend_reachable" in data
     r2 = client.get("/agent/alerts")
     assert r2.status_code == 200
     assert r2.json() == []

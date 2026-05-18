@@ -3,15 +3,18 @@ from fastapi import APIRouter
 from app.core.config import settings
 from app.models.agent import AgentAlertItem, AgentStatusResponse
 from app.services.alert_service import list_agent_alerts
+from app.services.live_telemetry_state import live_telemetry_state
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
 
 @router.get("/status", response_model=AgentStatusResponse)
 def get_agent_status() -> AgentStatusResponse:
+    java_ok = live_telemetry_state.is_ok() if settings.live_telemetry_enabled else True
     return AgentStatusResponse(
         agentic_enabled=settings.agentic_enabled,
-        telemetry_json_poll=bool(settings.telemetry_json_path and str(settings.telemetry_json_path).strip()),
+        live_telemetry_enabled=settings.live_telemetry_enabled,
+        java_backend_reachable=java_ok,
     )
 
 

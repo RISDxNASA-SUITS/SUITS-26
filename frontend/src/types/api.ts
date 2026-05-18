@@ -108,7 +108,8 @@ export interface AsrTranscribeResponse {
 /** GET /agent/status */
 export interface AgentStatusResponse {
   agentic_enabled: boolean
-  telemetry_json_poll: boolean
+  live_telemetry_enabled: boolean
+  java_backend_reachable: boolean
 }
 
 /** GET /agent/alerts — LLM-phrased threshold alerts */

@@ -42,11 +42,22 @@ class Settings(BaseSettings):
         description="Model name as known to Ollama (ollama pull <name>).",
     )
     ollama_timeout_s: float = Field(default=120.0, description="HTTP timeout for Ollama chat requests.")
-    telemetry_json_path: str | None = Field(
-        default=None,
-        description="Optional path to JSON file (TelemetrySnapshot shape); poller syncs into telemetry service.",
+
+    # Live telemetry from Java backend (TSS bridge).
+    java_backend_url: str = Field(
+        default="http://localhost:7070",
+        description="Base URL for the Kotlin/Javalin backend (no trailing slash).",
     )
-    telemetry_json_poll_interval_s: float = Field(default=1.0, description="How often to re-read telemetry JSON.")
+    live_telemetry_enabled: bool = Field(
+        default=True,
+        description="Poll Java for suit telemetry; GET /telemetry fails until poll succeeds.",
+    )
+    live_telemetry_poll_interval_s: float = Field(
+        default=1.0,
+        description="How often to poll Java for live telemetry.",
+    )
+    java_http_timeout_s: float = Field(default=2.0, description="HTTP timeout per Java backend request.")
+
     alert_poll_interval_s: float = Field(default=2.0, description="How often the alert monitor checks warnings.")
     agent_alerts_max: int = Field(default=50, description="Max alert entries kept in memory for GET /agent/alerts.")
 

@@ -12,4 +12,5 @@ class AgentAlertItem(BaseModel):
 
 class AgentStatusResponse(BaseModel):
     agentic_enabled: bool
-    telemetry_json_poll: bool
+    live_telemetry_enabled: bool
+    java_backend_reachable: bool

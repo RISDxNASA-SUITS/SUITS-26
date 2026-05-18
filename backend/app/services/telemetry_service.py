@@ -1,6 +1,7 @@
 from copy import deepcopy
 from threading import Lock
 
+from app.core.config import settings
 from app.core.demo_seed import TRAINING_TELEMETRY, initial_telemetry_snapshot
 from app.models.telemetry import TelemetrySnapshot, TelemetryUpdate
 
@@ -11,7 +12,10 @@ class TelemetryService:
     def __init__(self) -> None:
         self._lock = Lock()
         self._available: bool = True
-        self._snapshot = initial_telemetry_snapshot()
+        if settings.live_telemetry_enabled:
+            self._snapshot = TRAINING_TELEMETRY.model_copy(deep=True)
+        else:
+            self._snapshot = initial_telemetry_snapshot()
 
     def is_available(self) -> bool:
         """When False, status queries must not assert live suit values (guardrail)."""
@@ -48,7 +52,7 @@ class TelemetryService:
             self._snapshot = initial_telemetry_snapshot()
 
     def replace_snapshot(self, snapshot: TelemetrySnapshot) -> None:
-        """Replace the full snapshot (e.g. connection-server JSON sync)."""
+        """Replace the full snapshot (e.g. live Java telemetry poll)."""
         with self._lock:
             self._snapshot = snapshot.model_copy(deep=True)
 

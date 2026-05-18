@@ -32,12 +32,12 @@
 		}, {
 			"code":	"2235",
 			"description":	"Dust Sensor Error",
-			"needs_resolved":	true,
+			"needs_resolved":	false,
 			"procedures":	["1. Locate the dust sensor by identifying a cylindrical white housing smaller than the palm of a hand 2. Rotate the sensor body counterclockwise to unscrew it from its base and stow properly 3. Locate the replacement sensor and twist the protective cap counterclockwise to remove it, you may put the protective cap on the broken dust sensor 4. Insert the replacement sensor into the base and rotate clockwise until firmly secured 5. Announce Dust Sensor steps complete "]
 		}, {
 			"code":	"4280",
 			"description":	"Small Fuse Box Error",
-			"needs_resolved":	true,
+			"needs_resolved":	false,
 			"procedures":	["1. Locate the Scientific Management box by identifying a small gray box with a single protruding indicator light 2. Verify this indicator light is illuminated green, an unlit indicator implies an upstream power distribution issue 3. Locate the Scientific Power Distribution Module by identifying a small black housing with electrical terminals and six indicators 4. Take note of any indicators that are illuminated and which side they appear on 5. Locate the power distribution and diagnostic (PDD) component by identifying an irregular-shaped white housing with four power bus connections 6. Via the Power Override Panel for Subsystems, labeled “POPS”, move the Mission Payload Subsystem switch, labeled “MPS” to the “OFF” position 7. To prevent damage from unexpected electrical surges during operation, remove the power bus from its socket before proceeding 8. Corresponding to the side that had a lit indicator, locate the fuse cartridge for that side and remove it from the component 9. Prepare and insert a replacement fuse cartridge into the empty section 10. Via POPS, reinsert the power bus 11. Move the MPS switch to the “ON” position 12. Verify the scientific management indicator is illuminated green and no indicators are illuminated on the power distribution module 13. Announce Small Fuse Box steps complete "]
 		}]
 }
