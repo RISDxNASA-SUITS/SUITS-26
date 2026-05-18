@@ -22,3 +22,19 @@ export function fetchLtv() {
 export function fetchRoverTelemetry() {
   return hubGet("/telemetry")
 }
+
+/** @param {1 | 2} evId */
+export function fetchImu(evId) {
+  return hubGet(`/imu/${evId}`)
+}
+
+export async function fetchPois() {
+  const body = await hubGet("/poi")
+  return body?.data ?? []
+}
+
+export function deletePoi(id) {
+  return fetch(`${HUB_BASE}/poi/${id}`, { method: "DELETE" }).then((res) => {
+    if (!res.ok) throw new Error(`Hub DELETE /poi/${id} failed (${res.status})`)
+  })
+}

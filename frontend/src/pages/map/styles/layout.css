@@ -1,3 +1,19 @@
+.map-status-banner,
+.poi-empty-hint {
+  margin: 0 0 0.45rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(60, 140, 255, 0.45);
+  background: rgba(8, 40, 80, 0.45);
+  color: #a8d4ff;
+  font-size: 0.82rem;
+}
+
+.poi-empty-hint {
+  padding: 0.75rem;
+  border-style: dashed;
+}
+
 .map-page-shell {
   height: 100dvh;
   overflow: hidden;

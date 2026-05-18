@@ -1,21 +1,31 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import menuDuoIcon from "../../../assets/map/Menu_Duo_MD.png"
+import { formatTssCoords } from "../utils/coordinates"
 
 const TABS = ["PR", "EV1", "EV2"]
 
-const pois = [
-  { label: "POI 1", coords: "38.847185, -77.333624", state: "completed" },
-  { label: "POI 2", coords: "38.847185, -77.333624", state: "completed" },
-  { label: "POI 3", coords: "38.847185, -77.333624", state: "completed" },
-  { label: "POI 4", coords: "38.847185, -77.333624", state: "completed" },
-  { label: "POI 5", coords: "38.847185, -77.333624", state: "active" },
-  { label: "POI 6", coords: "38.847185, -77.333624", state: "default" },
-  { label: "POI 7", coords: "38.847185, -77.333624", state: "default" },
-]
+function tabMatchesPoi(tab, poi) {
+  const type = (poi.type ?? "").toUpperCase()
+  if (tab === "PR") return type === "PR" || type.includes("BREAD") || type === "LTV"
+  if (tab === "EV1") return type.includes("EV1") || type === "EV"
+  if (tab === "EV2") return type.includes("EV2")
+  return true
+}
 
-export function PoiPanel({ onClose }) {
+export function PoiPanel({ pois = [] }) {
   const [activeTab, setActiveTab] = useState("PR")
-  const [selectedPoi, setSelectedPoi] = useState(1)
+  const [selectedPoi, setSelectedPoi] = useState(null)
+
+  const listItems = useMemo(() => {
+    const filtered = pois.filter((p) => tabMatchesPoi(activeTab, p))
+    const rows = filtered.length > 0 ? filtered : pois
+    return rows.map((poi) => ({
+      id: poi.id,
+      label: poi.label,
+      coords: formatTssCoords(poi.tssX, poi.tssY),
+      state: poi.muted ? "completed" : poi.active ? "active" : "default",
+    }))
+  }, [pois, activeTab])
 
   return (
     <div className="poi-panel">
@@ -25,7 +35,7 @@ export function PoiPanel({ onClose }) {
         </div>
 
         <div className="poi-tabs">
-          {TABS.map(tab => (
+          {TABS.map((tab) => (
             <button
               key={tab}
               type="button"
@@ -39,30 +49,36 @@ export function PoiPanel({ onClose }) {
 
         <div className="poi-list-area">
           <div className="poi-scroll-container">
-            <div className="poi-track-list">
-              {pois.map((poi, i) => (
-                <div
-                  key={i}
-                  className={`poi-row${i < pois.length - 1 ? ` poi-row--line-${poi.state}` : ""}`}
-                >
-                  <div className="poi-dot-col">
-                    <span className={`poi-route-dot${poi.state === "completed" ? " poi-route-dot--completed" : poi.state === "active" ? " poi-route-dot--active" : ""}`} />
-                  </div>
+            {listItems.length === 0 ? (
+              <p className="poi-empty-hint">No POIs from Hub yet. Check Docker on port 7070.</p>
+            ) : (
+              <div className="poi-track-list">
+                {listItems.map((poi, i) => (
                   <div
-                    className={`poi-item poi-item--${poi.state}${selectedPoi === i ? " poi-item--selected" : ""}`}
-                    onClick={() => poi.state !== "completed" && setSelectedPoi(i)}
+                    key={poi.id}
+                    className={`poi-row${i < listItems.length - 1 ? ` poi-row--line-${poi.state}` : ""}`}
                   >
-                    <div className="poi-item-text">
-                      <p className="poi-item-label">{poi.label}</p>
-                      <p className="poi-item-coords">{poi.coords}</p>
+                    <div className="poi-dot-col">
+                      <span
+                        className={`poi-route-dot${poi.state === "completed" ? " poi-route-dot--completed" : poi.state === "active" ? " poi-route-dot--active" : ""}`}
+                      />
                     </div>
-                    <button type="button" className="poi-menu-btn" aria-label="Menu">
-                      <img src={menuDuoIcon} alt="" width={24} height={24} />
-                    </button>
+                    <div
+                      className={`poi-item poi-item--${poi.state}${selectedPoi === poi.id ? " poi-item--selected" : ""}`}
+                      onClick={() => poi.state !== "completed" && setSelectedPoi(poi.id)}
+                    >
+                      <div className="poi-item-text">
+                        <p className="poi-item-label">{poi.label}</p>
+                        <p className="poi-item-coords">{poi.coords}</p>
+                      </div>
+                      <button type="button" className="poi-menu-btn" aria-label="Menu">
+                        <img src={menuDuoIcon} alt="" width={24} height={24} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
