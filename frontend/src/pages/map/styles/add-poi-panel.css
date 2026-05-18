@@ -1,0 +1,130 @@
+.add-poi-panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 360px;
+  z-index: 20;
+}
+
+.add-poi-panel-inner {
+  width: 100%;
+  border-radius: 24px;
+  border: 1px solid #6b8bae;
+  background: #101926;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.add-poi-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.add-poi-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.add-poi-title {
+  font: 700 24px/1 "IBM Plex Sans", sans-serif;
+  color: #ffffff;
+  margin: 0;
+  font-feature-settings: "zero" 1;
+}
+
+.add-poi-coords {
+  font: 400 14px/1 "IBM Plex Sans", sans-serif;
+  color: #ffffff;
+  margin: 0;
+  font-feature-settings: "zero" 1;
+}
+
+.add-poi-tag {
+  background: #213757;
+  border-radius: 20px;
+  padding: 4px 8px;
+  font: 600 14px/1 "IBM Plex Sans", sans-serif;
+  color: #ffffff;
+  font-feature-settings: "zero" 1;
+}
+
+.add-poi-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.add-poi-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-poi-label {
+  font: 400 14px/1 "IBM Plex Sans", sans-serif;
+  color: #ffffff;
+  font-feature-settings: "zero" 1;
+}
+
+.add-poi-input {
+  background: #14253c;
+  border-radius: 8px;
+  padding: 10px 16px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  font: 400 20px/1 "IBM Plex Sans", sans-serif;
+  color: #ffffff;
+  font-feature-settings: "zero" 1;
+  backdrop-filter: blur(50px);
+}
+
+.add-poi-input--placeholder {
+  color: #6b8bae;
+}
+
+.add-poi-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-poi-btn-share {
+  background: transparent;
+  border: none;
+  font: 500 20px/1 "IBM Plex Sans", sans-serif;
+  color: #ffffff;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 10px 16px;
+  height: 46px;
+  flex-shrink: 0;
+}
+
+.add-poi-btn-cancel {
+  background: #213757;
+  border: none;
+  border-radius: 12px;
+  font: 500 18px/1 "IBM Plex Sans", sans-serif;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 10px 24px;
+  height: 46px;
+  backdrop-filter: blur(50px);
+}
+
+.add-poi-btn-done {
+  background: #174c98;
+  border: none;
+  border-radius: 12px;
+  font: 500 18px/1 "IBM Plex Sans", sans-serif;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 10px 24px;
+  height: 46px;
+  backdrop-filter: blur(50px);
+}

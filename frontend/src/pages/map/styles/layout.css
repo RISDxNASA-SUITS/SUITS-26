@@ -1,0 +1,57 @@
+.map-status-banner,
+.poi-empty-hint {
+  margin: 0 0 0.45rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(60, 140, 255, 0.45);
+  background: rgba(8, 40, 80, 0.45);
+  color: #a8d4ff;
+  font-size: 0.82rem;
+}
+
+.poi-empty-hint {
+  padding: 0.75rem;
+  border-style: dashed;
+}
+
+.map-page-shell {
+  height: 100dvh;
+  overflow: hidden;
+  padding: 0.55rem;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 0.65rem;
+  background: #060f1c;
+}
+
+.map-workspace {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: start;
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+.mission-bar,
+.map-stage {
+  border: 1px solid #123a63;
+  border-radius: 0.95rem;
+  background: linear-gradient(180deg, rgba(3, 18, 34, 0.97), rgba(2, 12, 26, 0.98));
+  box-shadow: inset 0 0 25px rgba(11, 62, 117, 0.24), 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 1300px) {
+  .map-page-shell {
+    grid-template-columns: 330px 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .map-page-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .task-panel {
+    order: 2;
+  }
+}

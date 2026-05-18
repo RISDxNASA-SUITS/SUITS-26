@@ -1,59 +1,16 @@
-# Frontend — EVA AIA mission console
+# React + Vite
 
-Vite + React + TypeScript. Single-page **mission console**: command input, prominent assistant reply, mission status, telemetry (with mock patch), procedures, and alerts.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Prerequisites
+Currently, two official plugins are available:
 
-**Node.js 20.19+ or 22.12+** (Vite 8). Check with `node -v`. On macOS, install via [nodejs.org](https://nodejs.org), **Homebrew** (`brew install node@22`), or **nvm**: `nvm install 22 && nvm use 22`.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Setup
+## React Compiler
 
-```bash
-cd frontend
-npm install
-```
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Run (development)
+## Expanding the ESLint configuration
 
-1. Start the backend on port **8000** (see [`../backend/README.md`](../backend/README.md)).
-2. From this directory:
-
-```bash
-npm run dev
-```
-
-Open the printed URL (typically `http://localhost:5173`).
-
-### API origin
-
-In **development**, the client calls `http://localhost:8000` by default. To override:
-
-```bash
-VITE_API_ORIGIN=http://127.0.0.1:8000 npm run dev
-```
-
-In a **production build** served from the Docker image (same host as the API), the client uses `window.location.origin` unless `VITE_API_ORIGIN` is set at build time.
-
-## Build
-
-```bash
-npm run build
-npm run preview   # optional local preview of production build
-```
-
-## Layout
-
-- **Primary column**: Command + Assistant (latest reply emphasized).
-- **Side column**: Mission status → Alerts → Telemetry → Procedure.
-
-Responsive: stacks vertically on narrow viewports.
-
-## Voice output (TTS)
-
-- **Voice output** checkbox in the page header (default **on**): speaks the assistant **response text** when the command succeeds (browser **Web Speech API** / `speechSynthesis`).
-- Implementation: [`src/utils/tts.ts`](src/utils/tts.ts) — `speak()`, `stop()`, `prepareTextForSpeech()` (Unicode subscripts → ASCII for reliable speech).
-- Does **not** read transcripts, normalized text, or guardrail-only errors; no backend change required.
-
-## Tests
-
-Frontend has no Jest/RTL suite in this prototype; backend `pytest` covers API contracts. Run `npm run build` to verify TypeScript and Vite production build.
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

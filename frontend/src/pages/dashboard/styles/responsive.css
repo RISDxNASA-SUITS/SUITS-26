@@ -1,0 +1,33 @@
+@media (min-width: 1101px) {
+  .suits-panel,
+  .ev-panel {
+    margin-top: 0;
+    min-height: 658px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "comms"
+      "suits"
+      "ev"
+      "beacon";
+  }
+
+  .comms-panel,
+  .suits-panel,
+  .ev-panel,
+  .beacon-panel {
+    min-height: auto;
+  }
+
+  .beacon-main,
+  .kv-row,
+  .vitals-grid,
+  .mini-grid,
+  .distance-row {
+    grid-template-columns: 1fr;
+  }
+}

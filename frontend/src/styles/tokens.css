@@ -1,0 +1,40 @@
+:root {
+  --bg-top: #3c5770;
+  --bg-bottom: #0a1b2f;
+  --panel: #031127;
+  --panel-soft: #0c2340;
+  --line: #143a5e;
+  --line-soft: #264e74;
+  --text: #e1efff;
+  --muted: #7392af;
+  --teal: #09e5bd;
+  --green: #1dff8e;
+  --amber: #f2aa19;
+  --magenta: #ff287f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font-family: "Rajdhani", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(1300px 500px at 30% -10%, #4f6f8a 0%, transparent 55%),
+    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+}
+
+#root {
+  min-height: 100vh;
+}
+
+p,
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+}
