@@ -14,3 +14,6 @@ def test_agent_status_and_alerts():
     r2 = client.get("/agent/alerts")
     assert r2.status_code == 200
     assert r2.json() == []
+    r3 = client.get("/agent/events")
+    assert r3.status_code == 200
+    assert r3.json() == []

@@ -2,7 +2,9 @@ from fastapi import APIRouter
 
 from app.core.config import settings
 from app.models.agent import AgentAlertItem, AgentStatusResponse
+from app.models.system_event import SystemEventItem
 from app.services.alert_service import list_agent_alerts
+from app.services.event_log_service import list_events
 from app.services.live_telemetry_state import live_telemetry_state
 
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -21,3 +23,8 @@ def get_agent_status() -> AgentStatusResponse:
 @router.get("/alerts", response_model=list[AgentAlertItem])
 def get_agent_alerts() -> list[AgentAlertItem]:
     return list_agent_alerts()
+
+
+@router.get("/events", response_model=list[SystemEventItem])
+def get_system_events() -> list[SystemEventItem]:
+    return list_events()

@@ -4,6 +4,7 @@ from threading import Lock
 from app.core.config import settings
 from app.core.demo_seed import TRAINING_TELEMETRY, initial_telemetry_snapshot
 from app.models.telemetry import TelemetrySnapshot, TelemetryUpdate
+from app.services.warning_edge_service import reset_warning_edge_for_tests
 
 
 class TelemetryService:
@@ -44,6 +45,7 @@ class TelemetryService:
         with self._lock:
             self._available = True
             self._snapshot = TRAINING_TELEMETRY.model_copy(deep=True)
+        reset_warning_edge_for_tests()
 
     def reset_to_defaults(self) -> None:
         """Restore startup defaults (respects EVA_DEMO_MODE)."""

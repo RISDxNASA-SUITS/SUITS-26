@@ -6,6 +6,7 @@ import logging
 import threading
 
 from app.core.config import settings
+from app.services import event_log_service
 from app.services.java_telemetry_client import (
     JavaTelemetryClient,
     JavaTelemetryError,
@@ -17,17 +18,28 @@ from app.services.telemetry_service import telemetry_service
 
 logger = logging.getLogger(__name__)
 
+_java_error_logged = False
+
 
 def poll_java_telemetry_once(client: JavaTelemetryClient | None = None) -> None:
     """Fetch from Java, update snapshot, and set live_telemetry_state."""
+    global _java_error_logged
     try:
         bundle = fetch_live_telemetry_bundle(client)
         snap = build_snapshot(bundle)
         telemetry_service.replace_snapshot(snap)
         live_telemetry_state.set_ok(True)
+        _java_error_logged = False
     except JavaTelemetryError as exc:
         live_telemetry_state.set_ok(False)
         logger.warning("Java telemetry poll failed: %s", exc)
+        if not _java_error_logged:
+            event_log_service.append_event(
+                "error",
+                f"Java telemetry poll failed: {exc}",
+                source="java_poller",
+            )
+            _java_error_logged = True
 
 
 def run_java_telemetry_poller(

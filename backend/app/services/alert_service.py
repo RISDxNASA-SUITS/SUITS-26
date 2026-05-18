@@ -11,7 +11,7 @@ from collections import deque
 from app.core.config import settings
 from app.models.agent import AgentAlertItem
 from app.models.warning import WarningItem
-from app.services import llm_client
+from app.services import event_log_service, llm_client
 from app.services.telemetry_service import telemetry_service
 from app.services.warning_evaluation import list_warnings
 
@@ -56,6 +56,13 @@ def _tick() -> None:
         return
     snap_dict = snap.model_dump()
     out = llm_client.chat_completion(_alert_messages(triggered, snap_dict))
+    if not out.ok:
+        event_log_service.append_event(
+            "error",
+            f"LLM alert phrasing failed: {out.error_code or 'unknown'}",
+            codes=[w.code for w in triggered],
+            source="alert_monitor",
+        )
     text = out.text if out.ok else "Alert: " + "; ".join(w.message for w in triggered)
     with _lock:
         _seq += 1
@@ -66,6 +73,12 @@ def _tick() -> None:
             spoken_text=text,
         )
         _alerts.append(item)
+    event_log_service.append_event(
+        "alert",
+        text,
+        codes=item.codes,
+        source="alert_monitor",
+    )
 
 
 def list_agent_alerts() -> list[AgentAlertItem]:
@@ -88,8 +101,13 @@ def run_alert_monitor(stop: threading.Event, interval_s: float) -> None:
             break
         try:
             _tick()
-        except Exception:
+        except Exception as exc:
             logger.exception("Alert monitor tick failed")
+            event_log_service.append_event(
+                "unexpected",
+                f"Alert monitor tick failed: {exc}",
+                source="alert_monitor",
+            )
 
 
 def start_alert_monitor_thread(stop: threading.Event) -> threading.Thread | None:

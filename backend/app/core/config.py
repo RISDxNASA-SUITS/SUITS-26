@@ -60,6 +60,10 @@ class Settings(BaseSettings):
 
     alert_poll_interval_s: float = Field(default=2.0, description="How often the alert monitor checks warnings.")
     agent_alerts_max: int = Field(default=50, description="Max alert entries kept in memory for GET /agent/alerts.")
+    system_events_max: int = Field(
+        default=100,
+        description="Max system event entries kept in memory for GET /agent/events.",
+    )
 
 
 settings = Settings()

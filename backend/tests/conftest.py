@@ -8,6 +8,8 @@ import pytest
 from app.core.config import settings
 from app.models.mission import MissionPhase
 from app.services.alert_service import reset_agent_alerts_for_tests
+from app.services.event_log_service import reset_events_for_tests
+from app.services.warning_edge_service import reset_warning_edge_for_tests
 from app.services.live_telemetry_state import live_telemetry_state
 from app.services.mission_service import mission_service
 from app.services.procedure_service import procedure_service
@@ -23,4 +25,6 @@ def reset_singleton_state():
     telemetry_service.seed_training()
     procedure_service.reset_idle()
     reset_agent_alerts_for_tests()
+    reset_events_for_tests()
+    reset_warning_edge_for_tests()
     yield
