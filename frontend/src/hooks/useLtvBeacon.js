@@ -1,12 +1,48 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ltvBeaconMock } from "../mock/ltvBeaconMock"
+import { fetchLtv, fetchRoverTelemetry } from "../api/hubClient"
+import { mapLtvBeacon } from "../api/hubMappers"
+
+const POLL_MS = 900
 
 /**
- * Subscribe to live LTV beacon telemetry.
- * Swap the import to a backend data source when ready — components are unaffected.
+ * Live LTV beacon telemetry from Java Hub (/ltv + /telemetry).
  */
 export function useLtvBeacon() {
   const [snap, setSnap] = useState(() => ltvBeaconMock.getSnapshot())
-  useEffect(() => ltvBeaconMock.subscribe(setSnap), [])
-  return snap
+  const [hubConnected, setHubConnected] = useState(false)
+  const [hubError, setHubError] = useState(null)
+  const accRef = useRef({})
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function poll() {
+      try {
+        const [ltv, rover] = await Promise.all([fetchLtv(), fetchRoverTelemetry()])
+        if (cancelled) return
+        const mapped = mapLtvBeacon(ltv, rover, accRef.current)
+        accRef.current = {
+          signalBars: mapped.signalBars,
+          locateElapsedSeconds: mapped.locateElapsedSeconds,
+        }
+        setSnap(mapped)
+        setHubConnected(true)
+        setHubError(null)
+      } catch (err) {
+        if (cancelled) return
+        setHubConnected(false)
+        setHubError(err instanceof Error ? err.message : "Hub unavailable")
+      }
+    }
+
+    poll()
+    const timer = setInterval(poll, POLL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [])
+
+  return { ...snap, hubConnected, hubError }
 }

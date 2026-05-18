@@ -27,6 +27,13 @@ export const suitData = {
   lcvgReturn: "80 deg F",
 }
 
+export const vitalLabels = [
+  { label: "HR (Heart Rate)", unit: "bpm", tone: "amber" },
+  { label: "SpO2", unit: "%", tone: "teal" },
+  { label: "Core Body Temp", unit: "deg F", tone: "green" },
+  { label: "Respiration Rate", unit: "Breaths/min", tone: "magenta" },
+]
+
 export const evData = {
   name: "Roger Williams",
   role: "Crew ID 1231231243",

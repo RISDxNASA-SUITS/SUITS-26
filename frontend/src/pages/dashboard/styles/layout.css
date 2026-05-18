@@ -3,6 +3,17 @@
   padding: 0.9rem 1.4rem;
 }
 
+.hub-status-banner {
+  margin: 0 0 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 140, 60, 0.55);
+  background: rgba(80, 32, 8, 0.45);
+  color: #ffc89a;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
 .dashboard-grid {
   margin: 0;
   width: 100%;

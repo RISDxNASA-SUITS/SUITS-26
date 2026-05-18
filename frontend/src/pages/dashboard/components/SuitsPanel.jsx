@@ -1,4 +1,4 @@
-import { evData } from "../data/dashboardData"
+import { vitalLabels } from "../data/dashboardData"
 import { useSuitsTelemetry } from "../../../hooks/useSuitsTelemetry"
 import { Panel } from "./Panel"
 import orangePulse from "../../../assets/dashboard/orange_pulse.png"
@@ -203,7 +203,7 @@ function VitalsBlock({ crewVitals, crewHistory }) {
   return (
     <div className="vitals-container">
     <div className="vitals-grid">
-      {evData.vitals.map((vital, i) => {
+      {vitalLabels.map((vital, i) => {
         const isHr = vital.label.startsWith("HR")
         const isSpo2 = vital.label.startsWith("SpO2")
         const isBodyTemp = vital.label.startsWith("Core Body")
@@ -258,7 +258,9 @@ export function SuitsPanel({ label = "Suits 1", panelClass = "suits-panel", evLa
           <img src={headshotIcon} alt="" className="suits-headshot-icon" aria-hidden="true" />
         </div>
       </header>
-      <p className="system-status">SYSTEMS NOMINAL</p>
+      <p className={`system-status${s.systemsNominal ? "" : " system-status--alert"}`}>
+        {s.systemsBanner ?? "SYSTEMS NOMINAL"}
+      </p>
 
       <O2Card
         psi={s.o2Psi}
@@ -280,7 +282,9 @@ export function SuitsPanel({ label = "Suits 1", panelClass = "suits-panel", evLa
       />
       <div className="ev-label-group">
         <EvLabel evLabel={evLabel} />
-        <span className="ev-status-tag">OFF-NOMINAL</span>
+        <span className={`ev-status-tag${s.systemsNominal ? " ev-status-tag--nominal" : ""}`}>
+          {s.systemsNominal ? "NOMINAL" : "OFF-NOMINAL"}
+        </span>
       </div>
       <VitalsBlock crewVitals={crewVitals} crewHistory={crewHistory} />
     </Panel>
