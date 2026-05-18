@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import maplibregl from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
-import rockYardImage from "../../../assets/map/rock-yard.png"
+import dustMapImage from "../../../assets/map/dust-map.png"
 import addPlusIcon from "../../../assets/map/Add_Plus.svg"
 import editIcon from "../../../assets/map/Edit.svg"
 import navigationIcon from "../../../assets/map/Navigation.svg"
@@ -299,9 +299,9 @@ export function MapStage({
       style: {
         version: 8,
         sources: {
-          "rock-yard": {
+          "dust-map": {
             type: "image",
-            url: rockYardImage,
+            url: dustMapImage,
             coordinates: IMAGE_COORDINATES,
           },
         },
@@ -312,9 +312,9 @@ export function MapStage({
             paint: { "background-color": "#06101f" },
           },
           {
-            id: "rock-yard",
+            id: "dust-map",
             type: "raster",
-            source: "rock-yard",
+            source: "dust-map",
             paint: {
               "raster-saturation": -1,
               "raster-contrast": 0.22,
@@ -603,7 +603,7 @@ export function MapStage({
 
   return (
     <section className="map-stage">
-      <div ref={mapNode} className="maplibre-stage" aria-label="Interactive TSS DUST rock yard map" />
+      <div ref={mapNode} className="maplibre-stage" aria-label="Interactive TSS DUST map" />
       <div className="map-grid-overlay" aria-hidden="true" />
       <div className="map-mode-control" aria-label="Map mode">
         <button type="button" className={is3d ? "is-enabled" : ""} onClick={toggle3d}>
