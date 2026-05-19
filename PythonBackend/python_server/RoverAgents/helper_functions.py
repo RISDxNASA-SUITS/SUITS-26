@@ -1,3 +1,5 @@
+
+
 """Shared geometry and lidar helper functions for rover navigation."""
 
 import math

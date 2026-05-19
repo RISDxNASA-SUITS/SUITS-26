@@ -10,6 +10,7 @@ export default defineConfig({
       "/hub": {
         target: "http://localhost:7070",
         changeOrigin: true,
+        ws: true,
         rewrite: (path) => path.replace(/^\/hub/, ""),
       },
       "/nav": {

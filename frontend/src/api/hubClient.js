@@ -1,5 +1,16 @@
 const HUB_BASE = (import.meta.env.VITE_HUB_URL ?? "/hub").replace(/\/$/, "")
 
+/** WebSocket URL for live telemetry stream (e.g. /hub/telemetry/live in dev). */
+export function hubTelemetryLiveWsUrl() {
+  if (HUB_BASE.startsWith("http://") || HUB_BASE.startsWith("https://")) {
+    const url = new URL(`${HUB_BASE}/telemetry/live`)
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
+    return url.toString()
+  }
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
+  return `${proto}//${window.location.host}${HUB_BASE}/telemetry/live`
+}
+
 async function hubGet(path) {
   const res = await fetch(`${HUB_BASE}${path}`, {
     headers: { Accept: "application/json" },
