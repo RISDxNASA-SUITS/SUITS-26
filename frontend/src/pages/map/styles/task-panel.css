@@ -616,6 +616,13 @@
   color: #fff;
 }
 
+.upcoming-item-description {
+  font: 400 13px/1.4 "IBM Plex Sans", sans-serif;
+  color: #a8d4ff;
+  margin: 0;
+  opacity: 0.9;
+}
+
 .upcoming-item-meta {
   display: flex;
   align-items: center;

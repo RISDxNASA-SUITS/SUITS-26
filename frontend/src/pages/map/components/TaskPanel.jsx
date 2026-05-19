@@ -7,6 +7,7 @@ import shrinkIcon from "../../../assets/map/Shrink.svg"
 import pathOptIcon from "../../../assets/map/Path_opt.svg"
 import chevronRightIcon from "../../../assets/map/Chevron_Right.svg"
 import { DPad } from "./DPad"
+import { AddTaskModal } from "./AddTaskModal"
 import {
   TASK_CONFIGS,
   TASK_ORDER,
@@ -23,6 +24,7 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
   const [upcomingOpen, setUpcomingOpen] = useState(true)
   const [expandedTasks, setExpandedTasks] = useState(new Set())
   const [upcomingTasks, setUpcomingTasks] = useState(INITIAL_UPCOMING)
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false)
 
   const [dragIndex, setDragIndex] = useState(null)
 
@@ -87,7 +89,12 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
   }
 
   const addTask = () => {
-    setUpcomingTasks(prev => [...prev, { title: "New Task", time: "- minutes", sub: "- sub-tasks" }])
+    setShowAddTaskModal(true)
+  }
+
+  const handleSaveTask = (taskData) => {
+    setUpcomingTasks(prev => [...prev, taskData])
+    setShowAddTaskModal(false)
   }
 
   const removeTask = (i) => {
@@ -193,6 +200,9 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
                       <span className="upcoming-drag-handle">⋮⋮</span>
                       <div className="upcoming-item-text">
                         <p className="upcoming-item-title">{upTask.title}</p>
+                        {upTask.description && (
+                          <p className="upcoming-item-description">{upTask.description}</p>
+                        )}
                         <div className="upcoming-item-meta">
                           <span>{upTask.time}</span>
                           <span className="upcoming-dot" />
@@ -261,6 +271,13 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
           </button>
         )}
       </section>
+
+      {showAddTaskModal && (
+        <AddTaskModal
+          onSave={handleSaveTask}
+          onCancel={() => setShowAddTaskModal(false)}
+        />
+      )}
     </aside>
   )
 }
