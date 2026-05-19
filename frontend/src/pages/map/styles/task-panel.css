@@ -412,17 +412,22 @@
 
 .task-step-list li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1.1rem;
   padding: 0 0 0 0.625rem;
   position: relative;
   z-index: 1;
 }
 
+.task-step-list li .step-dot,
+.task-step-list li .step-dot-active {
+  margin-top: 0.15em;
+}
+
 .task-step-list li.step-current {
   padding: 0;
   gap: 5px;
-  align-items: center;
+  align-items: flex-start;
   margin-top: -13px;
   margin-bottom: -13px;
 }
@@ -480,8 +485,8 @@
 }
 
 .step-text {
-  font: 400 0.95rem/1.2 "IBM Plex Sans", sans-serif;
-  white-space: nowrap;
+  font: 400 0.95rem/1.35 "IBM Plex Sans", sans-serif;
+  white-space: pre-line;
 }
 
 .step-done .step-text    { color: #6b8bae; }
@@ -850,7 +855,7 @@
 
 .upcoming-step-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.55rem;
   position: relative;
   z-index: 1;
@@ -862,11 +867,13 @@
   border-radius: 50%;
   background: #b9d3cd;
   flex-shrink: 0;
+  margin-top: 0.2em;
 }
 
 .upcoming-step-text {
   color: #b9d3cd;
-  font: 400 16px/1.3 "IBM Plex Sans", sans-serif;
+  font: 400 16px/1.35 "IBM Plex Sans", sans-serif;
+  white-space: pre-line;
 }
 
 .upcoming-item--dragging {
