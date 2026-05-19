@@ -1,36 +1,25 @@
-# Run AIA (EVA API)
+# Run AIA
 
-Two ways to run AIA. In both cases, **AIA only talks to the Java Hub** (port `7070`), not to TSS directly.
+AIA is the EVA FastAPI service on port **8000**. It only talks to the **Java Hub** (`7070`), not to TSS directly.
 
-| | **Mode 1 — Docker** | **Mode 2 — No Docker** |
-|--|---------------------|-------------------------|
-| Ollama | Inside Docker | Installed on your machine |
-| AIA (port `8000`) | `eva-backend` container | `./scripts/aia-start.sh` |
-| Java Hub IP | Needed if Hub is on **another** computer | Always enter at start |
+Two ways to run it:
+
+| | **Mode 1 — Docker** | **Mode 2 — No Docker** (competition laptop) |
+|--|---------------------|---------------------------------------------|
+| AIA | `eva-backend` container | `./scripts/aia-start.sh` |
+| Ollama | Docker container | Install on your Mac ([ollama.com](https://ollama.com)) |
+| Java Hub IP | Same machine: automatic. Other machine: use Mode 2. | You enter IP when starting (or pass as argument) |
 
 ---
 
-## Mode 1 — Docker
+## Mode 1 — Docker (AIA + Ollama in containers)
 
-Use this for local / lab setups, or when you want Ollama and AIA in containers.
+Use for local / lab when TSS, Java, Ollama, and AIA all run on **one computer**.
 
-### A. Everything on one computer
-
-TSS, Java Hub, Ollama, and AIA all run in Docker on the same machine. **No Java IP needed** (Hub is `http://java-backend:7070` inside Compose).
-
-**Start** (from repo root):
+**Start** (repo root):
 
 ```bash
 docker compose -f docker-compose.yaml up -d --build c-backend java-backend ollama eva-backend
-```
-
-First start may take several minutes (`ollama-init` pulls `llama3.2`).
-
-**Check:**
-
-```bash
-curl -s http://127.0.0.1:7070/ev-telemetry/1 | head -c 80
-curl -s http://127.0.0.1:8000/agent/status
 ```
 
 **Stop:**
@@ -39,146 +28,102 @@ curl -s http://127.0.0.1:8000/agent/status
 docker compose -f docker-compose.yaml stop eva-backend ollama java-backend c-backend
 ```
 
-Or stop all Compose services:
-
-```bash
-docker compose -f docker-compose.yaml down
-```
-
----
-
-### B. Java Hub on another computer
-
-Example: Java Hub runs on `192.168.1.20` (Docker or not). On the **AIA machine**, run only Ollama + AIA in Docker and point AIA at that IP.
-
-**Start Ollama** (repo root):
-
-```bash
-docker compose -f docker-compose.yaml up -d ollama
-docker compose -f docker-compose.yaml run --rm ollama-init
-```
-
-**Start AIA** — set the Java Hub IP (replace with your value):
-
-```bash
-export JAVA_IP=192.168.1.20
-
-docker compose -f docker-compose.yaml run -d --no-deps \
-  -p 8000:8000 \
-  -e EVA_JAVA_BACKEND_URL=http://${JAVA_IP}:7070 \
-  -e EVA_OLLAMA_BASE_URL=http://ollama:11434 \
-  -e EVA_OLLAMA_MODEL=llama3.2 \
-  -e EVA_AGENTIC_ENABLED=true \
-  -e EVA_LIVE_TELEMETRY=true \
-  --name suits-eva-backend \
-  eva-backend
-```
-
 **Check:**
 
 ```bash
 curl -s http://127.0.0.1:8000/agent/status
-# expect "java_backend_reachable": true
 ```
 
-**Stop:**
+Do **not** run `./scripts/aia-start.sh` at the same time — both use port `8000`.
 
-```bash
-docker stop suits-eva-backend
-docker compose -f docker-compose.yaml stop ollama
-```
-
-Do **not** also run `./scripts/aia-start.sh` — only one AIA process can use port `8000`.
+If the Java Hub is on **another computer**, use **Mode 2** instead.
 
 ---
 
-## Mode 2 — No Docker (competition AIA laptop)
+## Mode 2 — No Docker (scripts)
 
-Use this on the dedicated AIA device: **local Ollama app** + **`aia-start.sh`**. Java Hub runs elsewhere; you enter its IP when starting.
+Use on the **AIA laptop** at competition. Ollama runs as a normal app on this machine.
 
-### Before competition (one time)
+### One-time setup
 
-**1. Install Ollama**
+1. Install Ollama from [https://ollama.com](https://ollama.com) and open it.
 
-- macOS / Windows: download from [https://ollama.com](https://ollama.com) and open the app  
-- Linux: `curl -fsSL https://ollama.com/install.sh | sh`
-
-**2. Download the model (needs internet)**
+2. Download the model **before** competition (needs internet):
 
 ```bash
 ollama pull llama3.2
 ```
 
-**3. Confirm Ollama is running**
+3. Check Ollama:
 
 ```bash
 curl -s http://127.0.0.1:11434/api/tags
 ```
 
-You should see `llama3.2` in the output.
-
-**4. Clone repo and set config**
+4. Use the competition config:
 
 ```bash
-git clone https://github.com/RISDxNASA-SUITS/SUITS-26.git
-cd SUITS-26
 cp backend/.env.competition backend/.env
 ```
 
----
+### Start / stop AIA
 
-### Start / stop (competition day)
-
-**Start** — pass the Java Hub machine IP:
+Java Hub must already be running on another machine (or `127.0.0.1` if local).
 
 ```bash
-./scripts/aia-start.sh 192.168.1.20
-```
-
-Or run without an argument to be prompted:
-
-```bash
+# Start (background) — prompts for Java Hub IP if omitted
 ./scripts/aia-start.sh
-# Java Hub IP address: 192.168.1.20
+
+# Or pass IP on the command line
+./scripts/aia-start.sh 192.168.1.20
+./scripts/aia-start.sh 192.168.1.20:7070
+
+# Foreground (logs in terminal, Ctrl+C to stop)
+./scripts/aia-start.sh 192.168.1.20 --foreground
+
+# Stop
+./scripts/aia-stop.sh
+
+# Help
+./scripts/aia-start.sh --help
 ```
 
-The script checks Hub reachability, then starts AIA on port `8000`.  
-Logs: `backend/.run/aia.log`
+Background logs: `backend/.run/aia.log`
 
 **Check:**
 
 ```bash
 curl -s http://127.0.0.1:8000/agent/status
-curl -s -X POST http://127.0.0.1:8000/command \
-  -H 'Content-Type: application/json' \
-  -d '{"text":"what is the battery level?"}'
+curl -s http://127.0.0.1:8000/health
 ```
 
-**Stop:**
+Expected: `"java_backend_reachable": true`, `"agentic_enabled": true` (if using `.env.competition`).
+
+### Rule-based only (no Ollama)
 
 ```bash
-./scripts/aia-stop.sh
+cp backend/.env.example backend/.env
+./scripts/aia-start.sh <JAVA_IP>
 ```
+
+Use exact phrases like `battery status` (not free-form questions).
 
 ---
 
-## Optional: React UI
-
-On any machine that can reach Java Hub and AIA:
+## Optional: frontend
 
 ```bash
-cd frontend && npm install && npm run dev
+cd frontend && npm run dev
 ```
 
-Open the URL Vite prints (e.g. `http://localhost:5173`). Ask EVA uses the `/eva` proxy to AIA on port `8000`.
+Ask EVA in the UI talks to AIA via the `/eva` proxy (port `8000` on this machine).
 
 ---
 
-## Quick fixes
+## Problems
 
-| Problem | Fix |
-|---------|-----|
+| Issue | Fix |
+|-------|-----|
 | Port `8000` in use | `./scripts/aia-stop.sh` or `docker stop suits-26-eva-backend-1` |
-| `preflight failed` / Hub unreachable | Wrong Java IP or Hub not running — test `curl http://<JAVA_IP>:7070/ev-telemetry/1` |
-| `LLM_UNAVAILABLE` (Mode 2) | Start Ollama app; run `ollama pull llama3.2` |
-| Rule-only fallback (no Ollama) | `cp backend/.env.example backend/.env` then restart AIA |
+| `preflight failed` | Wrong Java IP or Hub down — `curl http://<JAVA_IP>:7070/ev-telemetry/1` |
+| `LLM_UNAVAILABLE` | Start Ollama; `ollama pull llama3.2` |
