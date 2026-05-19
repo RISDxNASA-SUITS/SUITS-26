@@ -53,7 +53,7 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
 
   const task = TASK_CONFIGS[currentTaskKey]
   const currentTaskIndex = TASK_ORDER.indexOf(currentTaskKey) + 1
-  const totalTasks = TASK_ORDER.length
+  const totalTasks = TASK_ORDER.length + upcomingTasks.length
 
   const advanceStep = () => {
     const lastStepIndex = task.steps.length - 1
@@ -68,24 +68,22 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
 
     const next = upcomingTasks[0]
     const nextConfig = TASK_CONFIGS[next.title]
-    setUpcomingTasks(prev => [...prev.slice(1), task.upcomingEntry])
-    if (nextConfig) {
-      setCurrentTaskKey(next.title)
-      setActiveStep(0)
-      setHasAdvanced(false)
-    }
+    setUpcomingTasks(prev => prev.slice(1))
+    // Handle both predefined tasks (with config) and custom tasks (without config)
+    setCurrentTaskKey(next.title)
+    setActiveStep(nextConfig?.defaultActiveStep ?? 0)
+    setHasAdvanced(nextConfig?.defaultHasAdvanced ?? false)
   }
 
   const skipTask = () => {
     if (upcomingTasks.length === 0) return
     const next = upcomingTasks[0]
     const nextConfig = TASK_CONFIGS[next.title]
-    setUpcomingTasks(prev => [...prev.slice(1), task.upcomingEntry])
-    if (nextConfig) {
-      setCurrentTaskKey(next.title)
-      setActiveStep(nextConfig.defaultActiveStep)
-      setHasAdvanced(nextConfig.defaultHasAdvanced)
-    }
+    setUpcomingTasks(prev => prev.slice(1))
+    // Handle both predefined tasks (with config) and custom tasks (without config)
+    setCurrentTaskKey(next.title)
+    setActiveStep(nextConfig?.defaultActiveStep ?? 0)
+    setHasAdvanced(nextConfig?.defaultHasAdvanced ?? false)
   }
 
   const addTask = () => {
@@ -130,43 +128,54 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
           </section>
           <section className="task-card" style={{ display: currentTaskOpen ? undefined : "none" }}>
             <h2>{currentTaskKey}</h2>
-            <div className="task-meta">
-              <span>Remaining time: {task.remainingTime}</span>
-              <span>|</span>
-              <span>{task.steps.length} steps</span>
-              <span>|</span>
-              <span>{task.pct}</span>
-            </div>
-
-            <div className="task-progress">
-              <div className="progress-blocks-wrap">
-                <div className="progress-blocks" aria-hidden="true" style={{ gridTemplateColumns: task.gridCols }}>
-                  {task.steps.map((_, i) => {
-                    let cls = ""
-                    if (i === activeStep) cls = `active${hasAdvanced ? " active--advanced" : ""}`
-                    else if (i < activeStep) cls = "done"
-                    return <span key={i} className={cls} />
-                  })}
+            {task ? (
+              <>
+                <div className="task-meta">
+                  <span>Remaining time: {task.remainingTime}</span>
+                  <span>|</span>
+                  <span>{task.steps.length} steps</span>
+                  <span>|</span>
+                  <span>{task.pct}</span>
                 </div>
-              </div>
-            </div>
 
-            <ol className="task-step-list">
-              {task.steps.map((label, i) => {
-                const cls = i < activeStep ? "step-done" : i === activeStep ? "step-current" : "step-upcoming"
-                return (
-                  <li key={i} className={cls}>
-                    {i === activeStep ? <span className="step-dot-active" /> : <span className="step-dot" />}
-                    <span className="step-text">{label}</span>
-                  </li>
-                )
-              })}
-            </ol>
+                <div className="task-progress">
+                  <div className="progress-blocks-wrap">
+                    <div className="progress-blocks" aria-hidden="true" style={{ gridTemplateColumns: task.gridCols }}>
+                      {task.steps.map((_, i) => {
+                        let cls = ""
+                        if (i === activeStep) cls = `active${hasAdvanced ? " active--advanced" : ""}`
+                        else if (i < activeStep) cls = "done"
+                        return <span key={i} className={cls} />
+                      })}
+                    </div>
+                  </div>
+                </div>
 
-            <div className="task-actions">
-              <button type="button" onClick={skipTask}>Skip task</button>
-              <button type="button" onClick={advanceStep}>Next Step</button>
-            </div>
+                <ol className="task-step-list">
+                  {task.steps.map((label, i) => {
+                    const cls = i < activeStep ? "step-done" : i === activeStep ? "step-current" : "step-upcoming"
+                    return (
+                      <li key={i} className={cls}>
+                        {i === activeStep ? <span className="step-dot-active" /> : <span className="step-dot" />}
+                        <span className="step-text">{label}</span>
+                      </li>
+                    )
+                  })}
+                </ol>
+
+                <div className="task-actions">
+                  <button type="button" onClick={skipTask}>Skip task</button>
+                  <button type="button" onClick={advanceStep}>Next Step</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="custom-task-notice">Custom Task</p>
+                <div className="task-actions">
+                  <button type="button" onClick={skipTask}>Complete task</button>
+                </div>
+              </>
+            )}
           </section>
 
           <section className="upcoming-card">
