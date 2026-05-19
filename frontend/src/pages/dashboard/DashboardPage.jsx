@@ -4,6 +4,7 @@ import { CommsHistory } from "./components/CommsHistory"
 import { SuitsPanel } from "./components/SuitsPanel"
 import { HubStatusBanner } from "./components/HubStatusBanner"
 import { fetchEvTelemetry } from "../../api/hubClient"
+import { isHubConfigured } from "../../api/hubConfig"
 import { useViewportScale } from "../../hooks/useViewportScale"
 import "./styles/index.css"
 
@@ -13,6 +14,12 @@ export function DashboardPage() {
   const [hubError, setHubError] = useState(null)
 
   useEffect(() => {
+    // Dont check until hub configuration is ready
+    if (!isHubConfigured()) {
+      setHubError("Hub not configured")
+      return
+    }
+
     let cancelled = false
     async function check() {
       try {

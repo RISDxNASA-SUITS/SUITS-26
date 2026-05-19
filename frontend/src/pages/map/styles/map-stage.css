@@ -1,7 +1,8 @@
 .map-stage {
   position: relative;
   box-sizing: border-box;
-  width: min(100%, calc((100dvh - 1.1rem - 80px - 0.6rem) * 3507 / 2220));
+  width: 100%;
+  max-width: 100%;
   aspect-ratio: 3507 / 2220;
   justify-self: center;
   align-self: start;
@@ -12,9 +13,8 @@
 .maplibre-stage,
 .map-bg {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0 4.5rem 3.2rem 0;
+  box-sizing: border-box;
 }
 
 .maplibre-stage {
@@ -272,67 +272,12 @@
   height: 1.78rem;
 }
 
-.map-mode-control,
 .map-quick-tools {
   position: absolute;
   z-index: 8;
-}
-
-.map-mode-control {
+  top: auto;
   right: 0.82rem;
-  top: 0.86rem;
-}
-
-.map-mode-control button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 7.35rem;
-  height: 3.4rem;
-  padding: 12px;
-  overflow: hidden;
-  border: 1px solid var(--Moon-Dust, #6b8bae);
-  border-radius: 12px;
-  background: #101926;
-  color: var(--pure-white, #fff);
-  font: 500 18px/normal "IBM Plex Sans", sans-serif;
-  cursor: pointer;
-}
-
-.map-mode-toggle {
-  position: relative;
-  flex: 0 0 auto;
-  width: 50px;
-  height: 27px;
-  border: 1px solid var(--Moon-Dust, #6b8bae);
-  border-radius: 39.087px;
-  background: #101926;
-}
-
-.map-mode-toggle-handle {
-  position: absolute;
-  top: 9.99%;
-  bottom: 10.01%;
-  left: 5.56%;
-  width: 21.8px;
-  border-radius: 50%;
-  background: #fff;
-  transition: transform 180ms ease;
-}
-
-.map-mode-control button.is-enabled .map-mode-toggle-handle {
-  transform: translateX(21.2px);
-}
-
-.map-mode-label {
-  white-space: nowrap;
-  font-feature-settings: "zero" 1;
-}
-
-.map-quick-tools {
-  top: 4.95rem;
-  right: 1.02rem;
+  bottom: 0.6rem;
   display: grid;
   gap: 0.45rem;
 }

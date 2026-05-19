@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { fetchPois, fetchRoverTelemetry, fetchImu, fetchLtv } from "../api/hubClient"
+import { isHubConfigured } from "../api/hubConfig"
 import { mapHubPois, mapTelemetryMarkers } from "../api/mapMappers"
 
 const POLL_MS = 1000
@@ -24,12 +25,23 @@ export function useMapLiveData() {
       setHubConnected(true)
       setHubError(null)
     } catch (err) {
+      setPois([])
+      setTelemetryPoints([])
       setHubConnected(false)
       setHubError(err instanceof Error ? err.message : "Hub unavailable")
     }
   }, [])
 
   useEffect(() => {
+    // Dont poll until hub configuration is ready
+    if (!isHubConfigured()) {
+      setPois([])
+      setTelemetryPoints([])
+      setHubConnected(false)
+      setHubError("Hub not configured")
+      return
+    }
+
     let cancelled = false
     async function poll() {
       if (cancelled) return

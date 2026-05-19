@@ -1,7 +1,12 @@
-const HUB_BASE = (import.meta.env.VITE_HUB_URL ?? "/hub").replace(/\/$/, "")
+import { getHubBase, isHubConfigured } from "./hubConfig"
 
 async function hubGet(path) {
-  const res = await fetch(`${HUB_BASE}${path}`, {
+  if (!isHubConfigured()) {
+    throw new Error("Java Hub not configured")
+  }
+
+  const hubBase = getHubBase()
+  const res = await fetch(`${hubBase}${path}`, {
     headers: { Accept: "application/json" },
   })
   if (!res.ok) {
@@ -34,7 +39,8 @@ export async function fetchPois() {
 }
 
 export function deletePoi(id) {
-  return fetch(`${HUB_BASE}/poi/${id}`, { method: "DELETE" }).then((res) => {
+  const hubBase = getHubBase()
+  return fetch(`${hubBase}/poi/${id}`, { method: "DELETE" }).then((res) => {
     if (!res.ok) throw new Error(`Hub DELETE /poi/${id} failed (${res.status})`)
   })
 }

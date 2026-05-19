@@ -191,11 +191,9 @@ export function MapStage({
   const hidePoiActionMenuRef = useRef(() => {})
   const baseZoomRef = useRef(null)
   const baseCameraRef = useRef(null)
-  const is3dRef = useRef(false)
   const isReturningRef = useRef(false)
   const onDeletePoiRef = useRef(onDeletePoi)
   const onNavigateToPoiRef = useRef(onNavigateToPoi)
-  const [is3d, setIs3d] = useState(false)
 
   onDeletePoiRef.current = onDeletePoi
   onNavigateToPoiRef.current = onNavigateToPoi
@@ -520,8 +518,6 @@ export function MapStage({
   }, [telemetryPoints, syncTelemetryMarkers])
 
   function resetMap() {
-    is3dRef.current = false
-    setIs3d(false)
     mapRef.current?.setMinZoom(0)
     mapRef.current?.fitBounds(IMAGE_BOUNDS, { ...BASE_MAP_OPTIONS, duration: 0 })
     if (mapRef.current) {
@@ -536,8 +532,6 @@ export function MapStage({
   }
 
   function resetFlatView() {
-    is3dRef.current = false
-    setIs3d(false)
     mapRef.current?.setMinZoom(0)
     mapRef.current?.fitBounds(IMAGE_BOUNDS, { ...BASE_MAP_OPTIONS, duration: 0 })
     if (mapRef.current) {
@@ -556,9 +550,7 @@ export function MapStage({
     const baseCamera = baseCameraRef.current
     if (!map || !baseCamera || baseZoomRef.current === null) return
 
-    is3dRef.current = false
     isReturningRef.current = true
-    setIs3d(false)
     map.stop()
     map.setMinZoom(0)
     map.easeTo({
@@ -594,25 +586,10 @@ export function MapStage({
     }
   }
 
-  function toggle3d() {
-    const next = !is3d
-    is3dRef.current = next
-    setIs3d(next)
-    mapRef.current?.easeTo({ pitch: next ? 45 : 0, bearing: next ? -18 : 0, duration: 450 })
-  }
-
   return (
     <section className="map-stage">
       <div ref={mapNode} className="maplibre-stage" aria-label="Interactive TSS DUST map" />
       <div className="map-grid-overlay" aria-hidden="true" />
-      <div className="map-mode-control" aria-label="Map mode">
-        <button type="button" className={is3d ? "is-enabled" : ""} onClick={toggle3d}>
-          <span className="map-mode-toggle" aria-hidden="true">
-            <span className="map-mode-toggle-handle" />
-          </span>
-          <span className="map-mode-label">3D</span>
-        </button>
-      </div>
       <div className="map-quick-tools" aria-label="Map tools">
         <button type="button" className="map-tool-button-nav" onClick={resetMap} aria-label="Recenter map">
           <img src={navigationIcon} alt="" aria-hidden="true" />

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { ltvBeaconMock } from "../mock/ltvBeaconMock"
 import { fetchLtv, fetchRoverTelemetry } from "../api/hubClient"
+import { isHubConfigured } from "../api/hubConfig"
 import { mapLtvBeacon } from "../api/hubMappers"
 
 const POLL_MS = 900
@@ -15,6 +16,13 @@ export function useLtvBeacon() {
   const accRef = useRef({})
 
   useEffect(() => {
+    // Dont poll until hub configuration is ready
+    if (!isHubConfigured()) {
+      setHubConnected(false)
+      setHubError("Hub not configured")
+      return
+    }
+
     let cancelled = false
 
     async function poll() {
