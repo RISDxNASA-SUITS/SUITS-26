@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -23,7 +25,6 @@ ENV_LINE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$")
 def load_env_file(path: Path) -> dict[str, str]:
     if not path.is_file():
         print(f"ERROR: Missing {path}", file=sys.stderr)
-        print("  Run: cp backend/.env.example backend/.env", file=sys.stderr)
         sys.exit(1)
 
     values: dict[str, str] = {}
@@ -53,10 +54,10 @@ def parse_bool(raw: str | None, default: bool) -> bool:
 def validate_java_url(url: str) -> str:
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"}:
-        print(f"ERROR: EVA_JAVA_BACKEND_URL must be http(s): {url!r}", file=sys.stderr)
+        print(f"ERROR: Java Hub URL must be http(s): {url!r}", file=sys.stderr)
         sys.exit(1)
     if not parsed.netloc:
-        print(f"ERROR: EVA_JAVA_BACKEND_URL missing host: {url!r}", file=sys.stderr)
+        print(f"ERROR: Java Hub URL missing host: {url!r}", file=sys.stderr)
         sys.exit(1)
     return url.rstrip("/")
 
@@ -69,7 +70,8 @@ def check_hub(base_url: str, timeout_s: float) -> None:
             response.raise_for_status()
             data = response.json()
     except Exception as exc:
-        print("ERROR: Cannot reach Java Hub (is java-backend running?)", file=sys.stderr)
+        print("ERROR: Cannot reach Java Hub at the IP you entered.", file=sys.stderr)
+        print("  Check that Java Hub is running on that machine (port 7070).", file=sys.stderr)
         print(f"  Probe: {probe}", file=sys.stderr)
         print(f"  Detail: {exc}", file=sys.stderr)
         sys.exit(1)
@@ -80,10 +82,19 @@ def check_hub(base_url: str, timeout_s: float) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="AIA startup preflight")
+    parser.add_argument(
+        "--java-url",
+        help="Override EVA_JAVA_BACKEND_URL (set by aia-start.sh from typed IP)",
+    )
+    args = parser.parse_args()
+
     env = load_env_file(ENV_PATH)
 
     java_url = validate_java_url(
-        env.get("EVA_JAVA_BACKEND_URL", "http://localhost:7070"),
+        args.java_url
+        or os.environ.get("EVA_JAVA_BACKEND_URL")
+        or env.get("EVA_JAVA_BACKEND_URL", "http://localhost:7070"),
     )
     live = parse_bool(env.get("EVA_LIVE_TELEMETRY"), True)
     timeout_s = float(env.get("EVA_JAVA_HTTP_TIMEOUT_S", "3"))
@@ -92,7 +103,7 @@ def main() -> None:
         check_hub(java_url, timeout_s)
         print(f"OK: Hub reachable at {java_url}")
     else:
-        print("OK: EVA_LIVE_TELEMETRY=false — starting in mock telemetry mode (Hub not required).")
+        print("OK: EVA_LIVE_TELEMETRY=false — mock telemetry mode (Hub not required).")
 
     print("OK: AIA configuration is valid.")
 

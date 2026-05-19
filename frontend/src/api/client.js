@@ -2,7 +2,8 @@ function apiOrigin() {
   const raw = import.meta.env.VITE_API_ORIGIN
   const trimmed = raw?.replace(/\/$/, "")
   if (trimmed) return trimmed
-  if (import.meta.env.DEV) return "http://localhost:8000"
+  // Same-origin via Vite proxy — works on any dev port (5173, 5174, …)
+  if (import.meta.env.DEV) return "/eva"
   if (typeof window !== "undefined") return window.location.origin
   return ""
 }
