@@ -6,9 +6,9 @@ Two ways to run it:
 
 | | **Mode 1 — Docker** | **Mode 2 — No Docker** (competition laptop) |
 |--|---------------------|---------------------------------------------|
-| AIA | `eva-backend` container | `./scripts/aia-start.sh` |
+| AIA | `eva-backend` container | `./scripts/aia-start.sh <JAVA_IP>` |
 | Ollama | Docker container | Install on your Mac ([ollama.com](https://ollama.com)) |
-| Java Hub IP | Same machine: automatic. Other machine: use Mode 2. | You enter IP when starting (or pass as argument) |
+| Java Hub IP | Same machine: automatic. Other machine: use Mode 2. | **Required** — pass as argument: `./scripts/aia-start.sh <JAVA_IP>` |
 
 ---
 
@@ -68,15 +68,17 @@ cp backend/.env.competition backend/.env
 
 ### Start / stop AIA
 
-Java Hub must already be running on another machine (or `127.0.0.1` if local).
+Java Hub must already be running. **Always pass the Java Hub machine IP** as the first argument (competition: the IP of the computer running Java Hub, not this laptop).
 
 ```bash
-# Start (background) — prompts for Java Hub IP if omitted
-./scripts/aia-start.sh
-
-# Or pass IP on the command line
+# Start (background) — replace with your Java Hub IP
 ./scripts/aia-start.sh 192.168.1.20
+
+# Custom port (default 7070)
 ./scripts/aia-start.sh 192.168.1.20:7070
+
+# Local test only (Java Hub on this same machine)
+./scripts/aia-start.sh 127.0.0.1
 
 # Foreground (logs in terminal, Ctrl+C to stop)
 ./scripts/aia-start.sh 192.168.1.20 --foreground
@@ -87,6 +89,8 @@ Java Hub must already be running on another machine (or `127.0.0.1` if local).
 # Help
 ./scripts/aia-start.sh --help
 ```
+
+The script writes `EVA_JAVA_BACKEND_URL=http://<JAVA_IP>:7070` into `backend/.env`, checks Hub reachability, then starts AIA. Wrong IP or Hub down → start aborts.
 
 Background logs: `backend/.run/aia.log`
 
