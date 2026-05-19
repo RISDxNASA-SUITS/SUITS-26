@@ -2,7 +2,7 @@
 
 FastAPI service: `POST /command`, in-memory **mission**, **telemetry**, **procedures** (YAML), **warnings**, and **guardrails**. No database. Optional **agentic** path uses a local **Ollama** LLM (see root README).
 
-**Competition / standalone laptop (no Docker):** see [docs/AIA-STANDALONE.md](../docs/AIA-STANDALONE.md) — Ollama pre-install, `aia-start.sh`, and Hub IP setup.
+**How to run AIA:** see [docs/AIA-STANDALONE.md](../docs/AIA-STANDALONE.md) (Docker vs no-Docker, two modes).
 
 ## Demo mode and defaults
 
