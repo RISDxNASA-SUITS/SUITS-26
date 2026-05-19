@@ -84,20 +84,19 @@ Open the **TSS web UI**: http://localhost:14141
 
 ---
 
-## Step 2 — EVA backend (local)
+## Step 2 — AIA (local, no Docker)
+
+From **repo root** (after Step 1, or if Java Hub is on another machine). See **[docs/AIA-STANDALONE.md](./docs/AIA-STANDALONE.md)**.
 
 ```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+cp backend/.env.competition backend/.env   # or .env.example for rule-based only
+
+# Pass the Java Hub machine IP (127.0.0.1 if Hub is local Docker from Step 1)
+./scripts/aia-start.sh 127.0.0.1
+./scripts/aia-stop.sh
 ```
 
-Edit `backend/.env` if needed (see [Configuration](#configuration) below).
-
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+For agentic mode: install [Ollama](https://ollama.com) and `ollama pull llama3.2` before starting.
 
 Check:
 
@@ -108,7 +107,7 @@ curl -s http://localhost:8000/telemetry
 curl -s http://localhost:8000/telemetry/full | head -c 200
 ```
 
-If `/telemetry` returns **503**, TSS/Java is not reachable — fix Step 1 first.  
+If `/telemetry` returns **503**, TSS/Java is not reachable — fix Step 1 or the IP passed to `aia-start.sh`.  
 **`/telemetry/full`** returns the full Java mission bundle (EV1/EV2, DCU, errors, IMU, UIA, EVA state, rover, lidar, LTV) used by AIA for warnings and agentic Q&A.
 
 ---

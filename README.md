@@ -107,30 +107,42 @@ Open http://localhost:5173 — the UI talks to the EVA API at http://localhost:8
 
 ### Option B — Local dev (best for frontend + EVA work)
 
-**Terminal 1 — TSS + Java (Docker)**
+Full detail: **[docs/AIA-STANDALONE.md](./docs/AIA-STANDALONE.md)** (Mode 2 — no Docker for AIA).
+
+**Terminal 1 — Java Hub (TSS + Java)**
+
+*If Java Hub runs on this Mac via Docker:*
 
 ```bash
 docker compose -f docker-compose.yaml up -d --build c-backend java-backend
+curl -s http://127.0.0.1:7070/ev-telemetry/1 | head -c 80
 ```
 
-Optional: run **only Ollama** in Docker while EVA stays local:
+*If Java Hub runs on another machine (competition / teammate’s laptop):* skip Terminal 1 here — note that machine’s **IP address** (e.g. `192.168.1.20`). You will pass it to `aia-start.sh` in Terminal 2.
+
+**Terminal 2 — AIA (no Docker)** — from **repo root**
+
+Install [Ollama](https://ollama.com), run `ollama pull llama3.2`, then:
 
 ```bash
-docker compose -f docker-compose.yaml up -d ollama
-# then set EVA_OLLAMA_BASE_URL=http://127.0.0.1:11434 in backend/.env
+cp backend/.env.competition backend/.env
+
+# JAVA_IP = IP of the machine running Java Hub (7070)
+# Local Docker Hub on this Mac:
+./scripts/aia-start.sh 127.0.0.1
+
+# Java Hub on another computer:
+./scripts/aia-start.sh 192.168.1.20
+
+# Foreground / stop / help
+./scripts/aia-start.sh 192.168.1.20 --foreground
+./scripts/aia-stop.sh
+./scripts/aia-start.sh --help
 ```
 
-**Terminal 2 — EVA backend**
+The script writes `EVA_JAVA_BACKEND_URL`, checks Hub reachability, and starts AIA on port `8000`. Logs: `backend/.run/aia.log`.
 
-Copy and edit [`backend/.env`](backend/.env). For agentic mode locally, install [Ollama](https://ollama.com), run `ollama pull llama3.2`, and set `EVA_AGENTIC_ENABLED=true` with `EVA_OLLAMA_BASE_URL=http://127.0.0.1:11434`.
-
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+Do **not** run `docker compose ... eva-backend` at the same time (same port `8000`).
 
 **Terminal 3 — EVA frontend**
 
