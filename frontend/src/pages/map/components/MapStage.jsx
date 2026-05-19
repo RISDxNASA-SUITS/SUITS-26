@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import maplibregl from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
-import dustMapImage from "../../../assets/map/dust-map.png"
+import dustMapImage from "../../../assets/map/dust-map_cpopped.png"
 import addPlusIcon from "../../../assets/map/Add_Plus.svg"
 import editIcon from "../../../assets/map/Edit.svg"
 import navigationIcon from "../../../assets/map/Navigation.svg"
