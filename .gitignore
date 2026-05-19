@@ -1,0 +1,6 @@
+.DS_Store
+.vscode
+
+# Local EVA backend artifacts (not part of frontend/dashboard branch)
+backend/
+frontend/.vite/
