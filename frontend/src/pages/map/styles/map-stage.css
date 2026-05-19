@@ -21,6 +21,27 @@
   z-index: 0;
 }
 
+.map-stage--placing-poi .maplibre-stage {
+  cursor: crosshair;
+}
+
+.map-place-poi-hint {
+  position: absolute;
+  top: 0.65rem;
+  left: 50%;
+  z-index: 6;
+  transform: translateX(-50%);
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(22, 132, 255, 0.55);
+  background: rgba(6, 15, 28, 0.88);
+  color: #a8d4ff;
+  font: 600 0.82rem/1.2 "IBM Plex Sans", sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
 .map-bg {
   object-fit: cover;
   filter: grayscale(100%) contrast(1.06) brightness(0.64);
@@ -132,6 +153,44 @@
 
 .map-poi-marker.is-muted {
   opacity: 0.46;
+}
+
+/* User-dropped POI: breadcrumb dot + compact "POI" chip */
+.map-poi-marker--drop-poi {
+  gap: 0.2rem;
+  min-height: 0;
+  padding: 0.1rem 0.42rem 0.5rem;
+  transform: translateY(-0.12rem);
+  opacity: 1;
+}
+
+.map-poi-marker--drop-poi strong {
+  display: none;
+}
+
+.map-poi-marker--drop-poi span {
+  min-width: 1.35rem;
+  padding: 0.14rem 0.36rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.map-poi-marker--drop-poi::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  bottom: -0.95rem;
+}
+
+.map-poi-marker--drop-poi::after {
+  width: 0.45rem;
+  height: 0.45rem;
+  bottom: -0.32rem;
+}
+
+.map-stage--placing-poi .map-mode-control,
+.map-stage--placing-poi .map-quick-tools {
+  pointer-events: none;
+  opacity: 0.55;
 }
 
 .map-poi-marker.is-selected {

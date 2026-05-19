@@ -18,6 +18,7 @@ export function mapHubPois(rows) {
       description: String(row.description ?? ""),
       active: false,
       muted: row.type === "breadCrumb",
+      breadcrumbStyle: row.type === "poi" || row.type === "breadCrumb",
     }
   })
 }

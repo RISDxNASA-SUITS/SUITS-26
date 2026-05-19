@@ -44,3 +44,27 @@ export function deletePoi(id) {
     if (!res.ok) throw new Error(`Hub DELETE /poi/${id} failed (${res.status})`)
   })
 }
+
+/** @param {{ name: string, x: number, y: number, tags?: string[], description?: string, type?: string }} poi */
+export async function createPoi(poi) {
+  const body = {
+    id: null,
+    name: poi.name,
+    x: poi.x,
+    y: poi.y,
+    tags: poi.tags ?? ["PR"],
+    description: poi.description ?? "",
+    type: poi.type ?? "poi",
+    audioId: null,
+    radius: null,
+  }
+  const res = await fetch(`${HUB_BASE}/poi`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    throw new Error(`Hub POST /poi failed (${res.status})`)
+  }
+  return res.json()
+}
