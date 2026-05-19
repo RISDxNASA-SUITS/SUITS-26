@@ -14,6 +14,7 @@ RISD × NASA SUITS 2026 monorepo: the **official NASA telemetry stack** (TSS, Ja
 | [backend](./backend/README.md) | FastAPI EVA mission assistant (commands, procedures, ASR, optional Ollama) |
 | [frontend](./frontend/README.md) | React mission console for the EVA assistant |
 | [docs/EVA_README.md](./docs/EVA_README.md) | Full EVA assistant documentation (architecture, config, troubleshooting) |
+| [docs/AIA-STANDALONE.md](./docs/AIA-STANDALONE.md) | **AIA on a dedicated competition laptop** (Ollama pre-install, `aia-start.sh`, no Docker) |
 | [system.md](./system.md) | ASCII EVA pipeline diagram |
 
 ## Prerequisites
