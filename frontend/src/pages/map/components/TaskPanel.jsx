@@ -157,7 +157,7 @@ function buildUpcomingEntry(title) {
 
 const INITIAL_UPCOMING = TASK_ORDER.slice(1).map(buildUpcomingEntry)
 
-export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand }) {
+export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand, onManualCommandStart, onManualCommandEnd, onManualStop }) {
   const [activeTab, setActiveTab] = useState("tasks")
   const [currentTaskOpen, setCurrentTaskOpen] = useState(true)
   const [currentTaskKey, setCurrentTaskKey] = useState(INITIAL_TASK_KEY)
@@ -396,7 +396,13 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
               Manual
             </button>
           </div>
-          {isManual && <DPad />}
+          {isManual && (
+            <DPad
+              onCommandStart={onManualCommandStart}
+              onCommandEnd={onManualCommandEnd}
+              onStop={onManualStop}
+            />
+          )}
         </div>
         {!isManual && (
           <button type="button" className="path-opt-chevron" aria-label="Expand" onClick={onToggleExpand}>

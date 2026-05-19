@@ -49,3 +49,27 @@ export function deletePoi(id) {
     if (!res.ok) throw new Error(`Hub DELETE /poi/${id} failed (${res.status})`)
   })
 }
+
+async function hubPost(path, body) {
+  const res = await fetch(`${HUB_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    throw new Error(`Hub POST ${path} failed (${res.status})`)
+  }
+  return res.json().catch(() => null)
+}
+
+export function setRoverThrottle(throttleInput) {
+  return hubPost("/throttle", { throttleInput })
+}
+
+export function setRoverSteering(steeringInput) {
+  return hubPost("/steering", { steeringInput })
+}
+
+export function setRoverBrakes(brakeInput) {
+  return hubPost("/brakes", { brakeInput })
+}

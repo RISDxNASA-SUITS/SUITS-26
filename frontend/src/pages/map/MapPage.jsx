@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { TaskPanel } from "./components/TaskPanel"
 import { MissionBar } from "./components/MissionBar"
 import { MapStage } from "./components/MapStage"
@@ -8,9 +8,16 @@ import { AddPoiPanel } from "./components/AddPoiPanel"
 import { AddHazardPanel } from "./components/AddHazardPanel"
 import { HubStatusBanner } from "../dashboard/components/HubStatusBanner"
 import { useMapLiveData } from "../../hooks/useMapLiveData"
-import { deletePoi } from "../../api/hubClient"
+import { deletePoi, setRoverBrakes, setRoverSteering, setRoverThrottle } from "../../api/hubClient"
 import { startRobustNavigation } from "../../api/navClient"
 import "./styles/index.css"
+
+const MANUAL_COMMANDS = {
+  forward: { throttle: 35, steering: 0, brake: 0 },
+  left: { throttle: 22, steering: -0.55, brake: 0 },
+  right: { throttle: 22, steering: 0.55, brake: 0 },
+  reverse: { throttle: 0, steering: 0, brake: 1 },
+}
 
 export function MapPage() {
   const [isManual, setIsManual] = useState(false)
@@ -19,8 +26,57 @@ export function MapPage() {
   const [showAddPoi, setShowAddPoi] = useState(false)
   const [showAddHazard, setShowAddHazard] = useState(false)
   const [statusMessage, setStatusMessage] = useState(null)
+  const manualIntervalRef = useRef(null)
 
   const { pois, telemetryPoints, hubError, refresh } = useMapLiveData()
+
+  const sendManualControl = useCallback(async ({ throttle, steering, brake }) => {
+    await Promise.all([
+      setRoverBrakes(brake),
+      setRoverSteering(steering),
+      setRoverThrottle(throttle),
+    ])
+  }, [])
+
+  const stopManualControl = useCallback(async () => {
+    try {
+      await sendManualControl({
+        throttle: 0,
+        steering: 0,
+        brake: 1,
+      })
+    } catch (err) {
+      console.error(err)
+    }
+  }, [sendManualControl])
+
+  const clearManualInterval = useCallback(() => {
+    if (manualIntervalRef.current !== null) {
+      window.clearInterval(manualIntervalRef.current)
+      manualIntervalRef.current = null
+    }
+  }, [])
+
+  const handleManualCommandStart = useCallback(async (command) => {
+    const control = MANUAL_COMMANDS[command]
+    if (!control) return
+    clearManualInterval()
+    try {
+      await sendManualControl(control)
+      manualIntervalRef.current = window.setInterval(() => {
+        void sendManualControl(control).catch((err) => {
+          console.error(err)
+        })
+      }, 250)
+    } catch (err) {
+      console.error(err)
+    }
+  }, [clearManualInterval, sendManualControl])
+
+  const handleManualCommandEnd = useCallback(() => {
+    clearManualInterval()
+    void stopManualControl()
+  }, [clearManualInterval, stopManualControl])
 
   const handleDeletePoi = useCallback(
     async (poi) => {
@@ -44,6 +100,14 @@ export function MapPage() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!isManual) return undefined
+    return () => {
+      clearManualInterval()
+      void stopManualControl()
+    }
+  }, [clearManualInterval, isManual, stopManualControl])
+
   return (
     <main className="map-page-shell">
       <TaskPanel
@@ -51,6 +115,9 @@ export function MapPage() {
         onToggleManual={setIsManual}
         isExpanded={isExpanded}
         onToggleExpand={() => setIsExpanded(true)}
+        onManualCommandStart={handleManualCommandStart}
+        onManualCommandEnd={handleManualCommandEnd}
+        onManualStop={stopManualControl}
       />
       <section className="map-workspace" aria-label="Map workspace">
         <HubStatusBanner error={hubError} />
