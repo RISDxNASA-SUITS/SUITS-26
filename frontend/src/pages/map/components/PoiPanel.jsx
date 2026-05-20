@@ -1,31 +1,21 @@
 import { useMemo, useState } from "react"
 import menuDuoIcon from "../../../assets/map/Menu_Duo_MD.png"
-import { formatTssCoords } from "../utils/coordinates"
 
 const TABS = ["PR", "EV1", "EV2"]
 
-function tabMatchesPoi(tab, poi) {
-  const type = (poi.type ?? "").toUpperCase()
-  if (tab === "PR") return type === "PR" || type.includes("BREAD") || type === "LTV"
-  if (tab === "EV1") return type.includes("EV1") || type === "EV"
-  if (tab === "EV2") return type.includes("EV2")
-  return true
+function formatCoords(x, y) {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return "--"
+  return `${x.toFixed(1)}, ${y.toFixed(1)}`
 }
 
 export function PoiPanel({ pois = [] }) {
   const [activeTab, setActiveTab] = useState("PR")
-  const [selectedPoi, setSelectedPoi] = useState(null)
+  const [selectedPoiId, setSelectedPoiId] = useState(null)
 
-  const listItems = useMemo(() => {
-    const filtered = pois.filter((p) => tabMatchesPoi(activeTab, p))
-    const rows = filtered.length > 0 ? filtered : pois
-    return rows.map((poi) => ({
-      id: poi.id,
-      label: poi.label,
-      coords: formatTssCoords(poi.tssX, poi.tssY),
-      state: poi.muted ? "completed" : poi.active ? "active" : "default",
-    }))
-  }, [pois, activeTab])
+  const visiblePois = useMemo(
+    () => pois.filter((poi) => (poi.type || "PR").toUpperCase() === activeTab),
+    [activeTab, pois],
+  )
 
   return (
     <div className="poi-panel">
@@ -49,27 +39,25 @@ export function PoiPanel({ pois = [] }) {
 
         <div className="poi-list-area">
           <div className="poi-scroll-container">
-            {listItems.length === 0 ? (
-              <p className="poi-empty-hint">No POIs from Hub yet. Check Docker on port 7070.</p>
+            {visiblePois.length === 0 ? (
+              <div className="poi-empty-state">No POIs yet</div>
             ) : (
               <div className="poi-track-list">
-                {listItems.map((poi, i) => (
+                {visiblePois.map((poi, index) => (
                   <div
                     key={poi.id}
-                    className={`poi-row${i < listItems.length - 1 ? ` poi-row--line-${poi.state}` : ""}`}
+                    className={`poi-row${index < visiblePois.length - 1 ? " poi-row--line-default" : ""}`}
                   >
                     <div className="poi-dot-col">
-                      <span
-                        className={`poi-route-dot${poi.state === "completed" ? " poi-route-dot--completed" : poi.state === "active" ? " poi-route-dot--active" : ""}`}
-                      />
+                      <span className="poi-route-dot" />
                     </div>
                     <div
-                      className={`poi-item poi-item--${poi.state}${selectedPoi === poi.id ? " poi-item--selected" : ""}`}
-                      onClick={() => poi.state !== "completed" && setSelectedPoi(poi.id)}
+                      className={`poi-item poi-item--default${selectedPoiId === poi.id ? " poi-item--selected" : ""}`}
+                      onClick={() => setSelectedPoiId(poi.id)}
                     >
                       <div className="poi-item-text">
                         <p className="poi-item-label">{poi.label}</p>
-                        <p className="poi-item-coords">{poi.coords}</p>
+                        <p className="poi-item-coords">{formatCoords(poi.tssX, poi.tssY)}</p>
                       </div>
                       <button type="button" className="poi-menu-btn" aria-label="Menu">
                         <img src={menuDuoIcon} alt="" width={24} height={24} />

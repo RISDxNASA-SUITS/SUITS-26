@@ -43,6 +43,10 @@
   font-feature-settings: "zero" 1;
 }
 
+.add-poi-coords--placeholder {
+  color: #91a9c2;
+}
+
 .add-poi-tag {
   background: #213757;
   border-radius: 20px;
@@ -72,37 +76,52 @@
 
 .add-poi-input {
   background: #14253c;
+  border: 1px solid transparent;
   border-radius: 8px;
   padding: 10px 16px;
   height: 46px;
   display: flex;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
   font: 400 20px/1 "IBM Plex Sans", sans-serif;
   color: #ffffff;
   font-feature-settings: "zero" 1;
   backdrop-filter: blur(50px);
 }
 
+input.add-poi-input,
+textarea.add-poi-input {
+  outline: none;
+}
+
+input.add-poi-input:focus,
+textarea.add-poi-input:focus {
+  border-color: #3092ff;
+}
+
+.add-poi-input--readonly {
+  border-color: rgba(107, 139, 174, 0.24);
+}
+
 .add-poi-input--placeholder {
   color: #6b8bae;
+}
+
+.add-poi-textarea {
+  min-height: 92px;
+  height: 92px;
+  resize: none;
+  align-items: flex-start;
+  padding-top: 12px;
+  line-height: 1.3;
 }
 
 .add-poi-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.add-poi-btn-share {
-  background: transparent;
-  border: none;
-  font: 500 20px/1 "IBM Plex Sans", sans-serif;
-  color: #ffffff;
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 10px 16px;
-  height: 46px;
-  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .add-poi-btn-cancel {
@@ -127,4 +146,12 @@
   padding: 10px 24px;
   height: 46px;
   backdrop-filter: blur(50px);
+}
+
+.add-poi-btn-cancel:disabled,
+.add-poi-btn-done:disabled,
+.add-poi-input:disabled,
+.add-poi-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

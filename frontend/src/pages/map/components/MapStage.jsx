@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import maplibregl from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
-import dustMapImage from "../../../assets/map/dust-map_cpopped.png"
+import rockYardImage from "../../../assets/map/rock-yard.png"
 import addPlusIcon from "../../../assets/map/Add_Plus.svg"
 import editIcon from "../../../assets/map/Edit.svg"
+import mapPinIcon from "../../../assets/map/Map_Pin.svg"
 import navigationIcon from "../../../assets/map/Navigation.svg"
 import removeMinusIcon from "../../../assets/map/Remove_Minus.svg"
 import stackSimpleIcon from "../../../assets/map/StackSimple.svg"
@@ -12,8 +13,10 @@ import evNavigationIcon from "../../../assets/map/EV_Navigation.svg"
 import prNavigationIcon from "../../../assets/map/PR_Navigation.svg"
 import mapCircleWarningIcon from "../../../assets/map/Map_Circle_Warning.svg"
 import mapTriangleWarningIcon from "../../../assets/map/Map_Triangle_Warning.svg"
-import { hazardZones } from "../data/mapData"
-import { mapCoordinateToTss, tssToMapCoordinate } from "../utils/coordinates"
+import {
+  hazardZones,
+  tssDustCoordinateRange,
+} from "../data/mapData"
 
 const IMAGE_WEST = -170
 const IMAGE_EAST = 170
@@ -40,7 +43,6 @@ const RETURN_DURATION = 260
 const GRID_COLUMNS = 30
 const GRID_ROWS = 19
 const SHARE_ICON_URL = "https://www.figma.com/api/mcp/asset/fbae0cb5-f112-446d-ab97-772406d27ee1"
-
 function latToMercatorY(lat) {
   const rad = (lat * Math.PI) / 180
   return Math.log(Math.tan(Math.PI / 4 + rad / 2))
@@ -62,6 +64,26 @@ function pctToMapCoordinate(x, y) {
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n))
+}
+
+function tssToMapCoordinate(x, y) {
+  const xPct =
+    ((x - tssDustCoordinateRange.xMin) / (tssDustCoordinateRange.xMax - tssDustCoordinateRange.xMin)) * 100
+  const yPct =
+    100 - ((y - tssDustCoordinateRange.yMin) / (tssDustCoordinateRange.yMax - tssDustCoordinateRange.yMin)) * 100
+  return pctToMapCoordinate(Math.min(98, Math.max(2, xPct)), Math.min(98, Math.max(2, yPct)))
+}
+
+function mapCoordinateToTss(lng, lat) {
+  const xPct = ((lng - IMAGE_WEST) / (IMAGE_EAST - IMAGE_WEST)) * 100
+  const northY = latToMercatorY(IMAGE_NORTH)
+  const southY = latToMercatorY(IMAGE_SOUTH)
+  const mercY = latToMercatorY(lat)
+  const yPct = ((mercY - northY) / (southY - northY)) * 100
+  return {
+    x: tssDustCoordinateRange.xMin + (xPct / 100) * (tssDustCoordinateRange.xMax - tssDustCoordinateRange.xMin),
+    y: tssDustCoordinateRange.yMin + ((100 - yPct) / 100) * (tssDustCoordinateRange.yMax - tssDustCoordinateRange.yMin),
+  }
 }
 
 function zoneFeature(zone) {
@@ -105,31 +127,17 @@ function gridFeatures() {
   return features
 }
 
-function applyPoiMarkerAppearance(el, poi) {
-  const useDropStyle = Boolean(poi.breadcrumbStyle)
-  el.className = `map-poi-marker${useDropStyle ? " map-poi-marker--drop-poi" : ""}${poi.active ? " is-active" : ""}${poi.muted ? " is-muted" : ""}`
-  if (useDropStyle) {
-    el.innerHTML = `<span>POI</span>`
-  } else {
-    el.innerHTML = `<span>${poi.type}</span><strong>${poi.label}</strong>`
-  }
-  el.title = poi.label || "POI"
-}
-
 function makePoiElement(poi) {
   const el = document.createElement("div")
-  applyPoiMarkerAppearance(el, poi)
+  el.className = `map-poi-marker${poi.active ? " is-active" : ""}${poi.muted ? " is-muted" : ""}`
+  el.innerHTML = `<span>${poi.type}</span><strong>${poi.label}</strong>`
   return el
 }
 
-function makePoiActionMenu(poi, { onDelete, onNavigate }) {
+function makePoiActionMenu() {
   const el = document.createElement("div")
   el.className = "map-poi-action-menu"
   el.innerHTML = `
-    <button type="button" class="map-poi-action-menu__item" data-action="navigate">
-      <img src="${navigationIcon}" alt="" aria-hidden="true" />
-      <span>Navigate</span>
-    </button>
     <button type="button" class="map-poi-action-menu__item" data-action="edit">
       <img src="${editIcon}" alt="" aria-hidden="true" />
       <span>Edit</span>
@@ -143,14 +151,6 @@ function makePoiActionMenu(poi, { onDelete, onNavigate }) {
       <span>Share</span>
     </button>
   `
-  el.querySelector('[data-action="navigate"]')?.addEventListener("click", (e) => {
-    e.stopPropagation()
-    onNavigate?.(poi)
-  })
-  el.querySelector('[data-action="delete"]')?.addEventListener("click", (e) => {
-    e.stopPropagation()
-    onDelete?.(poi)
-  })
   return el
 }
 
@@ -158,8 +158,14 @@ function makeTelemetryElement(point) {
   const el = document.createElement("div")
   el.className = `map-telemetry-marker map-telemetry-marker-${point.id}`
   el.style.setProperty("--heading", `${point.heading || 0}deg`)
-  const markerIcon = point.id === "pr" ? prNavigationIcon : evNavigationIcon
-  if (point.id === "pr") el.classList.add("map-telemetry-marker-pr")
+  let markerIcon = evNavigationIcon
+  if (point.id === "pr") {
+    markerIcon = prNavigationIcon
+    el.classList.add("map-telemetry-marker-pr")
+  } else if (point.id === "ltv") {
+    markerIcon = mapPinIcon
+    el.classList.add("map-telemetry-marker-ltv")
+  }
   el.innerHTML = `<span>${point.label}</span><i><img src="${markerIcon}" alt="" aria-hidden="true" /></i>`
   return el
 }
@@ -174,21 +180,15 @@ function makeZoneLabel(zone) {
   return { el, coordinate: pctToMapCoordinate(cx, cy) }
 }
 
-function telemetryMarkerOffset(pointId) {
-  if (pointId === "eva1") return [-8, -10]
-  if (pointId === "eva2") return [8, 10]
-  if (pointId === "pr") return [0, -6]
-  return [0, 0]
-}
-
 export function MapStage({
   pois = [],
   telemetryPoints = [],
   placingPoi = false,
   onPlacePoi,
+  onEditPoi,
   onDeletePoi,
-  onNavigateToPoi,
   poiPanel,
+  addPoiPanel,
   addHazardPanel,
 }) {
   const mapNode = useRef(null)
@@ -199,24 +199,23 @@ export function MapStage({
   const telemetryMarkerRefs = useRef(new Map())
   const poiActionMarkerRef = useRef(null)
   const selectedPoiIdRef = useRef(null)
-  const hidePoiActionMenuRef = useRef(() => {})
   const baseZoomRef = useRef(null)
   const baseCameraRef = useRef(null)
   const is3dRef = useRef(false)
   const isReturningRef = useRef(false)
-  const onDeletePoiRef = useRef(onDeletePoi)
-  const onNavigateToPoiRef = useRef(onNavigateToPoi)
-  const onPlacePoiRef = useRef(onPlacePoi)
   const placingPoiRef = useRef(placingPoi)
+  const onPlacePoiRef = useRef(onPlacePoi)
+  const onEditPoiRef = useRef(onEditPoi)
+  const onDeletePoiRef = useRef(onDeletePoi)
   const [is3d, setIs3d] = useState(false)
 
-  onDeletePoiRef.current = onDeletePoi
-  onNavigateToPoiRef.current = onNavigateToPoi
-  onPlacePoiRef.current = onPlacePoi
   placingPoiRef.current = placingPoi
+  onPlacePoiRef.current = onPlacePoi
+  onEditPoiRef.current = onEditPoi
+  onDeletePoiRef.current = onDeletePoi
 
-  const syncPoiMarkers = useCallback((map, poiList) => {
-    const nextIds = new Set(poiList.map((p) => p.id))
+  const syncPoiMarkers = useCallback((map, points) => {
+    const nextIds = new Set(points.map((poi) => poi.id))
 
     for (const [id, marker] of poiMarkerRefs.current.entries()) {
       if (!nextIds.has(id)) {
@@ -226,15 +225,11 @@ export function MapStage({
       }
     }
 
-    poiList.forEach((poi) => {
+    points.forEach((poi) => {
       const lngLat = tssToMapCoordinate(poi.tssX, poi.tssY)
       const existing = poiMarkerRefs.current.get(poi.id)
       if (existing) {
         existing.setLngLat(lngLat)
-        const el = poiElementRefs.current.get(poi.id)
-        if (el) {
-          applyPoiMarkerAppearance(el, poi)
-        }
         return
       }
 
@@ -242,19 +237,30 @@ export function MapStage({
       poiElementRefs.current.set(poi.id, poiElement)
       poiElement.addEventListener("click", (event) => {
         event.stopPropagation()
-        if (placingPoiRef.current) return
+        const selectedPoiElement = poiElementRefs.current.get(selectedPoiIdRef.current)
+        selectedPoiElement?.classList.remove("is-selected")
+        poiActionMarkerRef.current?.remove()
+
         if (selectedPoiIdRef.current === poi.id) {
-          hidePoiActionMenuRef.current()
+          selectedPoiIdRef.current = null
+          poiActionMarkerRef.current = null
           return
         }
-        hidePoiActionMenuRef.current()
-        const selectedPoiElement = poiElementRefs.current.get(poi.id)
-        selectedPoiElement?.classList.add("is-selected")
-        const menu = makePoiActionMenu(poi, {
-          onDelete: (p) => onDeletePoiRef.current?.(p),
-          onNavigate: (p) => onNavigateToPoiRef.current?.(p),
+
+        poiElement.classList.add("is-selected")
+        const menu = makePoiActionMenu()
+        menu.addEventListener("click", (menuEvent) => {
+          menuEvent.stopPropagation()
+          const actionEl = menuEvent.target instanceof Element
+            ? menuEvent.target.closest("[data-action]")
+            : null
+          const action = actionEl?.getAttribute("data-action")
+          if (action === "edit") {
+            onEditPoiRef.current?.(poi)
+          } else if (action === "delete") {
+            onDeletePoiRef.current?.(poi.id)
+          }
         })
-        menu.addEventListener("click", (e) => e.stopPropagation())
         poiActionMarkerRef.current = new maplibregl.Marker({
           element: menu,
           anchor: "bottom",
@@ -273,7 +279,7 @@ export function MapStage({
   }, [])
 
   const syncTelemetryMarkers = useCallback((map, points) => {
-    const nextIds = new Set(points.map((p) => p.id))
+    const nextIds = new Set(points.map((point) => point.id))
 
     for (const [id, marker] of telemetryMarkerRefs.current.entries()) {
       if (!nextIds.has(id)) {
@@ -297,7 +303,6 @@ export function MapStage({
       const marker = new maplibregl.Marker({
         element: makeTelemetryElement(point),
         anchor: "bottom",
-        offset: telemetryMarkerOffset(point.id),
       })
         .setLngLat(lngLat)
         .addTo(map)
@@ -314,9 +319,9 @@ export function MapStage({
       style: {
         version: 8,
         sources: {
-          "dust-map": {
+          "rock-yard": {
             type: "image",
-            url: dustMapImage,
+            url: rockYardImage,
             coordinates: IMAGE_COORDINATES,
           },
         },
@@ -327,9 +332,9 @@ export function MapStage({
             paint: { "background-color": "#06101f" },
           },
           {
-            id: "dust-map",
+            id: "rock-yard",
             type: "raster",
-            source: "dust-map",
+            source: "rock-yard",
             paint: {
               "raster-saturation": -1,
               "raster-contrast": 0.22,
@@ -349,15 +354,6 @@ export function MapStage({
       dragRotate: true,
       boxZoom: false,
     })
-
-    function hidePoiActionMenu() {
-      const selectedPoiElement = poiElementRefs.current.get(selectedPoiIdRef.current)
-      selectedPoiElement?.classList.remove("is-selected")
-      poiActionMarkerRef.current?.remove()
-      poiActionMarkerRef.current = null
-      selectedPoiIdRef.current = null
-    }
-    hidePoiActionMenuRef.current = hidePoiActionMenu
 
     function dragAllowed() {
       return (
@@ -439,13 +435,14 @@ export function MapStage({
     map.on("move", containView)
     map.on("moveend", containView)
     map.on("click", (event) => {
-      if (placingPoiRef.current) {
-        hidePoiActionMenu()
-        const { x, y } = mapCoordinateToTss(event.lngLat.lng, event.lngLat.lat)
-        onPlacePoiRef.current?.({ x, y, lngLat: [event.lngLat.lng, event.lngLat.lat] })
-        return
-      }
-      hidePoiActionMenu()
+      const selectedPoiElement = poiElementRefs.current.get(selectedPoiIdRef.current)
+      selectedPoiElement?.classList.remove("is-selected")
+      poiActionMarkerRef.current?.remove()
+      poiActionMarkerRef.current = null
+      selectedPoiIdRef.current = null
+      if (!placingPoiRef.current) return
+      const { x, y } = mapCoordinateToTss(event.lngLat.lng, event.lngLat.lat)
+      onPlacePoiRef.current?.({ x, y })
     })
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true, showZoom: true }), "top-right")
 
@@ -518,10 +515,14 @@ export function MapStage({
     })
 
     return () => {
-      hidePoiActionMenu()
+      const selectedPoiElement = poiElementRefs.current.get(selectedPoiIdRef.current)
+      selectedPoiElement?.classList.remove("is-selected")
+      poiActionMarkerRef.current?.remove()
+      poiActionMarkerRef.current = null
+      selectedPoiIdRef.current = null
       poiElementRefs.current.clear()
       poiMarkerRefs.current.clear()
-      telemetryMarkerRefs.current.forEach((m) => m.remove())
+      telemetryMarkerRefs.current.forEach((marker) => marker.remove())
       telemetryMarkerRefs.current.clear()
       mapReadyRef.current = false
       resizeObserver.disconnect()
@@ -531,36 +532,23 @@ export function MapStage({
   }, [syncPoiMarkers, syncTelemetryMarkers])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!mapReadyRef.current || !map) return
-    syncPoiMarkers(map, pois)
+    if (!mapRef.current || !mapReadyRef.current) return
+    const canvas = mapRef.current.getCanvas()
+    canvas.style.cursor = placingPoi ? "crosshair" : ""
+    return () => {
+      canvas.style.cursor = ""
+    }
+  }, [placingPoi])
+
+  useEffect(() => {
+    if (!mapReadyRef.current || !mapRef.current) return
+    syncPoiMarkers(mapRef.current, pois)
   }, [pois, syncPoiMarkers])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!mapReadyRef.current || !map) return
-    syncTelemetryMarkers(map, telemetryPoints)
-  }, [telemetryPoints, syncTelemetryMarkers])
-
-  useEffect(() => {
-    const map = mapRef.current
-    if (!map || !mapReadyRef.current) return
-
-    if (placingPoi) {
-      map.getCanvas().style.cursor = "crosshair"
-      map.dragPan.disable()
-    } else {
-      map.getCanvas().style.cursor = ""
-      if (
-        baseZoomRef.current !== null &&
-        map.getZoom() > baseZoomRef.current + DRAG_ZOOM_BUFFER
-      ) {
-        map.dragPan.enable()
-      } else {
-        map.dragPan.disable()
-      }
-    }
-  }, [placingPoi])
+    if (!mapReadyRef.current || !mapRef.current) return
+    syncTelemetryMarkers(mapRef.current, telemetryPoints)
+  }, [syncTelemetryMarkers, telemetryPoints])
 
   function resetMap() {
     is3dRef.current = false
@@ -646,10 +634,10 @@ export function MapStage({
 
   return (
     <section className={`map-stage${placingPoi ? " map-stage--placing-poi" : ""}`}>
-      <div ref={mapNode} className="maplibre-stage" aria-label="Interactive TSS DUST map" />
+      <div ref={mapNode} className="maplibre-stage" aria-label="Interactive TSS DUST rock yard map" />
       {placingPoi && (
         <div className="map-place-poi-hint" role="status">
-          Click the map to drop a POI · Esc to cancel
+          Click anywhere on the map to place a POI
         </div>
       )}
       <div className="map-grid-overlay" aria-hidden="true" />
@@ -676,6 +664,7 @@ export function MapStage({
         </button>
       </div>
       {poiPanel}
+      {addPoiPanel}
       {addHazardPanel}
     </section>
   )

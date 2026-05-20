@@ -1,29 +1,14 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from "react"
+import { useState } from "react"
 import { TaskPanel } from "./components/TaskPanel"
 import { MissionBar } from "./components/MissionBar"
 import { MapStage } from "./components/MapStage"
 import { PathOptExpanded } from "./components/PathOptExpanded"
 import { PoiPanel } from "./components/PoiPanel"
+import { AddPoiPanel } from "./components/AddPoiPanel"
 import { AddHazardPanel } from "./components/AddHazardPanel"
-import { HubStatusBanner } from "../dashboard/components/HubStatusBanner"
+import { createPoi } from "../../api/hubClient"
 import { useMapLiveData } from "../../hooks/useMapLiveData"
-import {
-  createPoi,
-  deletePoi,
-  setRoverBrakes,
-  setRoverSteering,
-  setRoverThrottle,
-} from "../../api/hubClient"
-import { startRobustNavigation } from "../../api/navClient"
-import { formatTssCoords } from "./utils/coordinates"
 import "./styles/index.css"
-
-const MANUAL_COMMANDS = {
-  forward: { throttle: 35, steering: 0, brake: 0 },
-  left: { throttle: 22, steering: -0.55, brake: 0 },
-  right: { throttle: 22, steering: 0.55, brake: 0 },
-  reverse: { throttle: 0, steering: 0, brake: 1 },
-}
 
 export function MapPage() {
   const [isManual, setIsManual] = useState(false)
@@ -31,144 +16,122 @@ export function MapPage() {
   const [showPoiPanel, setShowPoiPanel] = useState(false)
   const [placingPoi, setPlacingPoi] = useState(false)
   const [showAddHazard, setShowAddHazard] = useState(false)
-  const [statusMessage, setStatusMessage] = useState(null)
-  const [localPois, setLocalPois] = useState([])
-  const manualIntervalRef = useRef(null)
+  const [draftPoi, setDraftPoi] = useState(null)
+  const [editingPoiId, setEditingPoiId] = useState(null)
+  const [isSavingPoi, setIsSavingPoi] = useState(false)
+  const [savedPois, setSavedPois] = useState([])
+  const { telemetryPoints } = useMapLiveData()
 
-  const { pois, telemetryPoints, hubError, refresh } = useMapLiveData()
+  const nextPoiLabel = `POI ${savedPois.length + 1}`
 
-  const sendManualControl = useCallback(async ({ throttle, steering, brake }) => {
-    await Promise.all([
-      setRoverBrakes(brake),
-      setRoverSteering(steering),
-      setRoverThrottle(throttle),
-    ])
-  }, [])
+  function handleAddPoiClick() {
+    setShowPoiPanel(false)
+    setShowAddHazard(false)
+    setDraftPoi(null)
+    setPlacingPoi((prev) => !prev)
+  }
 
-  const stopManualControl = useCallback(async () => {
+  function handlePoiMapPick({ x, y }) {
+    setDraftPoi({
+      label: nextPoiLabel,
+      notes: "",
+      type: "PR",
+      tssX: x,
+      tssY: y,
+    })
+  }
+
+  function handleDraftPoiChange(patch) {
+    setDraftPoi((prev) => (prev ? { ...prev, ...patch } : prev))
+  }
+
+  function handleCancelPoi() {
+    setDraftPoi(null)
+    setEditingPoiId(null)
+    setPlacingPoi(false)
+  }
+
+  async function handleSavePoi() {
+    if (!draftPoi || isSavingPoi) return
+
+    const label = draftPoi.label.trim() || nextPoiLabel
+    setIsSavingPoi(true)
     try {
-      await sendManualControl({
-        throttle: 0,
-        steering: 0,
-        brake: 1,
-      })
-    } catch (err) {
-      console.error(err)
-    }
-  }, [sendManualControl])
-
-  const clearManualInterval = useCallback(() => {
-    if (manualIntervalRef.current !== null) {
-      window.clearInterval(manualIntervalRef.current)
-      manualIntervalRef.current = null
-    }
-  }, [])
-
-  const handleManualCommandStart = useCallback(async (command) => {
-    const control = MANUAL_COMMANDS[command]
-    if (!control) return
-    clearManualInterval()
-    try {
-      await sendManualControl(control)
-      manualIntervalRef.current = window.setInterval(() => {
-        void sendManualControl(control).catch((err) => {
-          console.error(err)
-        })
-      }, 250)
-    } catch (err) {
-      console.error(err)
-    }
-  }, [clearManualInterval, sendManualControl])
-
-  const handleManualCommandEnd = useCallback(() => {
-    clearManualInterval()
-    void stopManualControl()
-  }, [clearManualInterval, stopManualControl])
-
-  const displayPois = useMemo(() => {
-    const hubIds = new Set(pois.map((p) => p.id))
-    const locals = localPois.filter((p) => !hubIds.has(p.id))
-    return [...pois, ...locals]
-  }, [pois, localPois])
-
-  const handleDeletePoi = useCallback(
-    async (poi) => {
-      if (!poi.hubId) {
-        setLocalPois((prev) => prev.filter((p) => p.id !== poi.id))
-        setStatusMessage(`Removed ${poi.label}`)
+      if (editingPoiId) {
+        setSavedPois((prev) =>
+          prev.map((poi) =>
+            poi.id === editingPoiId
+              ? {
+                  ...poi,
+                  label,
+                  type: draftPoi.type || "PR",
+                  tssX: draftPoi.tssX,
+                  tssY: draftPoi.tssY,
+                  description: draftPoi.notes ?? "",
+                }
+              : poi,
+          ),
+        )
+        setDraftPoi(null)
+        setEditingPoiId(null)
+        setPlacingPoi(false)
+        setShowPoiPanel(true)
         return
       }
-      try {
-        await deletePoi(poi.hubId)
-        setStatusMessage(`Deleted ${poi.label}`)
-        await refresh()
-      } catch (err) {
-        setStatusMessage(err instanceof Error ? err.message : "Delete failed")
-      }
-    },
-    [refresh],
-  )
 
-  const handleNavigateToPoi = useCallback(async (poi) => {
-    try {
-      await startRobustNavigation(poi.tssX, poi.tssY)
-      setStatusMessage(`Navigation started → ${poi.label}`)
-    } catch (err) {
-      setStatusMessage(err instanceof Error ? err.message : "Navigation failed")
+      await createPoi({
+        name: label,
+        x: draftPoi.tssX,
+        y: draftPoi.tssY,
+        tags: [draftPoi.type || "PR"],
+        description: draftPoi.notes ?? "",
+        type: "poi",
+      })
+      setSavedPois((prev) => [
+        ...prev,
+        {
+          id: `poi-${Date.now()}`,
+          label,
+          type: draftPoi.type || "PR",
+          tssX: draftPoi.tssX,
+          tssY: draftPoi.tssY,
+          description: draftPoi.notes ?? "",
+          active: false,
+          muted: false,
+        },
+      ])
+      setDraftPoi(null)
+      setPlacingPoi(false)
+      setShowPoiPanel(true)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setIsSavingPoi(false)
     }
-  }, [])
+  }
 
-  const handlePlacePoi = useCallback(
-    async ({ x, y }) => {
-      const name = `POI ${displayPois.length + 1}`
-      const localId = `local-${Date.now()}`
-      const optimistic = {
-        id: localId,
-        hubId: null,
-        label: name,
-        type: "POI",
-        tssX: x,
-        tssY: y,
-        description: "",
-        active: false,
-        muted: false,
-        breadcrumbStyle: true,
-      }
-      setLocalPois((prev) => [...prev, optimistic])
-      setStatusMessage(`Placed ${name} at ${formatTssCoords(x, y)}`)
+  function handleEditPoi(poi) {
+    setShowPoiPanel(false)
+    setShowAddHazard(false)
+    setPlacingPoi(false)
+    setEditingPoiId(poi.id)
+    setDraftPoi({
+      label: poi.label,
+      notes: poi.description ?? "",
+      type: poi.type || "PR",
+      tssX: poi.tssX,
+      tssY: poi.tssY,
+    })
+  }
 
-      try {
-        await createPoi({ name, x, y, tags: ["POI"], type: "poi" })
-        setLocalPois((prev) => prev.filter((p) => p.id !== localId))
-        await refresh()
-      } catch {
-        setStatusMessage(
-          `${name} on map — hub save failed (start Java backend on :7070 to persist)`,
-        )
-      }
-    },
-    [displayPois.length, refresh],
-  )
-
-  useEffect(() => {
-    if (!placingPoi) return
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") {
-        setPlacingPoi(false)
-        setStatusMessage("POI placement cancelled")
-      }
+  function handleDeletePoi(poiId) {
+    setSavedPois((prev) => prev.filter((poi) => poi.id !== poiId))
+    if (editingPoiId === poiId) {
+      setDraftPoi(null)
+      setEditingPoiId(null)
+      setPlacingPoi(false)
     }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [placingPoi])
-
-  useEffect(() => {
-    if (!isManual) return undefined
-    return () => {
-      clearManualInterval()
-      void stopManualControl()
-    }
-  }, [clearManualInterval, isManual, stopManualControl])
+  }
 
   return (
     <main className="map-page-shell">
@@ -177,39 +140,34 @@ export function MapPage() {
         onToggleManual={setIsManual}
         isExpanded={isExpanded}
         onToggleExpand={() => setIsExpanded(true)}
-        onManualCommandStart={handleManualCommandStart}
-        onManualCommandEnd={handleManualCommandEnd}
-        onManualStop={stopManualControl}
       />
       <section className="map-workspace" aria-label="Map workspace">
-        <HubStatusBanner error={hubError} />
-        {statusMessage && !hubError && (
-          <div className="map-status-banner" role="status">
-            {statusMessage}
-          </div>
-        )}
         <MissionBar
-          onPoiClick={() => setShowPoiPanel((p) => !p)}
+          onPoiClick={() => setShowPoiPanel(p => !p)}
           showPoiPanel={showPoiPanel}
-          onAddPoiClick={() => {
-            setPlacingPoi((p) => {
-              const next = !p
-              if (next) setStatusMessage("Click the map to drop a POI (Esc to cancel)")
-              return next
-            })
-          }}
-          placingPoi={placingPoi}
-          onAddHazardClick={() => setShowAddHazard((p) => !p)}
+          onAddPoiClick={handleAddPoiClick}
+          showAddPoi={placingPoi}
+          onAddHazardClick={() => setShowAddHazard(p => !p)}
           showAddHazard={showAddHazard}
         />
         <MapStage
-          pois={displayPois}
+          pois={savedPois}
           telemetryPoints={telemetryPoints}
           placingPoi={placingPoi}
-          onPlacePoi={handlePlacePoi}
+          onPlacePoi={handlePoiMapPick}
+          onEditPoi={handleEditPoi}
           onDeletePoi={handleDeletePoi}
-          onNavigateToPoi={handleNavigateToPoi}
-          poiPanel={showPoiPanel ? <PoiPanel pois={displayPois} onClose={() => setShowPoiPanel(false)} /> : null}
+          poiPanel={showPoiPanel ? <PoiPanel pois={savedPois} onClose={() => setShowPoiPanel(false)} /> : null}
+          addPoiPanel={(placingPoi || draftPoi) ? (
+            <AddPoiPanel
+              draftPoi={draftPoi}
+              isEditing={Boolean(editingPoiId)}
+              isSaving={isSavingPoi}
+              onChange={handleDraftPoiChange}
+              onCancel={handleCancelPoi}
+              onSave={handleSavePoi}
+            />
+          ) : null}
           addHazardPanel={showAddHazard ? <AddHazardPanel onClose={() => setShowAddHazard(false)} /> : null}
         />
       </section>

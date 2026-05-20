@@ -75,6 +75,15 @@
   gap: 16px;
 }
 
+.poi-empty-state {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding-right: 24px;
+  color: #91a9c2;
+  font: 500 18px/1.4 "IBM Plex Sans", sans-serif;
+}
+
 .poi-row {
   display: flex;
   align-items: center;
@@ -210,4 +219,8 @@
   width: 24px;
   height: 24px;
   flex-shrink: 0;
+}
+
+.poi-menu-btn img {
+  opacity: 0.65;
 }

@@ -15,7 +15,7 @@ export function MissionBar({
   onPoiClick,
   showPoiPanel,
   onAddPoiClick,
-  placingPoi,
+  showAddPoi,
   onAddHazardClick,
   showAddHazard,
 }) {
@@ -49,7 +49,7 @@ export function MissionBar({
         </button>
         <button
           type="button"
-          className={`mission-map-btn${placingPoi ? " mission-map-btn--active" : ""}`}
+          className={`mission-map-btn${showAddPoi ? " mission-map-btn--active" : ""}`}
           onClick={onAddPoiClick}
         >
           <img src={mapPinIcon} alt="" width={24} height={24} />
