@@ -70,10 +70,23 @@ export async function fetchPois() {
   return body?.data ?? []
 }
 
+export async function fetchMapPois() {
+  const body = await hubGet("/map/poi")
+  return body?.data ?? []
+}
+
 export function deletePoi(id) {
   const hubBase = getHubFetchBase()
   return fetch(`${hubBase}/poi/${id}`, { method: "DELETE" }).then((res) => {
     if (!res.ok) throw new Error(`Hub DELETE /poi/${id} failed (${res.status})`)
+  })
+}
+
+export function deleteMapPoi(name) {
+  const hubBase = getHubFetchBase()
+  const encodedName = encodeURIComponent(name)
+  return fetch(`${hubBase}/map/poi/${encodedName}`, { method: "DELETE" }).then((res) => {
+    if (!res.ok) throw new Error(`Hub DELETE /map/poi/${name} failed (${res.status})`)
   })
 }
 
@@ -98,6 +111,51 @@ export async function createPoi(poi) {
   })
   if (!res.ok) {
     throw new Error(`Hub POST /poi failed (${res.status})`)
+  }
+  return res.json()
+}
+
+/** @param {{ name: string, x: number, y: number, description?: string, type?: string }} poi */
+export async function createMapPoi(poi) {
+  const body = {
+    name: poi.name,
+    x: poi.x,
+    y: poi.y,
+    description: poi.description ?? "",
+    type: poi.type ?? "PR",
+  }
+  const hubBase = getHubFetchBase()
+  const res = await fetch(`${hubBase}/map/poi`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    throw new Error(`Hub POST /map/poi failed (${res.status})`)
+  }
+  return res.json()
+}
+
+/** @param {string} currentName
+ *  @param {{ name: string, x: number, y: number, description?: string, type?: string }} poi
+ */
+export async function updateMapPoi(currentName, poi) {
+  const body = {
+    name: poi.name,
+    x: poi.x,
+    y: poi.y,
+    description: poi.description ?? "",
+    type: poi.type ?? "PR",
+  }
+  const hubBase = getHubFetchBase()
+  const encodedName = encodeURIComponent(currentName)
+  const res = await fetch(`${hubBase}/map/poi/${encodedName}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    throw new Error(`Hub PUT /map/poi/${currentName} failed (${res.status})`)
   }
   return res.json()
 }

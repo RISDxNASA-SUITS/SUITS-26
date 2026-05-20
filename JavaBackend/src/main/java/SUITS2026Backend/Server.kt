@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.javalin.Javalin
 import io.javalin.json.JavalinJackson
+import SUITS2026Backend.MapData.MapController
 import SUITS2026Backend.PoiList.PoiController
 import SUITS2026Backend.RoverIntegration.RoverTssController
 import SUITS2026Backend.TssIntegration.EvaTssComms
@@ -46,6 +47,7 @@ object Server {
 
         /* ---------- REST controllers ---------- */
         PoiController.setup(app)
+        MapController.setup(app)
         RoverTssController.setup(app)
         EvaTssComms.setup(app)
         LtvTssComms.setup(app)

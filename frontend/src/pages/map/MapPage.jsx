@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { TaskPanel } from "./components/TaskPanel"
 import { MissionBar } from "./components/MissionBar"
 import { MapStage } from "./components/MapStage"
@@ -6,7 +6,7 @@ import { PathOptExpanded } from "./components/PathOptExpanded"
 import { PoiPanel } from "./components/PoiPanel"
 import { AddPoiPanel } from "./components/AddPoiPanel"
 import { AddHazardPanel } from "./components/AddHazardPanel"
-import { createPoi } from "../../api/hubClient"
+import { createMapPoi, deleteMapPoi, updateMapPoi } from "../../api/hubClient"
 import { useMapLiveData } from "../../hooks/useMapLiveData"
 import "./styles/index.css"
 
@@ -58,16 +58,26 @@ export function MapPage() {
     setIsSavingPoi(true)
     try {
       if (editingPoiId) {
+        const currentPoi = savedPois.find((poi) => poi.id === editingPoiId)
+        if (!currentPoi) return
+        const updated = await updateMapPoi(currentPoi.label, {
+          name: label,
+          x: draftPoi.tssX,
+          y: draftPoi.tssY,
+          description: draftPoi.notes ?? "",
+          type: draftPoi.type || "PR",
+        })
         setSavedPois((prev) =>
           prev.map((poi) =>
             poi.id === editingPoiId
               ? {
                   ...poi,
-                  label,
-                  type: draftPoi.type || "PR",
-                  tssX: draftPoi.tssX,
-                  tssY: draftPoi.tssY,
-                  description: draftPoi.notes ?? "",
+                  id: updated.id ?? poi.id,
+                  label: updated.name,
+                  type: updated.type || draftPoi.type || "PR",
+                  tssX: updated.x,
+                  tssY: updated.y,
+                  description: updated.description ?? draftPoi.notes ?? "",
                 }
               : poi,
           ),
@@ -79,23 +89,22 @@ export function MapPage() {
         return
       }
 
-      await createPoi({
+      const created = await createMapPoi({
         name: label,
         x: draftPoi.tssX,
         y: draftPoi.tssY,
-        tags: [draftPoi.type || "PR"],
         description: draftPoi.notes ?? "",
-        type: "poi",
+        type: draftPoi.type || "PR",
       })
       setSavedPois((prev) => [
         ...prev,
         {
-          id: `poi-${Date.now()}`,
-          label,
-          type: draftPoi.type || "PR",
-          tssX: draftPoi.tssX,
-          tssY: draftPoi.tssY,
-          description: draftPoi.notes ?? "",
+          id: created.id ?? `poi-${Date.now()}`,
+          label: created.name,
+          type: created.type || draftPoi.type || "PR",
+          tssX: created.x,
+          tssY: created.y,
+          description: created.description ?? draftPoi.notes ?? "",
           active: false,
           muted: false,
         },
@@ -124,8 +133,12 @@ export function MapPage() {
     })
   }
 
-  function handleDeletePoi(poiId) {
-    setSavedPois((prev) => prev.filter((poi) => poi.id !== poiId))
+  async function handleDeletePoi(poiId) {
+    const poi = savedPois.find((item) => item.id === poiId)
+    if (!poi) return
+
+    await deleteMapPoi(poi.label)
+    setSavedPois((prev) => prev.filter((item) => item.id !== poiId))
     if (editingPoiId === poiId) {
       setDraftPoi(null)
       setEditingPoiId(null)
