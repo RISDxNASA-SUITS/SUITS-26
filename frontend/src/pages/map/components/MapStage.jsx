@@ -43,6 +43,8 @@ const RETURN_DURATION = 260
 const GRID_COLUMNS = 30
 const GRID_ROWS = 19
 const SHARE_ICON_URL = "https://www.figma.com/api/mcp/asset/fbae0cb5-f112-446d-ab97-772406d27ee1"
+const PATH_ROUTE_POI_DOT_OFFSET_Y = 9
+const PATH_ROUTE_PR_ICON_OFFSET_Y = -15
 function latToMercatorY(lat) {
   const rad = (lat * Math.PI) / 180
   return Math.log(Math.tan(Math.PI / 4 + rad / 2))
@@ -99,6 +101,11 @@ function zoneFeature(zone) {
       coordinates: [coordinates],
     },
   }
+}
+
+function offsetMapCoordinate(map, [lng, lat], offsetX, offsetY) {
+  const projected = map.project([lng, lat])
+  return map.unproject([projected.x + offsetX, projected.y + offsetY]).toArray()
 }
 
 function gridFeatures() {
@@ -196,6 +203,7 @@ function makeHazardPreviewLabel(label, level = "warning") {
 
 export function MapStage({
   pois = [],
+  pathPois = [],
   telemetryPoints = [],
   placingPoi = false,
   placingHazard = false,
@@ -335,6 +343,50 @@ export function MapStage({
         .addTo(map)
       telemetryMarkerRefs.current.set(point.id, marker)
     })
+  }, [])
+
+  const syncPathRoute = useCallback((map, routePois, points) => {
+    if (!map.getSource("path-route")) return
+
+    const prPoint = points.find((point) => point.id === "pr")
+    const coordinates = []
+
+    if (prPoint) {
+      coordinates.push(
+        offsetMapCoordinate(
+          map,
+          tssToMapCoordinate(prPoint.x, prPoint.y),
+          0,
+          PATH_ROUTE_PR_ICON_OFFSET_Y,
+        ),
+      )
+    }
+
+    routePois.forEach((poi) => {
+      if (Number.isFinite(poi?.tssX) && Number.isFinite(poi?.tssY)) {
+        coordinates.push(
+          offsetMapCoordinate(
+            map,
+            tssToMapCoordinate(poi.tssX, poi.tssY),
+            0,
+            PATH_ROUTE_POI_DOT_OFFSET_Y,
+          ),
+        )
+      }
+    })
+
+    const features = coordinates.length >= 2
+      ? [{
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates,
+          },
+        }]
+      : []
+
+    const source = map.getSource("path-route")
+    source.setData({ type: "FeatureCollection", features })
   }, [])
 
   const syncHazardZones = useCallback((map, zoneList) => {
@@ -583,6 +635,10 @@ export function MapStage({
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       })
+      map.addSource("path-route", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      })
 
       map.addLayer({
         id: "map-grid-minor",
@@ -645,6 +701,16 @@ export function MapStage({
           "line-dasharray": [2, 1.5],
         },
       })
+      map.addLayer({
+        id: "path-route-line",
+        type: "line",
+        source: "path-route",
+        paint: {
+          "line-color": "rgba(245, 247, 251, 0.95)",
+          "line-width": 2,
+          "line-dasharray": [3, 2],
+        },
+      })
 
       hazardZones.forEach((zone) => {
         const { el, coordinate } = makeZoneLabel(zone)
@@ -654,6 +720,7 @@ export function MapStage({
       mapReadyRef.current = true
       syncPoiMarkers(map, pois)
       syncTelemetryMarkers(map, telemetryPoints)
+      syncPathRoute(map, pathPois, telemetryPoints)
       syncHazardZones(map, hazards)
       syncHazardMarkers(map, hazards)
       syncHazardPreview(map, hazardPreview)
@@ -678,7 +745,7 @@ export function MapStage({
       map.remove()
       mapRef.current = null
     }
-  }, [syncHazardMarkers, syncHazardPreview, syncHazardZones, syncPoiMarkers, syncTelemetryMarkers])
+  }, [syncHazardMarkers, syncHazardPreview, syncHazardZones, syncPathRoute, syncPoiMarkers, syncTelemetryMarkers])
 
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) return
@@ -698,6 +765,11 @@ export function MapStage({
     if (!mapReadyRef.current || !mapRef.current) return
     syncTelemetryMarkers(mapRef.current, telemetryPoints)
   }, [syncTelemetryMarkers, telemetryPoints])
+
+  useEffect(() => {
+    if (!mapReadyRef.current || !mapRef.current) return
+    syncPathRoute(mapRef.current, pathPois, telemetryPoints)
+  }, [pathPois, syncPathRoute, telemetryPoints])
 
   useEffect(() => {
     if (!mapReadyRef.current || !mapRef.current) return

@@ -26,10 +26,19 @@ export function MapPage() {
   const [editingPoiId, setEditingPoiId] = useState(null)
   const [isSavingPoi, setIsSavingPoi] = useState(false)
   const [savedPois, setSavedPois] = useState([])
+  const [pathPoiIds, setPathPoiIds] = useState([])
   const { telemetryPoints } = useMapLiveData()
 
   const nextPoiLabel = `POI ${savedPois.length + 1}`
   const nextHazardLabel = `Hazard ${savedHazards.length + 1}`
+  const pathPois = pathPoiIds
+    .map((id) => savedPois.find((poi) => poi.id === id))
+    .filter(Boolean)
+  const availablePathPois = savedPois.filter((poi) => !pathPoiIds.includes(poi.id))
+
+  useEffect(() => {
+    setPathPoiIds((prev) => prev.filter((id) => savedPois.some((poi) => poi.id === id)))
+  }, [savedPois])
 
   function handleAddPoiClick() {
     setShowPoiPanel(false)
@@ -245,6 +254,29 @@ export function MapPage() {
     }
   }
 
+  function handleDeletePathPoi(poiId) {
+    setPathPoiIds((prev) => prev.filter((id) => id !== poiId))
+  }
+
+  function handleAddPoiToPath(poiId) {
+    setPathPoiIds((prev) => (prev.includes(poiId) ? prev : [...prev, poiId]))
+  }
+
+  function handleReorderPathPoi(draggedPoiId, targetPoiId) {
+    if (!draggedPoiId || !targetPoiId || draggedPoiId === targetPoiId) return
+
+    setPathPoiIds((prev) => {
+      const fromIndex = prev.indexOf(draggedPoiId)
+      const toIndex = prev.indexOf(targetPoiId)
+      if (fromIndex === -1 || toIndex === -1) return prev
+
+      const next = [...prev]
+      const [moved] = next.splice(fromIndex, 1)
+      next.splice(toIndex, 0, moved)
+      return next
+    })
+  }
+
   return (
     <main className="map-page-shell">
       <TaskPanel
@@ -264,6 +296,7 @@ export function MapPage() {
         />
         <MapStage
           pois={savedPois}
+          pathPois={pathPois}
           telemetryPoints={telemetryPoints}
           placingPoi={placingPoi}
           placingHazard={showAddHazard}
@@ -305,6 +338,11 @@ export function MapPage() {
           isManual={isManual}
           onToggleManual={setIsManual}
           onCollapse={() => setIsExpanded(false)}
+          pois={pathPois}
+          availablePois={availablePathPois}
+          onAddPoi={handleAddPoiToPath}
+          onDeletePoi={handleDeletePathPoi}
+          onReorderPoi={handleReorderPathPoi}
         />
       )}
     </main>
