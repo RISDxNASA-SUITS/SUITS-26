@@ -3,7 +3,7 @@
 		"cabin_heating":	false,
 		"cabin_cooling":	false,
 		"lights_on":	false,
-		"brakes":	false,
+		"brakes":	true,
 		"throttle":	0,
 		"steering":	0,
 		"rover_pos_x":	-5662,

@@ -30,6 +30,23 @@ async function hubGet(path) {
   return res.json()
 }
 
+async function hubPost(path, body) {
+  if (!isHubConfigured()) {
+    throw new Error("Java Hub not configured")
+  }
+
+  const hubBase = getHubFetchBase()
+  const res = await fetch(`${hubBase}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    throw new Error(`Hub POST ${path} failed (${res.status})`)
+  }
+  return res.json().catch(() => null)
+}
+
 /** @param {1 | 2} evId */
 export function fetchEvTelemetry(evId) {
   return hubGet(`/ev-telemetry/${evId}`)
@@ -83,4 +100,16 @@ export async function createPoi(poi) {
     throw new Error(`Hub POST /poi failed (${res.status})`)
   }
   return res.json()
+}
+
+export function setRoverThrottle(throttleInput) {
+  return hubPost("/throttle", { throttleInput })
+}
+
+export function setRoverSteering(steeringInput) {
+  return hubPost("/steering", { steeringInput })
+}
+
+export function setRoverBrakes(brakeInput) {
+  return hubPost("/brakes", { brakeInput })
 }
