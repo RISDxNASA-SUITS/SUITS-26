@@ -407,7 +407,7 @@
   top: 7px;
   bottom: 7px;
   width: 1px;
-  background: linear-gradient(to bottom, #4662a3 0%, #4662a3 67%, #191f3c 67%, #191f3c 100%);
+  background: #191f3c;
 }
 
 .task-step-list li {
@@ -417,6 +417,26 @@
   padding: 0 0 0 0.625rem;
   position: relative;
   z-index: 1;
+}
+
+.task-step-list li::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: calc(50% + 7px);
+  width: 1px;
+  height: calc(100% + 1rem);
+  transform: translateX(-50%);
+  background: #191f3c;
+  z-index: -1;
+}
+
+.task-step-list li:last-child::after {
+  display: none;
+}
+
+.task-step-list li.step-done::after {
+  background: #4662a3;
 }
 
 .task-step-list li.step-current {
