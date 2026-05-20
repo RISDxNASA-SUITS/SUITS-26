@@ -4,7 +4,7 @@ This backend is the Flask service that exposes robust rover navigation control a
 
 It does not talk to the simulator directly. The current runtime path is:
 
-`Flask API -> Java backend HTTP -> simulator / TSS`
+`Flask API -> Java backend HTTP -> external telemetry source`
 
 The Python service is responsible for:
 - starting and cancelling robust navigation runs
@@ -33,7 +33,6 @@ docker compose up --build
 ```
 
 This starts:
-- `c-backend` on `14141`
 - `java-backend` on `7070`
 - `python-backend` on `4000`
 

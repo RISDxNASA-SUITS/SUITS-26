@@ -15,6 +15,12 @@ import {
   INITIAL_UPCOMING,
 } from "../data/activeTaskTimeline"
 
+function capitalizeFirstLetter(value) {
+  const text = String(value ?? "")
+  if (!text) return text
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand, onManualCommandStart, onManualCommandEnd, onManualStop }) {
   const [activeTab, setActiveTab] = useState("tasks")
   const [currentTaskOpen, setCurrentTaskOpen] = useState(true)
@@ -157,7 +163,7 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
                     return (
                       <li key={i} className={cls}>
                         {i === activeStep ? <span className="step-dot-active" /> : <span className="step-dot" />}
-                        <span className="step-text">{label}</span>
+                        <span className="step-text">{capitalizeFirstLetter(label)}</span>
                       </li>
                     )
                   })}
@@ -235,7 +241,7 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
                           <span className="upcoming-step-rail" aria-hidden="true">
                             <span className="upcoming-step-dot" />
                           </span>
-                          <span className="upcoming-step-text">{label}</span>
+                          <span className="upcoming-step-text">{capitalizeFirstLetter(label)}</span>
                         </li>
                       ))}
                     </ol>

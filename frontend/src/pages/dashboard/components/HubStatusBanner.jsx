@@ -1,26 +1,19 @@
+import { useEffect, useMemo, useState } from "react"
 import { useHubConfigContext } from "../../../context/HubConfigContext"
 
 export function HubStatusBanner({ restError }) {
   const { isHubConfigured, wsStatus, wsError, liveTelemetry, clearHubUrl } = useHubConfigContext()
-
-  if (!isHubConfigured) {
-    if (!restError) return null
-    return (
-      <div className="hub-status-banner" role="status">
-        <span>{restError}</span>
-      </div>
-    )
-  }
+  const [dismissed, setDismissed] = useState(false)
 
   const wsLabel =
     wsStatus === "open"
       ? "WebSocket connected"
       : wsStatus === "connecting"
-        ? "WebSocket connecting…"
+        ? "WebSocket connecting..."
         : wsStatus === "error"
           ? `WebSocket error${wsError ? `: ${wsError}` : ""}`
           : wsStatus === "closed"
-            ? "WebSocket disconnected (reconnecting…)"
+            ? "WebSocket disconnected (reconnecting...)"
             : "WebSocket idle"
 
   const tssOk = liveTelemetry?.tssConnected === true
@@ -32,9 +25,30 @@ export function HubStatusBanner({ restError }) {
       : null
 
   const showBanner =
-    restError || wsStatus !== "open" || (wsStatus === "open" && liveTelemetry && !tssOk)
+    !isHubConfigured
+      ? Boolean(restError)
+      : Boolean(restError || wsStatus !== "open" || (wsStatus === "open" && liveTelemetry && !tssOk))
 
-  if (!showBanner) return null
+  const message = useMemo(() => {
+    if (!isHubConfigured) {
+      return restError ?? ""
+    }
+
+    return [
+      restError,
+      wsLabel,
+      tssLabel,
+      !restError && wsStatus !== "open" ? "showing last values" : null,
+    ]
+      .filter(Boolean)
+      .join(" · ")
+  }, [isHubConfigured, restError, wsLabel, tssLabel, wsStatus])
+
+  useEffect(() => {
+    setDismissed(false)
+  }, [message])
+
+  if (!showBanner || !message || dismissed) return null
 
   const handleResetHub = () => {
     clearHubUrl()
@@ -43,27 +57,19 @@ export function HubStatusBanner({ restError }) {
 
   return (
     <div className="hub-status-banner" role="status">
-      <span>
-        {restError && <>{restError} · </>}
-        {wsLabel}
-        {tssLabel && <> · {tssLabel}</>}
-        {!restError && wsStatus !== "open" && " — showing last values"}
-      </span>
-      <button
-        type="button"
-        onClick={handleResetHub}
-        style={{
-          marginLeft: "12px",
-          padding: "6px 10px",
-          borderRadius: "8px",
-          border: "1px solid rgba(255,255,255,0.14)",
-          background: "rgba(255,255,255,0.08)",
-          color: "#fff",
-          cursor: "pointer",
-        }}
-      >
-        Reset Hub
-      </button>
+      <span className="hub-status-banner__text">{message}</span>
+      <div className="hub-status-banner__actions">
+        <button type="button" className="hub-status-banner__btn" onClick={handleResetHub}>
+          Reset Hub
+        </button>
+        <button
+          type="button"
+          className="hub-status-banner__btn hub-status-banner__btn--close"
+          onClick={() => setDismissed(true)}
+        >
+          Close
+        </button>
+      </div>
     </div>
   )
 }
