@@ -57,6 +57,14 @@ class Settings(BaseSettings):
         description="How often to poll Java for live telemetry.",
     )
     java_http_timeout_s: float = Field(default=2.0, description="HTTP timeout per Java backend request.")
+    java_telemetry_transport: str = Field(
+        default="websocket",
+        description='Live telemetry from Java: "websocket" (mission WS) or "http" (REST poll).',
+    )
+    java_backend_ws_url: str | None = Field(
+        default=None,
+        description="Override WebSocket URL for /telemetry/mission/live; derived from java_backend_url if unset.",
+    )
 
     alert_poll_interval_s: float = Field(default=2.0, description="How often the alert monitor checks warnings.")
     agent_alerts_max: int = Field(default=50, description="Max alert entries kept in memory for GET /agent/alerts.")

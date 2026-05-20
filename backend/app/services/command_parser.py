@@ -19,7 +19,7 @@ def parse_command(raw_text: str) -> ParseResult:
     Return intent, optional entity, and raw_text (trimmed user input).
 
     Intents: status_query, procedure_start, procedure_next, procedure_repeat,
-    navigation_return, diagnosis_request, warning_check, mission_phase_check, help, unknown.
+    diagnosis_request, warning_check, mission_phase_check, help, unknown.
     """
     raw = raw_text.strip()
     n = _normalize(raw_text)
@@ -63,10 +63,6 @@ def parse_command(raw_text: str) -> ParseResult:
         return ParseResult(intent="procedure_next", entity=None, raw_text=raw)
     if n == "repeat step":
         return ParseResult(intent="procedure_repeat", entity=None, raw_text=raw)
-
-    # --- navigation ---
-    if n in ("guide me back", "return route"):
-        return ParseResult(intent="navigation_return", entity=None, raw_text=raw)
 
     # --- diagnosis / warnings ---
     if n == "run diagnosis":

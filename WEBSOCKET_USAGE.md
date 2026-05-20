@@ -1,10 +1,12 @@
 # Java Backend WebSocket Usage
 
-This guide explains how other services can connect to the Java backend live telemetry WebSocket.
+This guide explains how other services can connect to the Java backend live telemetry WebSockets.
 
-## Endpoint
+## Endpoints
 
-The Java backend broadcasts live telemetry at:
+### Rover + lidar (map / dashboard)
+
+The Java backend broadcasts rover position and lidar at:
 
 ```text
 ws://<JAVA_BACKEND_HOST>:<JAVA_HTTP_PORT>/telemetry/live
@@ -95,6 +97,63 @@ Important fields:
 | `lidar` | Array of rover lidar readings. |
 
 If `tssConnected` is `false`, the WebSocket itself is still working, but the Java backend cannot read TSS over UDP. Check `TSS_HOST`, `TSS_UDP_PORT`, firewall settings, and whether TSS is running.
+
+### Full mission bundle (EVA AIA)
+
+The EVA AIA backend consumes the **full mission telemetry** stream at:
+
+```text
+ws://<JAVA_BACKEND_HOST>:<JAVA_HTTP_PORT>/telemetry/mission/live
+```
+
+Example:
+
+```text
+ws://localhost:7071/telemetry/mission/live
+```
+
+Each message is JSON matching the Python `LiveTelemetryBundle` used by `GET /telemetry/full`:
+
+```json
+{
+  "polled_at_unix": 1716076800.123,
+  "ev1": {},
+  "ev2": {},
+  "dcu1": {},
+  "dcu2": {},
+  "errors": {},
+  "imu1": {},
+  "imu2": {},
+  "uia": {},
+  "eva_states": {},
+  "rover": {},
+  "lidar": { "data": [120.0, 250.0] },
+  "ltv": {},
+  "ltv_errors": {},
+  "hub_error": null
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `polled_at_unix` | Unix time when the bundle was assembled |
+| `ev1` … `ltv_errors` | Same shapes as the matching Java REST endpoints |
+| `hub_error` | Optional semicolon-separated errors when TSS subsystems are unavailable |
+
+Configure the AIA backend:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `EVA_JAVA_TELEMETRY_TRANSPORT` | `websocket` | `websocket` (mission WS) or `http` (REST poll fallback) |
+| `EVA_JAVA_BACKEND_URL` | `http://localhost:7070` | Used to derive the WebSocket URL when `EVA_JAVA_BACKEND_WS_URL` is unset |
+| `EVA_JAVA_BACKEND_WS_URL` | *(unset)* | Override full mission WebSocket URL |
+
+Quick test:
+
+```bash
+cd /Users/varunsatheesh/SUITS-26/JavaBackend
+python3 test_mission_telemetry_ws.py --host 127.0.0.1 --port 7071 --count 3
+```
 
 ## Quick Test Client
 

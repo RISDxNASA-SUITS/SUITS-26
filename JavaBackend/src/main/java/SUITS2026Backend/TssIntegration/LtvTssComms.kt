@@ -35,6 +35,11 @@ data class LtvErrorsState(
     val error_procedures: List<LtvErrorProcedureState>
 )
 
+data class LtvMissionSlice(
+    val ltv: LtvState,
+    val ltvErrors: LtvErrorsState,
+)
+
 object LtvTssComms {
     private const val LTV_JSON_CMD = 2
     private const val LTV_ERRORS_JSON_CMD = 3
@@ -45,6 +50,52 @@ object LtvTssComms {
     fun setup(app: Javalin) {
         app.get("/ltv", this::getLtvState)
         app.get("/ltv-errors", this::getLtvErrorsState)
+    }
+
+    @JvmStatic
+    fun fetchLtvJsonForMission(): JsonNode? = fetchJson(LTV_JSON_CMD, "LTV.json")
+
+    @JvmStatic
+    fun fetchLtvErrorsJsonForMission(): JsonNode? = fetchJson(LTV_ERRORS_JSON_CMD, "LTV_ERRORS.json")
+
+    @JvmStatic
+    fun assembleLtvSlice(ltvJson: JsonNode?, ltvErrorsJson: JsonNode?): LtvMissionSlice {
+        val empty = objectMapper.createObjectNode()
+        return LtvMissionSlice(
+            ltv = buildLtvState(ltvJson ?: empty),
+            ltvErrors = buildLtvErrorsState(ltvErrorsJson ?: empty),
+        )
+    }
+
+    private fun buildLtvState(ltvJson: JsonNode): LtvState =
+        LtvState(
+            location = LtvLocationState(
+                last_known_x = ltvJson.float("location.last_known_x"),
+                last_known_y = ltvJson.float("location.last_known_y"),
+            ),
+            signal = LtvSignalState(
+                strength = ltvJson.float("signal.strength"),
+                ping_requested = ltvJson.bool("signal.ping_requested"),
+                ping_unlimited_requested = ltvJson.bool("signal.ping_unlimited_requested"),
+            ),
+        )
+
+    private fun buildLtvErrorsState(ltvErrorsJson: JsonNode): LtvErrorsState {
+        val procedures = ltvErrorsJson.path("error_procedures")
+            .takeIf { it.isArray }
+            ?.map { procedure ->
+                LtvErrorProcedureState(
+                    code = procedure.path("code").asText(""),
+                    description = procedure.path("description").asText(""),
+                    needs_resolved = procedure.path("needs_resolved").asBoolean(false),
+                    procedures = procedure.path("procedures")
+                        .takeIf { it.isArray }
+                        ?.map { step -> step.asText("") }
+                        ?: emptyList(),
+                )
+            }
+            ?: emptyList()
+        return LtvErrorsState(error_procedures = procedures)
     }
 
     private fun fetchJson(commandNumber: Int, label: String): JsonNode? {
@@ -88,47 +139,18 @@ object LtvTssComms {
     }
 
     fun getLtvState(ctx: Context) {
-        val ltvJson = fetchJson(LTV_JSON_CMD, "LTV.json") ?: run {
+        val ltvJson = fetchLtvJsonForMission() ?: run {
             ctx.status(502).result("Failed to fetch LTV.json")
             return
         }
-
-        ctx.json(
-            LtvState(
-                location = LtvLocationState(
-                    last_known_x = ltvJson.float("location.last_known_x"),
-                    last_known_y = ltvJson.float("location.last_known_y")
-                ),
-                signal = LtvSignalState(
-                    strength = ltvJson.float("signal.strength"),
-                    ping_requested = ltvJson.bool("signal.ping_requested"),
-                    ping_unlimited_requested = ltvJson.bool("signal.ping_unlimited_requested")
-                )
-            )
-        )
+        ctx.json(buildLtvState(ltvJson))
     }
 
     fun getLtvErrorsState(ctx: Context) {
-        val ltvErrorsJson = fetchJson(LTV_ERRORS_JSON_CMD, "LTV_ERRORS.json") ?: run {
+        val ltvErrorsJson = fetchLtvErrorsJsonForMission() ?: run {
             ctx.status(502).result("Failed to fetch LTV_ERRORS.json")
             return
         }
-
-        val procedures = ltvErrorsJson.path("error_procedures")
-            .takeIf { it.isArray }
-            ?.map { procedure ->
-                LtvErrorProcedureState(
-                    code = procedure.path("code").asText(""),
-                    description = procedure.path("description").asText(""),
-                    needs_resolved = procedure.path("needs_resolved").asBoolean(false),
-                    procedures = procedure.path("procedures")
-                        .takeIf { it.isArray }
-                        ?.map { step -> step.asText("") }
-                        ?: emptyList()
-                )
-            }
-            ?: emptyList()
-
-        ctx.json(LtvErrorsState(error_procedures = procedures))
+        ctx.json(buildLtvErrorsState(ltvErrorsJson))
     }
 }

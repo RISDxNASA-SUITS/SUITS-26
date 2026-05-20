@@ -9,6 +9,7 @@ import SUITS2026Backend.PoiList.PoiController
 import SUITS2026Backend.RoverIntegration.RoverTssController
 import SUITS2026Backend.TssIntegration.EvaTssComms
 import SUITS2026Backend.TssIntegration.LtvTssComms
+import SUITS2026Backend.TssIntegration.MissionTelemetryBroadcaster
 import SUITS2026Backend.TssIntegration.TelemetryBroadcaster
 import SUITS2026Backend.TssIntegration.TssConfig
 
@@ -34,6 +35,7 @@ object Server {
 
         /* ---------- WebSocket handlers ---------- */
         TelemetryBroadcaster.setup(app, mapper)
+        MissionTelemetryBroadcaster.setup(app, mapper)
 
         /* ---------- CORS (browser REST from Vite / other origins) ---------- */
         app.before { ctx ->

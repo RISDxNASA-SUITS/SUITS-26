@@ -27,10 +27,10 @@ The backend reads TSS over UDP using these environment variables:
 
 ```bash
 # env only
-TSS_HOST=192.168.1.42 mvn exec:java
+TSS_HOST=192.168.1.42 mvn compile exec:java
 
 # CLI overrides env
-mvn exec:java -Dexec.args="192.168.1.42"
+mvn compile exec:java -Dexec.args="192.168.1.42"
 ```
 
 ### Live telemetry WebSocket

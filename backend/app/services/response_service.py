@@ -33,7 +33,7 @@ def execute_command_response(parsed: ParseResult) -> str:
     if intent == "help":
         return (
             "Status: oxygen | battery | co2. Procedures: start egress | erm | repair | ingress. "
-            "Steps: next | repeat. Safety: any warnings, run diagnosis (LTV_REPAIR), return route (EVA_NAV/INGRESS). "
+            "Steps: next | repeat. Safety: any warnings, run diagnosis (LTV_REPAIR). "
             "Set mission phase before starting procedures."
         )
 
@@ -49,13 +49,6 @@ def execute_command_response(parsed: ParseResult) -> str:
     if intent == "procedure_repeat":
         msg, _state = procedure_service.repeat_step()
         return msg
-
-    if intent == "navigation_return":
-        snap = telemetry_service.get_snapshot()
-        return (
-            f"Return: vector toward airlock; safe-range ref {snap.safe_range_m:.1f} m. "
-            "Confirm route with capcom if unsure."
-        )
 
     if intent == "diagnosis_request":
         snap = telemetry_service.get_snapshot()

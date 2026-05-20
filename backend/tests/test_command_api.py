@@ -137,15 +137,15 @@ def test_post_command_uses_agentic_when_enabled(monkeypatch):
             success=True,
             error_code=None,
             input_text=text,
-            parsed_intent="agent_navigate",
-            entity="hab",
-            response_text="Demo Navigate: routing to hab.",
+            parsed_intent="agent_telemetry",
+            entity=None,
+            response_text="Oxygen primary storage is 85 percent.",
         )
 
     monkeypatch.setattr("app.services.command_dispatch.run_agentic_pipeline", fake_agentic)
-    r = client.post("/command", json={"text": "navigate to hab"})
+    r = client.post("/command", json={"text": "how is my oxygen"})
     assert r.status_code == 200
     body = r.json()
-    assert body["parsed_intent"] == "agent_navigate"
-    assert body["entity"] == "hab"
+    assert body["parsed_intent"] == "agent_telemetry"
+    assert body["entity"] is None
     assert body["success"] is True

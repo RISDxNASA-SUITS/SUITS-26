@@ -27,8 +27,6 @@ from app.services.command_parser import parse_command
         ("start ingress", "procedure_start", "ingress"),
         ("next step", "procedure_next", None),
         ("repeat step", "procedure_repeat", None),
-        ("guide me back", "navigation_return", None),
-        ("return route", "navigation_return", None),
         ("run diagnosis", "diagnosis_request", None),
         ("any warnings", "warning_check", None),
     ],

@@ -45,17 +45,6 @@ def evaluate(parsed: ParseResult) -> GuardrailResult:
                 message="Diagnosis is only allowed during LTV_REPAIR phase.",
             )
 
-    if intent == "navigation_return":
-        if phase not in (MissionPhase.EVA_NAV, MissionPhase.INGRESS):
-            return GuardrailResult(
-                ok=False,
-                error_code="NAVIGATION_PHASE_DENIED",
-                message=(
-                    "Return guidance is only available during EVA_NAV or INGRESS. "
-                    f"Current phase: {phase.value}."
-                ),
-            )
-
     if intent in ("status_query", "warning_check"):
         if not telemetry_service.is_available():
             subj = _status_subject(entity) if intent == "status_query" else "warnings"
