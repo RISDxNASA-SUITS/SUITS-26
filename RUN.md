@@ -2,6 +2,8 @@
 
 Everything you need to run the **EVA voice assistant UI**, **live NASA telemetry (TSS + Java)**, and **optional Ollama** for natural-language commands.
 
+**All local, no Docker, one terminal per service:** **[RUN_LOCAL.md](./RUN_LOCAL.md)**
+
 ---
 
 ## What opens in the browser
@@ -28,15 +30,17 @@ Everything you need to run the **EVA voice assistant UI**, **live NASA telemetry
 
 ---
 
-## All-in-Docker (TSS + Java + Ollama + EVA API)
+## Docker: AIA + Ollama only (TSS + Java on host)
 
-From the **repo root** (first start downloads `llama3.2` — can take several minutes):
+`docker-compose.yaml` runs **only** `eva-backend` and `ollama`. Start **TSS + Java locally** first ([`RUN_TSS_JAVA_NO_DOCKER.md`](RUN_TSS_JAVA_NO_DOCKER.md)), then:
 
 ```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend ollama eva-backend
-```
+# If Java uses port 7071 (common when 7070 is busy):
+EVA_JAVA_BACKEND_URL=http://host.docker.internal:7071 docker compose -f docker-compose.yaml up -d --build
 
-`ollama-init` runs automatically, pulls `llama3.2`, then exits. EVA waits for that before starting.
+# Default expects Java on host port 7070:
+docker compose -f docker-compose.yaml up -d --build
+```
 
 Check:
 
@@ -53,31 +57,26 @@ Then run the frontend locally:
 cd frontend && npm install && npm run dev
 ```
 
-Open http://localhost:5173 — commands use Ollama inside Docker at `http://ollama:11434`.
-
 **Stop:**
 
 ```bash
 docker compose -f docker-compose.yaml down
 ```
 
-Model weights persist in the `ollama_data` volume.
+**Full stack in Docker** (TSS + Java + everything — stop native `./server.exe` first to free UDP 14141):
+
+```bash
+docker compose -f docker-compose.full-stack.yaml up -d --build
+```
 
 ---
 
-## Step 1 — TSS + Java (Docker)
+## Step 1 — TSS + Java (no Docker)
 
-From the **repo root**:
-
-```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend
-```
-
-Check:
+See [`RUN_TSS_JAVA_NO_DOCKER.md`](RUN_TSS_JAVA_NO_DOCKER.md). Quick start:
 
 ```bash
-docker compose -f docker-compose.yaml ps
-curl -s http://localhost:7070/ev-telemetry/1 | head -c 120
+curl -s http://localhost:7071/ev-telemetry/1 | head -c 120
 ```
 
 Open the **TSS web UI**: http://localhost:14141
@@ -91,12 +90,14 @@ From **repo root** (after Step 1, or if Java Hub is on another machine). See **[
 ```bash
 cp backend/.env.competition backend/.env   # or .env.example for rule-based only
 
-# Pass the Java Hub machine IP (127.0.0.1 if Hub is local Docker from Step 1)
+# Pass the Java Hub machine IP (127.0.0.1 if Hub is local from Step 1)
 ./scripts/aia-start.sh 127.0.0.1
 ./scripts/aia-stop.sh
 ```
 
 For agentic mode: install [Ollama](https://ollama.com) and `ollama pull llama3.2` before starting.
+
+Alternative (from repo root): `python backend/run_aia.py --java-host <JAVA_IP> --java-port 7070 --reload`
 
 Check:
 
@@ -159,8 +160,9 @@ With agentic **off**, use **exact** phrases (see below).
 
 | Variable | Typical value | Meaning |
 |----------|---------------|---------|
-| `EVA_LIVE_TELEMETRY` | `true` | Poll all Java mission telemetry endpoints into AIA |
-| `EVA_JAVA_BACKEND_URL` | `http://localhost:7070` | Java API (Docker maps 7070) |
+| `EVA_LIVE_TELEMETRY` | `true` | Live Java mission telemetry into AIA |
+| `EVA_JAVA_TELEMETRY_TRANSPORT` | `websocket` | `websocket` = `WS /telemetry/mission/live`; `http` = REST poll fallback |
+| `EVA_JAVA_BACKEND_URL` | `http://localhost:7070` | Java API (must match `JAVA_HTTP_PORT`; use `7071` if that port is busy) |
 | `EVA_DEMO_MODE` | `true` | Mission starts in `EGRESS` for demos |
 | `EVA_ASR_ENABLED` | `true` | Microphone → local Whisper |
 | `EVA_AGENTIC_ENABLED` | `false` or `true` | `false` = phrase list; `true` = Ollama |
@@ -198,18 +200,18 @@ If Ollama is down you’ll see errors like **`LLM_UNAVAILABLE`**, not `UNKNOWN_C
 
 ## Optional: run more in Docker
 
-**EVA API + Ollama in Docker** (instead of local `uvicorn` + host Ollama):
+**EVA API + Ollama in Docker** (TSS + Java on host — see top of this file):
 
 ```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend ollama eva-backend
+EVA_JAVA_BACKEND_URL=http://host.docker.internal:7071 docker compose -f docker-compose.yaml up -d --build
 ```
 
 Still run the React frontend locally (`npm run dev` on :5173).
 
-**Full stack** (adds Python rover navigation on :4000):
+**Full stack in Docker** (TSS + Java + Python nav — stop native TSS on UDP 14141 first):
 
 ```bash
-docker compose -f docker-compose.yaml up -d --build
+docker compose -f docker-compose.full-stack.yaml up -d --build
 ```
 
 **Stop everything:**
@@ -224,8 +226,8 @@ docker compose -f docker-compose.yaml down
 
 | Problem | Fix |
 |---------|-----|
-| `GET /telemetry` → 503 | Start `c-backend` + `java-backend`; `curl http://localhost:7070/ev-telemetry/1` |
-| TSS UI won’t load | Open http://localhost:14141; `docker compose logs c-backend` |
+| `GET /telemetry` → 503 | Start host TSS + Java; `curl http://localhost:7071/ev-telemetry/1`. Docker EVA: `EVA_JAVA_BACKEND_URL` must reach host Java. |
+| TSS UI won’t load | Open http://localhost:14141; ensure `./server.exe` is running (not blocked by Docker `c-backend`) |
 | CORS error in browser | Add your origin to `EVA_CORS_ORIGINS` in `backend/.env` |
 | Mic / voice fails | Install **ffmpeg**; first transcribe downloads Whisper (slow once) |
 | `UNKNOWN_COMMAND` | Use exact phrases, or enable agentic + Ollama |
@@ -236,7 +238,7 @@ docker compose -f docker-compose.yaml down
 
 ## Minimal checklist
 
-- [ ] Docker: `c-backend` + `java-backend` up
+- [ ] TSS + Java running on host (or full-stack compose)
 - [ ] http://localhost:14141 loads (TSS)
 - [ ] `curl http://localhost:7070/ev-telemetry/1` returns JSON
 - [ ] EVA API on :8000, `/health` OK

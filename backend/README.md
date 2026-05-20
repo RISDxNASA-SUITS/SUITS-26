@@ -19,10 +19,66 @@ Tests call `seed_training()` and `set_phase(INIT)` in `conftest.py` so they do n
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -c "import uvicorn; print('uvicorn OK')"
+```
+
+**Rule of thumb:** always use `python -m pip install …`, not bare `pip install …`, so packages go into the **same** interpreter that runs `run_aia.py`. With **Conda** active, bare `pip` can target a different Python than `python` in the venv.
+
+Confirm the interpreter (after `source .venv/bin/activate`):
+
+```bash
+which python
+# Expect: .../SUITS-26/backend/.venv/bin/python
+```
+
+If `which python` still points at **miniconda** (or anything other than `backend/.venv/bin/python`), recreate the venv:
+
+```bash
+cd backend
+deactivate 2>/dev/null; conda deactivate 2>/dev/null
+rm -rf .venv
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -c "import uvicorn; print('uvicorn OK')"
 ```
 
 ## Run
+
+**Recommended** — configure AIA bind address and Java hub IP/port on the command line:
+
+```bash
+python run_aia.py --reload --host 0.0.0.0 --port 8000 --java-host 127.0.0.1 --java-port 7071
+```
+
+If `uvicorn` is missing, `run_aia.py` prints a hint. Typical fix (venv active):
+
+```bash
+which python
+python -m pip install -r requirements.txt
+python -c "import uvicorn; print('ok')"
+python run_aia.py --reload --host 0.0.0.0 --port 8000 --java-host 127.0.0.1 --java-port 7071
+```
+
+Other examples:
+
+```bash
+# Java on another machine
+python run_aia.py --java-host 192.0.0.2 --java-port 7071
+
+# Full Java URL override
+python run_aia.py --java-url http://192.168.1.10:7071
+
+# HTTP poll instead of mission WebSocket
+python run_aia.py --java-host 127.0.0.1 --java-port 7071 --java-transport http
+```
+
+Equivalent env vars (used by `run_aia.py` or plain uvicorn): `EVA_JAVA_HOST`, `EVA_JAVA_PORT`, `EVA_JAVA_BACKEND_URL`, `EVA_BIND_HOST`, `EVA_BIND_PORT`.
+
+Plain uvicorn (settings from `backend/.env` only):
 
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -82,10 +138,12 @@ Environment variables (prefix **`EVA_`**):
 | `EVA_AGENTIC_ENABLED` | `true` / `false` — LLM router + alert phrasing (Ollama) |
 | `EVA_OLLAMA_BASE_URL` | Ollama base URL (default `http://127.0.0.1:11434`) |
 | `EVA_OLLAMA_MODEL` | Model id (default `llama3.2`) |
-| `EVA_LIVE_TELEMETRY` | `true` / `false` — poll Java for suit telemetry (default `true`) |
-| `EVA_JAVA_BACKEND_URL` | Java API base URL (default `http://localhost:7070`) |
-| `EVA_LIVE_TELEMETRY_POLL_INTERVAL_S` | Poll interval in seconds (default `1.0`) |
-| `EVA_JAVA_HTTP_TIMEOUT_S` | Per-request HTTP timeout (default `2.0`) |
+| `EVA_LIVE_TELEMETRY` | `true` / `false` — live Java telemetry for commands (default `true`) |
+| `EVA_JAVA_TELEMETRY_TRANSPORT` | `websocket` (default) or `http` — mission WS vs REST poll |
+| `EVA_JAVA_BACKEND_URL` | Java API base URL (default `http://localhost:7070`); must match your `JAVA_HTTP_PORT` |
+| `EVA_JAVA_BACKEND_WS_URL` | Optional override for `ws://…/telemetry/mission/live` |
+| `EVA_LIVE_TELEMETRY_POLL_INTERVAL_S` | HTTP poll interval when transport is `http` (default `1.0`) |
+| `EVA_JAVA_HTTP_TIMEOUT_S` | Per-request HTTP timeout when transport is `http` (default `2.0`) |
 
 ## Mission phases
 

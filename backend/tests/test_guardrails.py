@@ -51,20 +51,13 @@ def test_diagnosis_allowed_in_ltv_repair():
     assert "Diagnosis" in body["response_text"]
 
 
-def test_navigation_denied_in_init():
-    mission_service.set_phase(MissionPhase.INIT)
+def test_guide_me_back_is_unknown_command():
+    mission_service.set_phase(MissionPhase.EVA_NAV)
     r = client.post("/command", json={"text": "guide me back"})
     body = r.json()
     assert body["success"] is False
-    assert body["error_code"] == "NAVIGATION_PHASE_DENIED"
-
-
-def test_navigation_allowed_in_eva_nav():
-    mission_service.set_phase(MissionPhase.EVA_NAV)
-    r = client.post("/command", json={"text": "return route"})
-    body = r.json()
-    assert body["success"] is True
-    assert "Return:" in body["response_text"] or "airlock" in body["response_text"].lower()
+    assert body["error_code"] == "UNKNOWN_COMMAND"
+    assert body["parsed_intent"] == "unknown"
 
 
 def test_next_step_no_active_procedure():

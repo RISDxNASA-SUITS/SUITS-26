@@ -23,6 +23,8 @@ Defaults to `http://localhost:8000` in dev when unset.
 npm run dev
 ```
 
+When the dev server starts, it prompts for the Java Hub IP address and port. Vite only starts after the launcher confirms it can connect to `ws://<ip>:<port>/telemetry/live`; otherwise it exits with an error.
+
 - **Dashboard:** http://localhost:5173/
 - **Map:** http://localhost:5173/map
 

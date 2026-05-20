@@ -4,23 +4,17 @@ from app.services.agentic_pipeline import run_agentic_pipeline
 from app.services.telemetry_service import telemetry_service
 
 
-def test_agentic_navigate_branch():
-    calls = []
+def test_agentic_navigate_phrase_is_unknown():
+    from app.services.llm_client import LlmOutcome
 
-    def fake_chat(messages):
-        calls.append(messages)
-        from app.services.llm_client import LlmOutcome
-
-        if len(calls) == 1:
-            return LlmOutcome(text='{"action":"navigate","location":"hab","reason":null}')
-        return LlmOutcome(text="unexpected")
-
-    with patch("app.services.agentic_pipeline.llm_client.chat_completion", side_effect=fake_chat):
+    with patch(
+        "app.services.agentic_pipeline.llm_client.chat_completion",
+        return_value=LlmOutcome(text='{"action":"unknown","reason":null}'),
+    ):
         r = run_agentic_pipeline("take me to the hab")
     assert r.success
-    assert r.parsed_intent == "agent_navigate"
-    assert r.entity == "hab"
-    assert "hab" in r.response_text.lower()
+    assert r.parsed_intent == "agent_unknown"
+    assert r.entity is None
 
 
 def test_agentic_telemetry_branch():
@@ -31,7 +25,7 @@ def test_agentic_telemetry_branch():
 
         calls.append(messages)
         if len(calls) == 1:
-            return LlmOutcome(text='{"action":"telemetry","location":null}')
+            return LlmOutcome(text='{"action":"telemetry","reason":null}')
         return LlmOutcome(text="Oxygen is fine.")
 
     telemetry_service.seed_training()
@@ -64,7 +58,7 @@ def test_agentic_telemetry_unavailable():
     telemetry_service.set_available(False)
     with patch(
         "app.services.agentic_pipeline.llm_client.chat_completion",
-        return_value=LlmOutcome(text='{"action":"telemetry","location":null}'),
+        return_value=LlmOutcome(text='{"action":"telemetry","reason":null}'),
     ):
         r = run_agentic_pipeline("battery level")
     assert not r.success

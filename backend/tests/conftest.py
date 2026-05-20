@@ -20,6 +20,7 @@ from app.services.telemetry_service import telemetry_service
 def reset_singleton_state():
     """Avoid cross-test leakage for shared in-memory services."""
     settings.live_telemetry_enabled = False
+    settings.agentic_enabled = False
     live_telemetry_state.set_ok(True)
     mission_service.set_phase(MissionPhase.INIT)
     telemetry_service.seed_training()

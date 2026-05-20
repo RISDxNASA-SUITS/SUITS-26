@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import caretIcon from "../../../assets/map/Caret_Circle_Up.svg"
 import addPlusCircleIcon from "../../../assets/map/Add_Plus_Circle.png"
 import trashIcon from "../../../assets/map/Task_Trash.svg"
@@ -7,167 +7,65 @@ import shrinkIcon from "../../../assets/map/Shrink.svg"
 import pathOptIcon from "../../../assets/map/Path_opt.svg"
 import chevronRightIcon from "../../../assets/map/Chevron_Right.svg"
 import { DPad } from "./DPad"
+import { AddTaskModal } from "./AddTaskModal"
+import {
+  TASK_CONFIGS,
+  TASK_ORDER,
+  INITIAL_TASK_KEY,
+  INITIAL_UPCOMING,
+} from "../data/activeTaskTimeline"
 
-function makeTaskConfig(title, remainingTime, steps, options = {}) {
-  const { defaultActiveStep = 0, defaultHasAdvanced = false } = options
-  const stepCount = steps.length
-  return {
-    remainingTime,
-    pct: "0%",
-    gridCols: `repeat(${stepCount}, 1fr)`,
-    steps,
-    defaultActiveStep,
-    defaultHasAdvanced,
-    upcomingEntry: {
-      title,
-      time: remainingTime.replace(/\s*min$/, " minutes"),
-      sub: `${stepCount} ${stepCount === 1 ? "sub-task" : "sub-tasks"}`,
-    },
-  }
+function capitalizeFirstLetter(value) {
+  const text = String(value ?? "")
+  if (!text) return text
+  return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-const TASK_CONFIGS = {
-  "CAPCOM Setup and EVA Start": makeTaskConfig(
-    "CAPCOM Setup and EVA Start",
-    "— min",
-    [
-      "Reset all UIA switches to Down Position",
-      "Reset all DCU switches to Back Position",
-      "Reset LTV Task Board to pre-repair settings",
-      "START EVA Telemetry (at EVA start time)",
-      "Announce scenario start, give go to begin",
-      "Monitor UIA Switches",
-    ],
-  ),
-  "Connect UIA to DCU and Start Depress": makeTaskConfig(
-    "Connect UIA to DCU and Start Depress",
-    "1 min",
-    [
-      "UIA and DCU: EV1 verify umbilical connection from UIA to DCU",
-      "UIA: EV1 - EMU PWR – ON",
-      "DCU: BATT – UMB",
-      "UIA: DEPRESS PUMP – ON",
-    ],
-  ),
-  "Prep O2 Tanks": makeTaskConfig("Prep O2 Tanks", "3 min", [
-    "UIA: OXYGEN O2 VENT – OPEN",
-    "HMD: Wait until both Primary and Secondary OXY tanks are < 10 psi",
-    "UIA: OXYGEN O2 VENT – CLOSE",
-    "DCU: OXY – PRI",
-    "UIA: OXYGEN EMU-1 – OPEN",
-    "HMD: Wait until EV1 Primary O2 tank > 2950 psi",
-    "UIA: OXYGEN EMU-1 – CLOSE",
-    "DCU: OXY – SEC",
-    "UIA: OXYGEN EMU-1 – OPEN",
-    "HMD: Wait until EV1 Secondary O2 tank > 2950 psi",
-    "UIA: OXYGEN EMU-1 – CLOSE",
-    "DCU: OXY – PRI",
-  ]),
-  "Prep Coolant Tank": makeTaskConfig("Prep Coolant Tank", "1 min", [
-    "DCU: PUMP – OPEN (Fill water tanks)",
-    "UIA: EV-1 SUPPLY WATER – OPEN",
-    "HMD: Wait until water EV1 Coolant Storage is > 95%",
-    "UIA: EV-1, SUPPLY WATER – CLOSE",
-  ]),
-  "End Depress, Check Switches and Disconnect": makeTaskConfig(
-    "End Depress, Check Switches and Disconnect",
-    "2 min",
-    [
-      "HMD: Wait until SUIT Pressure and O2 Pressure = 4",
-      "UIA: DEPRESS PUMP PWR – OFF",
-      "DCU: BATT - PRI",
-      "DCU: BATT – LOCAL",
-      "UIA: EV-1 EMU PWR – OFF",
-      "DCU: FAN – PRI",
-      "DCU: PUMP – CLOSE",
-      "DCU: CO2 - PRI",
-      "DCU: Verify OXY – PRI",
-      "EV-1 disconnect UIA and DCU umbilical",
-      "Verbally announce completion of egress",
-      "Begin navigation procedure",
-    ],
-  ),
-  "Navigate to LTV Worksite": makeTaskConfig("Navigate to LTV Worksite", "3 min", [
-    "Drop pin and determine best path to reach the LTV",
-    "Verbally confirm the path has been generated",
-    "Exit airlock and begin navigation to LTV worksite",
-    "Teams may create custom procedures to showcase navigation features and AI assistant use",
-    "Upon arrival at worksite, verbally confirm safe access to LTV",
-  ]),
-  "LTV Repair": makeTaskConfig("LTV Repair", "10 min", [
-    "CAPCOM: Monitor LTV errors section in CAPCOM",
-    "Verbally announce the beginning LTV diagnosis",
-    "Utilize AI assistant to retrieve the Exit Recovery Mode (ERM) procedure",
-    "Perform the ERM procedure and announce completion",
-    "Utilize AI assistant to retrieve the NAV Restart procedure",
-    "Perform the NAV Restart procedure and announce completion",
-    "Utilize AI assistant to perform LTV diagnosis",
-    "AI assistant retrieves relevant repair procedures from the TSS upon analysis",
-    "Based on procedures provided by AI assistant, perform necessary LTV operations until all errors are resolved",
-    "AI assistant relays procedures verbally or visually through the HMD",
-    "Verbally announce successful repair of LTV",
-    "Announce: \"LTV repairs successful, returning to PR\"",
-  ]),
-  "Navigate to PR Location": makeTaskConfig("Navigate to PR Location", "3 min", [
-    "Drop pin and determine optimal path to reach the PR",
-    "Verbally confirm path has been generated: \"Path generated, beginning navigation to PR\"",
-    "Begin navigation to the PR",
-    "Upon arrival at the PR, announce arrival and begin ingress",
-  ]),
-  "EVA Ingress": makeTaskConfig("EVA Ingress", "2 min", [
-    "UIA and DCU: EV1 connect UIA and DCU umbilical",
-    "UIA: EV-1 EMU PWR – ON",
-    "DCU: BATT – UMB",
-    "UIA: OXYGEN O2 VENT – OPEN (Vent O2 tanks)",
-    "HMD: Wait until both Primary and Secondary OXY tanks are < 10 psi",
-    "UIA: OXYGEN O2 VENT – CLOSE",
-    "DCU: PUMP – OPEN (Empty water tanks)",
-    "UIA: EV-1 WASTE WATER – OPEN",
-    "HMD: Wait until water EV1 Coolant tank is < 5%",
-    "UIA: EV-1, WASTE WATER – CLOSE",
-    "UIA: EV-1 EMU PWR – OFF",
-    "DCU: EV-1 disconnect umbilical",
-  ]),
-  "CAPCOM Reset for Next Team": makeTaskConfig("CAPCOM Reset for Next Team", "— min", [
-    "Stop EV Telemetry",
-    "Reset PR to home base",
-    "Reset LTV errors, and physical task board",
-    "Verify DCU and UIA are in default state",
-  ]),
-  "Off Nominal Procedures": makeTaskConfig("Off Nominal Procedures", "— min", [
-    "Off Nominal Heart Rate: reduce activity, control breathing, resume when nominal",
-    "Off Nominal Suit Oxygen Pressure: DCU OXY – SEC, return to PR",
-    "Off Nominal Suit CO2 Pressure: toggle CO2 – PRI / SEC",
-    "Off Nominal Suit Pressure Other: return to PR if after decompress",
-    "Off Nominal Total Suit Pressure: check O2 tank and CO2 scrubber, run related procedures",
-    "Off Nominal Helmet CO2 Pressure: DCU CO2 – SEC, return to PR",
-    "Off Nominal Primary Fan: DCU FAN – SEC, return to PR",
-    "Off Nominal CO2 Scrubber: toggle CO2 – PRI / SEC",
-    "Off Nominal Temperature: reduce activity, monitor until nominal",
-  ]),
+function parseTaskDurationSeconds(value) {
+  const text = String(value ?? "").trim()
+  const match = text.match(/^(\d+(?:\.\d+)?)\s*min$/i)
+  if (!match) return null
+  return Number(match[1]) * 60
 }
 
-const TASK_ORDER = Object.keys(TASK_CONFIGS)
-
-const INITIAL_TASK_KEY = TASK_ORDER[0]
-
-function buildUpcomingEntry(title) {
-  return TASK_CONFIGS[title].upcomingEntry
+function formatRemainingTime(seconds) {
+  const totalSeconds = Math.max(0, Math.ceil(seconds))
+  const minutes = Math.floor(totalSeconds / 60)
+  const remainingSeconds = totalSeconds % 60
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
 }
 
-const INITIAL_UPCOMING = TASK_ORDER.slice(1).map(buildUpcomingEntry)
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
 
-export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand }) {
+function formatStepPercent(activeStep, stepCount) {
+  if (!stepCount) return "0%"
+  return `${Math.min(100, Math.floor((activeStep / stepCount) * 100))}%`
+}
+
+export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand, onManualCommandStart, onManualCommandEnd, onManualStop }) {
   const [activeTab, setActiveTab] = useState("tasks")
   const [currentTaskOpen, setCurrentTaskOpen] = useState(true)
   const [currentTaskKey, setCurrentTaskKey] = useState(INITIAL_TASK_KEY)
   const [activeStep, setActiveStep] = useState(0)
-  const [hasAdvanced, setHasAdvanced] = useState(false)
   const [upcomingOpen, setUpcomingOpen] = useState(true)
   const [expandedTasks, setExpandedTasks] = useState(new Set())
   const [upcomingTasks, setUpcomingTasks] = useState(INITIAL_UPCOMING)
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
 
   const [dragIndex, setDragIndex] = useState(null)
+  const [taskStartedAt, setTaskStartedAt] = useState(() => Date.now())
+  const [stepStartedAt, setStepStartedAt] = useState(() => Date.now())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(Date.now())
+    }, 100)
+
+    return () => window.clearInterval(timer)
+  }, [])
 
   const toggleTaskExpand = (i) => {
     setExpandedTasks(prev => {
@@ -194,13 +92,29 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
 
   const task = TASK_CONFIGS[currentTaskKey]
   const currentTaskIndex = TASK_ORDER.indexOf(currentTaskKey) + 1
-  const totalTasks = TASK_ORDER.length
+  const totalTasks = TASK_ORDER.length + upcomingTasks.length
+  const stepPercent = formatStepPercent(activeStep, task?.steps.length ?? 0)
+  const taskDurationSeconds = task ? parseTaskDurationSeconds(task.remainingTime) : null
+  const stepDurationSeconds = taskDurationSeconds && task.steps.length > 0 ? taskDurationSeconds / task.steps.length : null
+  const remainingTaskSeconds = taskDurationSeconds == null ? null : Math.max(0, taskDurationSeconds - (now - taskStartedAt) / 1000)
+  const currentStepProgress = stepDurationSeconds == null ? 0 : clamp((now - stepStartedAt) / (stepDurationSeconds * 1000), 0, 1)
+
+  const startTask = (title, nextActiveStep) => {
+    const startedAt = Date.now()
+    setTaskStartedAt(startedAt)
+    setStepStartedAt(startedAt)
+    setNow(startedAt)
+    setCurrentTaskKey(title)
+    setActiveStep(nextActiveStep)
+  }
 
   const advanceStep = () => {
     const lastStepIndex = task.steps.length - 1
 
     if (activeStep < lastStepIndex) {
-      setHasAdvanced(true)
+      const startedAt = Date.now()
+      setStepStartedAt(startedAt)
+      setNow(startedAt)
       setActiveStep(s => s + 1)
       return
     }
@@ -209,28 +123,27 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
 
     const next = upcomingTasks[0]
     const nextConfig = TASK_CONFIGS[next.title]
-    setUpcomingTasks(prev => [...prev.slice(1), task.upcomingEntry])
-    if (nextConfig) {
-      setCurrentTaskKey(next.title)
-      setActiveStep(0)
-      setHasAdvanced(false)
-    }
+    setUpcomingTasks(prev => prev.slice(1))
+    // Handle both predefined tasks (with config) and custom tasks (without config)
+    startTask(next.title, nextConfig?.defaultActiveStep ?? 0)
   }
 
   const skipTask = () => {
     if (upcomingTasks.length === 0) return
     const next = upcomingTasks[0]
     const nextConfig = TASK_CONFIGS[next.title]
-    setUpcomingTasks(prev => [...prev.slice(1), task.upcomingEntry])
-    if (nextConfig) {
-      setCurrentTaskKey(next.title)
-      setActiveStep(nextConfig.defaultActiveStep)
-      setHasAdvanced(nextConfig.defaultHasAdvanced)
-    }
+    setUpcomingTasks(prev => prev.slice(1))
+    // Handle both predefined tasks (with config) and custom tasks (without config)
+    startTask(next.title, nextConfig?.defaultActiveStep ?? 0)
   }
 
   const addTask = () => {
-    setUpcomingTasks(prev => [...prev, { title: "New Task", time: "- minutes", sub: "- sub-tasks" }])
+    setShowAddTaskModal(true)
+  }
+
+  const handleSaveTask = (taskData) => {
+    setUpcomingTasks(prev => [...prev, taskData])
+    setShowAddTaskModal(false)
   }
 
   const removeTask = (i) => {
@@ -266,43 +179,55 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
           </section>
           <section className="task-card" style={{ display: currentTaskOpen ? undefined : "none" }}>
             <h2>{currentTaskKey}</h2>
-            <div className="task-meta">
-              <span>Remaining time: {task.remainingTime}</span>
-              <span>|</span>
-              <span>{task.steps.length} steps</span>
-              <span>|</span>
-              <span>{task.pct}</span>
-            </div>
-
-            <div className="task-progress">
-              <div className="progress-blocks-wrap">
-                <div className="progress-blocks" aria-hidden="true" style={{ gridTemplateColumns: task.gridCols }}>
-                  {task.steps.map((_, i) => {
-                    let cls = ""
-                    if (i === activeStep) cls = `active${hasAdvanced ? " active--advanced" : ""}`
-                    else if (i < activeStep) cls = "done"
-                    return <span key={i} className={cls} />
-                  })}
+            {task ? (
+              <>
+                <div className="task-meta">
+                  <span>Remaining time: {remainingTaskSeconds == null ? task.remainingTime : formatRemainingTime(remainingTaskSeconds)}</span>
+                  <span>|</span>
+                  <span>{task.steps.length} steps</span>
+                  <span>|</span>
+                  <span>{stepPercent}</span>
                 </div>
-              </div>
-            </div>
 
-            <ol className="task-step-list">
-              {task.steps.map((label, i) => {
-                const cls = i < activeStep ? "step-done" : i === activeStep ? "step-current" : "step-upcoming"
-                return (
-                  <li key={i} className={cls}>
-                    {i === activeStep ? <span className="step-dot-active" /> : <span className="step-dot" />}
-                    <span className="step-text">{label}</span>
-                  </li>
-                )
-              })}
-            </ol>
+                <div className="task-progress">
+                  <div className="progress-blocks-wrap">
+                    <div className="progress-blocks" aria-hidden="true" style={{ gridTemplateColumns: task.gridCols }}>
+                      {task.steps.map((_, i) => {
+                        let cls = ""
+                        if (i === activeStep) cls = "active"
+                        else if (i < activeStep) cls = "done"
+                        const style = i === activeStep ? { "--step-progress": `${currentStepProgress * 100}%` } : undefined
+                        return <span key={i} className={cls} style={style} />
+                      })}
+                    </div>
+                  </div>
+                </div>
 
-            <div className="task-actions">
-              <button type="button" onClick={skipTask}>Skip task</button>
-              <button type="button" onClick={advanceStep}>Next Step</button>
-            </div>
+                <ol className="task-step-list">
+                  {task.steps.map((label, i) => {
+                    const cls = i < activeStep ? "step-done" : i === activeStep ? "step-current" : "step-upcoming"
+                    return (
+                      <li key={i} className={cls}>
+                        {i === activeStep ? <span className="step-dot-active" /> : <span className="step-dot" />}
+                        <span className="step-text">{capitalizeFirstLetter(label)}</span>
+                      </li>
+                    )
+                  })}
+                </ol>
+
+                <div className="task-actions">
+                  <button type="button" onClick={skipTask}>Skip task</button>
+                  <button type="button" onClick={advanceStep}>Next Step</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="custom-task-notice">Custom Task</p>
+                <div className="task-actions">
+                  <button type="button" onClick={skipTask}>Complete task</button>
+                </div>
+              </>
+            )}
           </section>
 
           <section className="upcoming-card">
@@ -336,6 +261,9 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
                       <span className="upcoming-drag-handle">⋮⋮</span>
                       <div className="upcoming-item-text">
                         <p className="upcoming-item-title">{upTask.title}</p>
+                        {upTask.description && (
+                          <p className="upcoming-item-description">{upTask.description}</p>
+                        )}
                         <div className="upcoming-item-meta">
                           <span>{upTask.time}</span>
                           <span className="upcoming-dot" />
@@ -356,8 +284,10 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
                     <ol className="upcoming-step-list">
                       {config.steps.map((label, j) => (
                         <li key={j} className="upcoming-step-item">
-                          <span className="upcoming-step-dot" />
-                          <span className="upcoming-step-text">{label}</span>
+                          <span className="upcoming-step-rail" aria-hidden="true">
+                            <span className="upcoming-step-dot" />
+                          </span>
+                          <span className="upcoming-step-text">{capitalizeFirstLetter(label)}</span>
                         </li>
                       ))}
                     </ol>
@@ -396,7 +326,13 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
               Manual
             </button>
           </div>
-          {isManual && <DPad />}
+          {isManual && (
+            <DPad
+              onCommandStart={onManualCommandStart}
+              onCommandEnd={onManualCommandEnd}
+              onStop={onManualStop}
+            />
+          )}
         </div>
         {!isManual && (
           <button type="button" className="path-opt-chevron" aria-label="Expand" onClick={onToggleExpand}>
@@ -404,6 +340,13 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
           </button>
         )}
       </section>
+
+      {showAddTaskModal && (
+        <AddTaskModal
+          onSave={handleSaveTask}
+          onCancel={() => setShowAddTaskModal(false)}
+        />
+      )}
     </aside>
   )
 }

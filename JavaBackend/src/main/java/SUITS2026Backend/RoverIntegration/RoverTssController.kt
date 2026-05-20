@@ -1,5 +1,6 @@
 package SUITS2026Backend.RoverIntegration
 
+import SUITS2026Backend.TssIntegration.TssConfig
 import SUITS2026Backend.db.Poi
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -24,12 +25,13 @@ object RoverTssController {
     private const val HEADLIGHT_CMD = 1106
     val bgScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val objectMapper = ObjectMapper()
-    private val tssHost: String
-        get() = System.getenv("TSS_HOST") ?: "127.0.0.1"
-    private val tssPort: Int
-        get() = (System.getenv("TSS_UDP_PORT") ?: System.getenv("PORT") ?: "14141").toInt()
-    private val socketTimeoutMs: Int
-        get() = (System.getenv("TSS_TIMEOUT_MS") ?: "1500").toInt()
+
+    data class LiveRoverSnapshot(
+        val connected: Boolean,
+        val error: String?,
+        val telemetry: RoverTelemetry,
+        val lidar: List<Float>,
+    )
 
     data class Position(val x: Float, val y: Float)
 
@@ -106,12 +108,12 @@ object RoverTssController {
     }
 
     fun <T> sendMessage(sendPacket: ByteBuffer, recvBuffer: ByteBuffer, callBack: (ByteBuffer) -> T): T {
-        val address = InetAddress.getByName(tssHost)
+        val address = InetAddress.getByName(TssConfig.host)
 
         return DatagramSocket().use { socket ->
-            socket.soTimeout = socketTimeoutMs
+            socket.soTimeout = TssConfig.socketTimeoutMs
             val bytes = sendPacket.array()
-            val packet = DatagramPacket(bytes, bytes.size, address, tssPort)
+            val packet = DatagramPacket(bytes, bytes.size, address, TssConfig.port)
             socket.send(packet)
 
             val recvPacket = DatagramPacket(recvBuffer.array(), recvBuffer.array().size)
@@ -123,12 +125,12 @@ object RoverTssController {
     }
 
     private fun sendWriteCommand(command: Int, value: Float): Boolean {
-        val address = InetAddress.getByName(tssHost)
+        val address = InetAddress.getByName(TssConfig.host)
 
         return DatagramSocket().use { socket ->
-            socket.soTimeout = socketTimeoutMs
+            socket.soTimeout = TssConfig.socketTimeoutMs
             val bytes = makeWritePacket(command, value)
-            val packet = DatagramPacket(bytes, bytes.size, address, tssPort)
+            val packet = DatagramPacket(bytes, bytes.size, address, TssConfig.port)
             socket.send(packet)
 
             val ackBytes = ByteArray(4)
@@ -139,13 +141,13 @@ object RoverTssController {
     }
 
     private fun fetchRoverJson(): JsonNode? {
-        val address = InetAddress.getByName(tssHost)
+        val address = InetAddress.getByName(TssConfig.host)
 
         return try {
             DatagramSocket().use { socket ->
-                socket.soTimeout = socketTimeoutMs
+                socket.soTimeout = TssConfig.socketTimeoutMs
                 val bytes = makeReadPacket(ROVER_JSON_CMD)
-                val packet = DatagramPacket(bytes, bytes.size, address, tssPort)
+                val packet = DatagramPacket(bytes, bytes.size, address, TssConfig.port)
                 socket.send(packet)
 
                 val recvBuffer = ByteArray(8192)
@@ -161,16 +163,45 @@ object RoverTssController {
         }
     }
 
-    fun getLidar(): List<Float> {
-        val telemetryNode = fetchRoverJson()?.path("pr_telemetry") ?: return emptyList()
+    private fun lidarFromRoverJson(root: JsonNode?): List<Float> {
+        val telemetryNode = root?.path("pr_telemetry") ?: return emptyList()
         val lidarNode = telemetryNode.path("lidar")
         if (!lidarNode.isArray) return emptyList()
         return lidarNode.map { it.asDouble().toFloat() }.take(17)
     }
 
-    fun getTelemetry(): RoverTelemetry {
-        return RoverTelemetry.fromRoverJson(fetchRoverJson())
+    /** Single UDP read for live stream / broadcaster (avoids duplicate TSS polls). */
+    fun getLiveRoverSnapshot(): LiveRoverSnapshot {
+        return try {
+            val root = fetchRoverJson()
+            if (root == null) {
+                LiveRoverSnapshot(
+                    connected = false,
+                    error = "TSS unreachable at ${TssConfig.host}:${TssConfig.port}",
+                    telemetry = RoverTelemetry.fromRoverJson(null),
+                    lidar = emptyList(),
+                )
+            } else {
+                LiveRoverSnapshot(
+                    connected = true,
+                    error = null,
+                    telemetry = RoverTelemetry.fromRoverJson(root),
+                    lidar = lidarFromRoverJson(root),
+                )
+            }
+        } catch (e: Exception) {
+            LiveRoverSnapshot(
+                connected = false,
+                error = e.message ?: e.javaClass.simpleName,
+                telemetry = RoverTelemetry.fromRoverJson(null),
+                lidar = emptyList(),
+            )
+        }
     }
+
+    fun getLidar(): List<Float> = getLiveRoverSnapshot().lidar
+
+    fun getTelemetry(): RoverTelemetry = getLiveRoverSnapshot().telemetry
 
     fun setBrakes(brakeInput: Float): Int {
         return if (sendWriteCommand(BRAKE_CMD, brakeInput)) 1 else 0

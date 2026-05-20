@@ -4,6 +4,8 @@ RISD × NASA SUITS 2026 monorepo: the **official NASA telemetry stack** (TSS, Ja
 
 **New here?** See **[RUN.md](./RUN.md)** for a short setup guide (Docker, EVA UI, voice, Ollama).
 
+**No Docker (four terminals)?** See **[RUN_LOCAL.md](./RUN_LOCAL.md)** — TSS, Java, AIA, and frontend step by step.
+
 ## Project structure
 
 | Path | Purpose |
@@ -11,7 +13,7 @@ RISD × NASA SUITS 2026 monorepo: the **official NASA telemetry stack** (TSS, Ja
 | [TSS](./TSS/README.md) | Telemetry Stream Server (C) — rover, EVA, LTV data; DUST simulator UDP |
 | [JavaBackend](./JavaBackend/README.md) | Kotlin/Javalin REST API over TSS (POIs, rover control, EVA/LTV reads) |
 | [PythonBackend](./PythonBackend/README.md) | Flask robust rover navigation over the Java backend |
-| [backend](./backend/README.md) | FastAPI EVA mission assistant (commands, procedures, ASR, optional Ollama) |
+| [backend](./backend/README.md) | FastAPI EVA mission assistant (commands, procedures, ASR, optional Ollama). Use `python -m pip` in the venv — see backend README if `uvicorn` is missing with Conda. |
 | [frontend](./frontend/README.md) | React mission console for the EVA assistant |
 | [docs/EVA_README.md](./docs/EVA_README.md) | Full EVA assistant documentation (architecture, config, troubleshooting) |
 | [docs/AIA-STANDALONE.md](./docs/AIA-STANDALONE.md) | **Run AIA** — Mode 1: Docker · Mode 2: no Docker + local Ollama |
@@ -46,47 +48,36 @@ In Compose, `eva-backend` calls `http://ollama:11434` on the Docker network. Ser
 
 ## Run everything (recommended)
 
-### Option A — Full stack in Docker (TSS + Java + Ollama + EVA API)
+### Option A — Docker: AIA + Ollama (TSS + Java on host)
 
-Starts TSS, Java, Ollama (with model pull), EVA API, and Python navigation. Live telemetry and **agentic** voice/text commands are enabled in the container env.
+Default [`docker-compose.yaml`](docker-compose.yaml) runs **only** EVA API + Ollama. Run TSS + Java locally first ([`RUN_TSS_JAVA_NO_DOCKER.md`](RUN_TSS_JAVA_NO_DOCKER.md)), then:
 
 ```bash
-# From repo root — first start downloads llama3.2 via ollama-init
+# Java on host port 7071:
+EVA_JAVA_BACKEND_URL=http://host.docker.internal:7071 docker compose -f docker-compose.yaml up -d --build
+
+# Java on host port 7070 (default):
 docker compose -f docker-compose.yaml up -d --build
-```
-
-**EVA + telemetry + Ollama only** (no Python navigation):
-
-```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend ollama eva-backend
-```
-
-**TSS + Java only** (no EVA/Ollama — use with local `uvicorn`):
-
-```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend
-```
-
-**Add rover navigation** (after Java is up):
-
-```bash
-docker compose -f docker-compose.yaml up -d --build python-backend
 ```
 
 Verify:
 
 ```bash
 docker compose -f docker-compose.yaml ps
-curl -s http://localhost:14141/ | head -3          # TSS web UI
-curl -s http://localhost:7070/ev-telemetry/1 | head -c 120
-curl -s http://localhost:11434/api/tags            # Ollama
-curl -s http://localhost:8000/agent/status         # agentic_enabled, java_backend_reachable
+curl -s http://localhost:11434/api/tags
+curl -s http://localhost:8000/agent/status
 ```
 
 View logs:
 
 ```bash
-docker compose -f docker-compose.yaml logs -f ollama ollama-init java-backend eva-backend
+docker compose -f docker-compose.yaml logs -f ollama ollama-init eva-backend
+```
+
+**Full stack in Docker** (TSS + Java + Python nav + EVA + Ollama) — stop native TSS on UDP 14141 first:
+
+```bash
+docker compose -f docker-compose.full-stack.yaml up -d --build
 ```
 
 Stop and remove containers (keeps `ollama_data` volume):
@@ -111,12 +102,14 @@ Full detail: **[docs/AIA-STANDALONE.md](./docs/AIA-STANDALONE.md)** (Mode 2 — 
 
 **Terminal 1 — Java Hub (TSS + Java)**
 
-*If Java Hub runs on this Mac via Docker:*
+*Option 1 — Docker on this Mac:*
 
 ```bash
 docker compose -f docker-compose.yaml up -d --build c-backend java-backend
 curl -s http://127.0.0.1:7070/ev-telemetry/1 | head -c 80
 ```
+
+*Option 2 — Native (no Docker):* see [`RUN_TSS_JAVA_NO_DOCKER.md`](RUN_TSS_JAVA_NO_DOCKER.md)
 
 *If Java Hub runs on another machine (competition / teammate’s laptop):* skip Terminal 1 here — note that machine’s **IP address** (e.g. `192.168.1.20`). You will pass it to `aia-start.sh` in Terminal 2.
 
@@ -334,7 +327,8 @@ npm run lint
 
 | File | Services |
 |------|----------|
-| [`docker-compose.yaml`](docker-compose.yaml) | `c-backend`, `java-backend`, `python-backend`, `ollama`, `ollama-init`, `eva-backend` |
+| [`docker-compose.yaml`](docker-compose.yaml) | `ollama`, `ollama-init`, `eva-backend` (host TSS + Java) |
+| [`docker-compose.full-stack.yaml`](docker-compose.full-stack.yaml) | Full stack in Docker |
 | [`docker-compose.yml`](docker-compose.yml) | Standalone EVA image (API + static UI; wire Ollama/TSS separately) |
 
 | Volume | Purpose |

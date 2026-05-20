@@ -64,3 +64,15 @@ def start_java_telemetry_poller_thread(stop: threading.Event) -> threading.Threa
     )
     t.start()
     return t
+
+
+def start_java_telemetry_listener_thread(stop: threading.Event) -> threading.Thread | None:
+    """Start WebSocket or HTTP listener based on EVA_JAVA_TELEMETRY_TRANSPORT."""
+    if not settings.live_telemetry_enabled:
+        return None
+    transport = (settings.java_telemetry_transport or "websocket").strip().lower()
+    if transport == "http":
+        return start_java_telemetry_poller_thread(stop)
+    from app.services.java_telemetry_ws_client import start_java_telemetry_ws_thread
+
+    return start_java_telemetry_ws_thread(stop)

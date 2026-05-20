@@ -8,7 +8,7 @@ This service exposes:
 - EVA telemetry/state endpoints backed by TSS `EVA.json`
 - LTV and LTV error endpoints backed by TSS `LTV.json` and `LTV_ERRORS.json`
 
-The server starts on `http://localhost:7070`.
+The server listens on `http://localhost:7070` by default (override with `JAVA_HTTP_PORT`).
 
 ## Configuration
 
@@ -16,10 +16,39 @@ The backend reads TSS over UDP using these environment variables:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
+| `JAVA_HTTP_PORT` | `7070` | HTTP port for Javalin (REST + WebSocket). Use another value if `7070` is already in use. |
 | `TSS_HOST` | `127.0.0.1` | Hostname or IP of the TSS server |
 | `TSS_UDP_PORT` | `14141` | UDP port for TSS |
 | `PORT` | `14141` | Fallback if `TSS_UDP_PORT` is unset |
 | `TSS_TIMEOUT_MS` | `1500` | UDP socket timeout in milliseconds |
+| `TELEMETRY_POLL_INTERVAL_MS` | `1000` | WebSocket live telemetry poll interval |
+
+**Startup host precedence:** first CLI argument, then `TSS_HOST`, then `127.0.0.1`.
+
+```bash
+# env only
+TSS_HOST=192.168.1.42 mvn compile exec:java
+
+# CLI overrides env
+mvn compile exec:java -Dexec.args="192.168.1.42"
+```
+
+### Live telemetry WebSocket
+
+`WS /telemetry/live` — server polls TSS once per interval and broadcasts JSON to all connected clients.
+
+```json
+{
+  "timestamp": 1716076800000,
+  "tssHost": "127.0.0.1",
+  "tssConnected": true,
+  "error": null,
+  "rover": { "...": "same shape as GET /telemetry" },
+  "lidar": [120.0, 250.0]
+}
+```
+
+When TSS is unreachable, `tssConnected` is `false`, `error` describes the failure, and `rover`/`lidar` contain safe defaults.
 
 Local files created by the backend:
 - `sample.db`: SQLite database for POIs and audio metadata

@@ -37,15 +37,13 @@ _PHRASE_RULES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"^my battery(\s+(level|status))?$", re.I), "battery status"),
     (re.compile(r"^battery level$", re.I), "battery status"),
     (re.compile(r"^battery status$", re.I), "battery status"),
-    # Procedures / navigation / diagnosis / warnings
+    # Procedures / diagnosis / warnings
     (re.compile(r"^start\s+uia(\s+procedure)?$", re.I), "start egress"),
     (re.compile(r"^start\s+egress\s+uia$", re.I), "start egress"),
     (re.compile(r"^start\s+erm$", re.I), "start erm"),
     (re.compile(r"^start\s+e\s*r\s*m$", re.I), "start erm"),
     (re.compile(r"^run diagnostics?$", re.I), "run diagnosis"),
     (re.compile(r"^run diagnostic$", re.I), "run diagnosis"),
-    (re.compile(r"^guide me\s+to\s+pr$", re.I), "guide me back"),
-    (re.compile(r"^guide me\s+to\s+p\s*r$", re.I), "guide me back"),
     (re.compile(r"^any alerts?$", re.I), "any warnings"),
 ]
 

@@ -1,7 +1,8 @@
 .map-stage {
   position: relative;
   box-sizing: border-box;
-  width: min(100%, calc((100dvh - 1.1rem - 80px - 0.6rem) * 3507 / 2220));
+  width: 100%;
+  max-width: 100%;
   aspect-ratio: 3507 / 2220;
   justify-self: center;
   align-self: start;
@@ -12,13 +13,33 @@
 .maplibre-stage,
 .map-bg {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0 4.5rem 3.2rem 0;
+  box-sizing: border-box;
 }
 
 .maplibre-stage {
   z-index: 0;
+}
+
+.map-stage--placing-poi .maplibre-stage {
+  cursor: crosshair;
+}
+
+.map-place-poi-hint {
+  position: absolute;
+  top: 0.65rem;
+  left: 50%;
+  z-index: 6;
+  transform: translateX(-50%);
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(22, 132, 255, 0.55);
+  background: rgba(6, 15, 28, 0.88);
+  color: #a8d4ff;
+  font: 600 0.82rem/1.2 "IBM Plex Sans", sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
 }
 
 .map-bg {
@@ -132,6 +153,44 @@
 
 .map-poi-marker.is-muted {
   opacity: 0.46;
+}
+
+/* User-dropped POI: breadcrumb dot + compact "POI" chip */
+.map-poi-marker--drop-poi {
+  gap: 0.2rem;
+  min-height: 0;
+  padding: 0.1rem 0.42rem 0.5rem;
+  transform: translateY(-0.12rem);
+  opacity: 1;
+}
+
+.map-poi-marker--drop-poi strong {
+  display: none;
+}
+
+.map-poi-marker--drop-poi span {
+  min-width: 1.35rem;
+  padding: 0.14rem 0.36rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+
+.map-poi-marker--drop-poi::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  bottom: -0.95rem;
+}
+
+.map-poi-marker--drop-poi::after {
+  width: 0.45rem;
+  height: 0.45rem;
+  bottom: -0.32rem;
+}
+
+.map-stage--placing-poi .map-mode-control,
+.map-stage--placing-poi .map-quick-tools {
+  pointer-events: none;
+  opacity: 0.55;
 }
 
 .map-poi-marker.is-selected {
@@ -272,67 +331,12 @@
   height: 1.78rem;
 }
 
-.map-mode-control,
 .map-quick-tools {
   position: absolute;
   z-index: 8;
-}
-
-.map-mode-control {
+  top: auto;
   right: 0.82rem;
-  top: 0.86rem;
-}
-
-.map-mode-control button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 7.35rem;
-  height: 3.4rem;
-  padding: 12px;
-  overflow: hidden;
-  border: 1px solid var(--Moon-Dust, #6b8bae);
-  border-radius: 12px;
-  background: #101926;
-  color: var(--pure-white, #fff);
-  font: 500 18px/normal "IBM Plex Sans", sans-serif;
-  cursor: pointer;
-}
-
-.map-mode-toggle {
-  position: relative;
-  flex: 0 0 auto;
-  width: 50px;
-  height: 27px;
-  border: 1px solid var(--Moon-Dust, #6b8bae);
-  border-radius: 39.087px;
-  background: #101926;
-}
-
-.map-mode-toggle-handle {
-  position: absolute;
-  top: 9.99%;
-  bottom: 10.01%;
-  left: 5.56%;
-  width: 21.8px;
-  border-radius: 50%;
-  background: #fff;
-  transition: transform 180ms ease;
-}
-
-.map-mode-control button.is-enabled .map-mode-toggle-handle {
-  transform: translateX(21.2px);
-}
-
-.map-mode-label {
-  white-space: nowrap;
-  font-feature-settings: "zero" 1;
-}
-
-.map-quick-tools {
-  top: 4.95rem;
-  right: 1.02rem;
+  bottom: 0.6rem;
   display: grid;
   gap: 0.45rem;
 }

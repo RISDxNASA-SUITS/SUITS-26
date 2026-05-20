@@ -1,17 +1,52 @@
 .dashboard-shell {
   min-height: 100vh;
   padding: 0.9rem 1.4rem;
+  position: relative;
 }
 
 .hub-status-banner {
-  margin: 0 0 0.5rem;
-  padding: 0.45rem 0.75rem;
-  border-radius: 0.5rem;
+  position: fixed;
+  top: 0.9rem;
+  right: 1.4rem;
+  z-index: 40;
+  max-width: min(42rem, calc(100vw - 2.8rem));
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
   border: 1px solid rgba(255, 140, 60, 0.55);
-  background: rgba(80, 32, 8, 0.45);
+  background: rgba(24, 12, 6, 0.92);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
   color: #ffc89a;
   font-size: 0.82rem;
   letter-spacing: 0.02em;
+}
+
+.hub-status-banner__text {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.hub-status-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.hub-status-banner__btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+}
+
+.hub-status-banner__btn--close {
+  background: transparent;
 }
 
 .dashboard-grid {
