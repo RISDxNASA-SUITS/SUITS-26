@@ -87,12 +87,16 @@ function mapCoordinateToTss(lng, lat) {
 }
 
 function zoneFeature(zone) {
+  const coordinates = zone.points
+    ? [...zone.points.map(([x, y]) => pctToMapCoordinate(x, y)), pctToMapCoordinate(...zone.points[0])]
+    : [...zone.vertices.map(({ x, y }) => tssToMapCoordinate(x, y)), tssToMapCoordinate(zone.vertices[0].x, zone.vertices[0].y)]
+
   return {
     type: "Feature",
-    properties: { level: zone.level },
+    properties: { level: zone.level ?? "warning", name: zone.label ?? zone.name ?? "" },
     geometry: {
       type: "Polygon",
-      coordinates: [[...zone.points.map(([x, y]) => pctToMapCoordinate(x, y)), pctToMapCoordinate(...zone.points[0])]],
+      coordinates: [coordinates],
     },
   }
 }
@@ -171,22 +175,37 @@ function makeTelemetryElement(point) {
 }
 
 function makeZoneLabel(zone) {
-  const cx = zone.points.reduce((sum, point) => sum + point[0], 0) / zone.points.length
-  const cy = zone.points.reduce((sum, point) => sum + point[1], 0) / zone.points.length
+  const points = zone.points
+    ? zone.points
+    : zone.vertices.map(({ x, y }) => tssToMapCoordinate(x, y))
+  const cx = points.reduce((sum, point) => sum + point[0], 0) / points.length
+  const cy = points.reduce((sum, point) => sum + point[1], 0) / points.length
   const el = document.createElement("div")
   el.className = `map-zone-label map-zone-label-${zone.level}`
   const warningIcon = zone.level === "danger" ? mapTriangleWarningIcon : mapCircleWarningIcon
-  el.innerHTML = `<img src="${warningIcon}" alt="" aria-hidden="true" /><span>${zone.label}</span>`
-  return { el, coordinate: pctToMapCoordinate(cx, cy) }
+  el.innerHTML = `<img src="${warningIcon}" alt="" aria-hidden="true" /><span>${zone.label ?? zone.name}</span>`
+  return { el, coordinate: zone.points ? pctToMapCoordinate(cx, cy) : [cx, cy] }
+}
+
+function makeHazardPreviewLabel(label, level = "warning") {
+  const el = document.createElement("div")
+  el.className = `map-hazard-preview-label map-hazard-preview-label-${level}`
+  el.textContent = label
+  return el
 }
 
 export function MapStage({
   pois = [],
   telemetryPoints = [],
   placingPoi = false,
+  placingHazard = false,
+  hazards = [],
+  hazardPreview = null,
   onPlacePoi,
+  onPlaceHazard,
   onEditPoi,
   onDeletePoi,
+  onEditHazard,
   poiPanel,
   addPoiPanel,
   addHazardPanel,
@@ -197,22 +216,30 @@ export function MapStage({
   const poiElementRefs = useRef(new Map())
   const poiMarkerRefs = useRef(new Map())
   const telemetryMarkerRefs = useRef(new Map())
+  const hazardMarkerRefs = useRef(new Map())
   const poiActionMarkerRef = useRef(null)
+  const hazardLabelMarkerRef = useRef(null)
   const selectedPoiIdRef = useRef(null)
   const baseZoomRef = useRef(null)
   const baseCameraRef = useRef(null)
   const is3dRef = useRef(false)
   const isReturningRef = useRef(false)
   const placingPoiRef = useRef(placingPoi)
+  const placingHazardRef = useRef(placingHazard)
   const onPlacePoiRef = useRef(onPlacePoi)
+  const onPlaceHazardRef = useRef(onPlaceHazard)
   const onEditPoiRef = useRef(onEditPoi)
   const onDeletePoiRef = useRef(onDeletePoi)
+  const onEditHazardRef = useRef(onEditHazard)
   const [is3d, setIs3d] = useState(false)
 
   placingPoiRef.current = placingPoi
+  placingHazardRef.current = placingHazard
   onPlacePoiRef.current = onPlacePoi
+  onPlaceHazardRef.current = onPlaceHazard
   onEditPoiRef.current = onEditPoi
   onDeletePoiRef.current = onDeletePoi
+  onEditHazardRef.current = onEditHazard
 
   const syncPoiMarkers = useCallback((map, points) => {
     const nextIds = new Set(points.map((poi) => poi.id))
@@ -308,6 +335,91 @@ export function MapStage({
         .addTo(map)
       telemetryMarkerRefs.current.set(point.id, marker)
     })
+  }, [])
+
+  const syncHazardZones = useCallback((map, zoneList) => {
+    if (!map.getSource("hazard-zones")) return
+    const source = map.getSource("hazard-zones")
+    source.setData({
+      type: "FeatureCollection",
+      features: [...hazardZones.map(zoneFeature), ...zoneList.map(zoneFeature)],
+    })
+  }, [])
+
+  const syncHazardMarkers = useCallback((map, zoneList) => {
+    const nextIds = new Set(zoneList.map((zone) => zone.id))
+
+    for (const [id, marker] of hazardMarkerRefs.current.entries()) {
+      if (!nextIds.has(id)) {
+        marker.remove()
+        hazardMarkerRefs.current.delete(id)
+      }
+    }
+
+    zoneList.forEach((zone) => {
+      const { el, coordinate } = makeZoneLabel(zone)
+
+      el.style.cursor = "pointer"
+      el.addEventListener("click", (event) => {
+        event.stopPropagation()
+        onEditHazardRef.current?.(zone.id)
+      })
+
+      const existing = hazardMarkerRefs.current.get(zone.id)
+      if (existing) {
+        existing.remove()
+        hazardMarkerRefs.current.delete(zone.id)
+      }
+
+      const marker = new maplibregl.Marker({ element: el, anchor: "center" })
+        .setLngLat(coordinate)
+        .addTo(map)
+      hazardMarkerRefs.current.set(zone.id, marker)
+    })
+  }, [])
+
+  const syncHazardPreview = useCallback((map, preview) => {
+    if (!map.getSource("hazard-preview")) return
+
+    const coordinates = preview?.vertices?.map(({ x, y }) => tssToMapCoordinate(x, y)) ?? []
+    const features = []
+
+    if (coordinates.length >= 2) {
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "LineString",
+          coordinates,
+        },
+      })
+    }
+    if (coordinates.length >= 3) {
+      features.push({
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: [[...coordinates, coordinates[0]]],
+        },
+      })
+    }
+
+    const source = map.getSource("hazard-preview")
+    source.setData({ type: "FeatureCollection", features })
+
+    hazardLabelMarkerRef.current?.remove()
+    hazardLabelMarkerRef.current = null
+    if (preview?.label && coordinates.length >= 3) {
+      const center = coordinates.reduce(
+        (acc, [lng, lat]) => [acc[0] + lng / coordinates.length, acc[1] + lat / coordinates.length],
+        [0, 0],
+      )
+      hazardLabelMarkerRef.current = new maplibregl.Marker({
+        element: makeHazardPreviewLabel(preview.label, preview.level),
+        anchor: "center",
+      })
+        .setLngLat(center)
+        .addTo(map)
+    }
   }, [])
 
   useEffect(() => {
@@ -440,6 +552,11 @@ export function MapStage({
       poiActionMarkerRef.current?.remove()
       poiActionMarkerRef.current = null
       selectedPoiIdRef.current = null
+      if (placingHazardRef.current) {
+        const { x, y } = mapCoordinateToTss(event.lngLat.lng, event.lngLat.lat)
+        onPlaceHazardRef.current?.({ x, y })
+        return
+      }
       if (!placingPoiRef.current) return
       const { x, y } = mapCoordinateToTss(event.lngLat.lng, event.lngLat.lat)
       onPlacePoiRef.current?.({ x, y })
@@ -460,7 +577,11 @@ export function MapStage({
       })
       map.addSource("hazard-zones", {
         type: "geojson",
-        data: { type: "FeatureCollection", features: hazardZones.map(zoneFeature) },
+        data: { type: "FeatureCollection", features: [...hazardZones.map(zoneFeature), ...hazards.map(zoneFeature)] },
+      })
+      map.addSource("hazard-preview", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
       })
 
       map.addLayer({
@@ -503,6 +624,27 @@ export function MapStage({
           "line-dasharray": [2, 1.2],
         },
       })
+      map.addLayer({
+        id: "hazard-preview-fill",
+        type: "fill",
+        source: "hazard-preview",
+        filter: ["==", "$type", "Polygon"],
+        paint: {
+          "fill-color": "rgba(77, 77, 255, 0.22)",
+          "fill-opacity": 0.35,
+        },
+      })
+      map.addLayer({
+        id: "hazard-preview-outline",
+        type: "line",
+        source: "hazard-preview",
+        filter: ["==", "$type", "LineString"],
+        paint: {
+          "line-color": "rgba(77, 77, 255, 0.9)",
+          "line-width": 2,
+          "line-dasharray": [2, 1.5],
+        },
+      })
 
       hazardZones.forEach((zone) => {
         const { el, coordinate } = makeZoneLabel(zone)
@@ -512,6 +654,9 @@ export function MapStage({
       mapReadyRef.current = true
       syncPoiMarkers(map, pois)
       syncTelemetryMarkers(map, telemetryPoints)
+      syncHazardZones(map, hazards)
+      syncHazardMarkers(map, hazards)
+      syncHazardPreview(map, hazardPreview)
     })
 
     return () => {
@@ -519,26 +664,30 @@ export function MapStage({
       selectedPoiElement?.classList.remove("is-selected")
       poiActionMarkerRef.current?.remove()
       poiActionMarkerRef.current = null
+      hazardLabelMarkerRef.current?.remove()
+      hazardLabelMarkerRef.current = null
       selectedPoiIdRef.current = null
       poiElementRefs.current.clear()
       poiMarkerRefs.current.clear()
       telemetryMarkerRefs.current.forEach((marker) => marker.remove())
       telemetryMarkerRefs.current.clear()
+      hazardMarkerRefs.current.forEach((marker) => marker.remove())
+      hazardMarkerRefs.current.clear()
       mapReadyRef.current = false
       resizeObserver.disconnect()
       map.remove()
       mapRef.current = null
     }
-  }, [syncPoiMarkers, syncTelemetryMarkers])
+  }, [syncHazardMarkers, syncHazardPreview, syncHazardZones, syncPoiMarkers, syncTelemetryMarkers])
 
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) return
     const canvas = mapRef.current.getCanvas()
-    canvas.style.cursor = placingPoi ? "crosshair" : ""
+    canvas.style.cursor = placingPoi || placingHazard ? "crosshair" : ""
     return () => {
       canvas.style.cursor = ""
     }
-  }, [placingPoi])
+  }, [placingPoi, placingHazard])
 
   useEffect(() => {
     if (!mapReadyRef.current || !mapRef.current) return
@@ -549,6 +698,21 @@ export function MapStage({
     if (!mapReadyRef.current || !mapRef.current) return
     syncTelemetryMarkers(mapRef.current, telemetryPoints)
   }, [syncTelemetryMarkers, telemetryPoints])
+
+  useEffect(() => {
+    if (!mapReadyRef.current || !mapRef.current) return
+    syncHazardZones(mapRef.current, hazards)
+  }, [hazards, syncHazardZones])
+
+  useEffect(() => {
+    if (!mapReadyRef.current || !mapRef.current) return
+    syncHazardMarkers(mapRef.current, hazards)
+  }, [hazards, syncHazardMarkers])
+
+  useEffect(() => {
+    if (!mapReadyRef.current || !mapRef.current) return
+    syncHazardPreview(mapRef.current, hazardPreview)
+  }, [hazardPreview, syncHazardPreview])
 
   function resetMap() {
     is3dRef.current = false
@@ -633,11 +797,13 @@ export function MapStage({
   }
 
   return (
-    <section className={`map-stage${placingPoi ? " map-stage--placing-poi" : ""}`}>
+    <section className={`map-stage${placingPoi || placingHazard ? " map-stage--placing-poi" : ""}`}>
       <div ref={mapNode} className="maplibre-stage" aria-label="Interactive TSS DUST rock yard map" />
-      {placingPoi && (
+      {(placingPoi || placingHazard) && (
         <div className="map-place-poi-hint" role="status">
-          Click anywhere on the map to place a POI
+          {placingHazard
+            ? "Click to add vertices. Click back on the first vertex to save the hazard."
+            : "Click anywhere on the map to place a POI"}
         </div>
       )}
       <div className="map-grid-overlay" aria-hidden="true" />

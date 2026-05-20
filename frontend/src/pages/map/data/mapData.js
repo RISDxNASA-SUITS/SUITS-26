@@ -138,29 +138,4 @@ export const mapRoutes = [
   },
 ]
 
-export const hazardZones = [
-  {
-    id: "shadow-zone",
-    label: "DARK REGION",
-    level: "warning",
-    points: [
-      [52.6, 38.0],
-      [66.7, 39.2],
-      [70.0, 53.0],
-      [64.8, 59.3],
-      [54.8, 54.0],
-    ],
-  },
-  {
-    id: "restricted-zone",
-    label: "DARK REGION",
-    level: "danger",
-    points: [
-      [68.5, 67.2],
-      [76.6, 67.2],
-      [81.6, 84.0],
-      [81.6, 100],
-      [62.5, 100],
-    ],
-  },
-]
+export const hazardZones = []

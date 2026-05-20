@@ -16,6 +16,12 @@ export function MapPage() {
   const [showPoiPanel, setShowPoiPanel] = useState(false)
   const [placingPoi, setPlacingPoi] = useState(false)
   const [showAddHazard, setShowAddHazard] = useState(false)
+  const [hazardLabel, setHazardLabel] = useState("")
+  const [hazardNotes, setHazardNotes] = useState("")
+  const [hazardLevel, setHazardLevel] = useState("warning")
+  const [hazardVertices, setHazardVertices] = useState([])
+  const [savedHazards, setSavedHazards] = useState([])
+  const [editingHazardId, setEditingHazardId] = useState(null)
   const [draftPoi, setDraftPoi] = useState(null)
   const [editingPoiId, setEditingPoiId] = useState(null)
   const [isSavingPoi, setIsSavingPoi] = useState(false)
@@ -23,12 +29,32 @@ export function MapPage() {
   const { telemetryPoints } = useMapLiveData()
 
   const nextPoiLabel = `POI ${savedPois.length + 1}`
+  const nextHazardLabel = `Hazard ${savedHazards.length + 1}`
 
   function handleAddPoiClick() {
     setShowPoiPanel(false)
     setShowAddHazard(false)
+    setHazardVertices([])
     setDraftPoi(null)
     setPlacingPoi((prev) => !prev)
+  }
+
+  function handleAddHazardClick() {
+    setShowPoiPanel(false)
+    setDraftPoi(null)
+    setEditingPoiId(null)
+    setPlacingPoi(false)
+    setShowAddHazard((prev) => {
+      const next = !prev
+      if (next) {
+        setHazardVertices([])
+        setHazardLabel(nextHazardLabel)
+        setHazardNotes("")
+        setHazardLevel("warning")
+        setEditingHazardId(null)
+      }
+      return next
+    })
   }
 
   function handlePoiMapPick({ x, y }) {
@@ -49,6 +75,79 @@ export function MapPage() {
     setDraftPoi(null)
     setEditingPoiId(null)
     setPlacingPoi(false)
+  }
+
+  function handleCancelHazard() {
+    setShowAddHazard(false)
+    setHazardVertices([])
+    setHazardLabel("")
+    setHazardNotes("")
+    setHazardLevel("warning")
+    setEditingHazardId(null)
+  }
+
+  function handleDeleteHazard() {
+    if (editingHazardId) {
+      setSavedHazards((hazards) => hazards.filter((hazard) => hazard.id !== editingHazardId))
+      handleCancelHazard()
+      return
+    }
+
+    setHazardVertices([])
+    setHazardNotes("")
+  }
+
+  function handlePlaceHazard({ x, y }) {
+    setHazardVertices((prev) => {
+      if (prev.length >= 3) {
+        const first = prev[0]
+        const closeDistance = Math.hypot(x - first.x, y - first.y)
+
+        if (closeDistance <= 25) {
+          const name = hazardLabel.trim() || nextHazardLabel
+          const hazardId = editingHazardId ?? `hazard-${Date.now()}`
+          setSavedHazards((hazards) => {
+            const nextHazard = {
+              id: hazardId,
+              name,
+              label: name,
+              notes: hazardNotes,
+              level: hazardLevel,
+              vertices: prev,
+            }
+            if (editingHazardId) {
+              return hazards.map((hazard) => (hazard.id === editingHazardId ? nextHazard : hazard))
+            }
+            return [...hazards, nextHazard]
+          })
+          setShowAddHazard(false)
+          setHazardVertices([])
+          setHazardLabel("")
+          setHazardNotes("")
+          setHazardLevel("warning")
+          setEditingHazardId(null)
+          return []
+        }
+      }
+
+      return [...prev, { x, y }]
+    })
+  }
+
+  function handleEditHazard(hazardId) {
+    const hazard = savedHazards.find((item) => item.id === hazardId)
+    if (!hazard) return
+
+    setShowPoiPanel(false)
+    setDraftPoi(null)
+    setEditingPoiId(null)
+    setPlacingPoi(false)
+    setEditingHazardId(hazardId)
+    setHazardLabel(hazard.label ?? hazard.name)
+    setHazardNotes(hazard.notes ?? "")
+    setHazardLevel(hazard.level ?? "warning")
+    setHazardVertices(hazard.vertices.map((vertex) => ({ ...vertex })))
+    setShowAddHazard(true)
   }
 
   async function handleSavePoi() {
@@ -160,16 +259,21 @@ export function MapPage() {
           showPoiPanel={showPoiPanel}
           onAddPoiClick={handleAddPoiClick}
           showAddPoi={placingPoi}
-          onAddHazardClick={() => setShowAddHazard(p => !p)}
+          onAddHazardClick={handleAddHazardClick}
           showAddHazard={showAddHazard}
         />
         <MapStage
           pois={savedPois}
           telemetryPoints={telemetryPoints}
           placingPoi={placingPoi}
+          placingHazard={showAddHazard}
+          hazards={savedHazards.filter((hazard) => hazard.id !== editingHazardId)}
+          hazardPreview={showAddHazard ? { label: hazardLabel.trim() || nextHazardLabel, level: hazardLevel, vertices: hazardVertices } : null}
           onPlacePoi={handlePoiMapPick}
+          onPlaceHazard={handlePlaceHazard}
           onEditPoi={handleEditPoi}
           onDeletePoi={handleDeletePoi}
+          onEditHazard={handleEditHazard}
           poiPanel={showPoiPanel ? <PoiPanel pois={savedPois} onClose={() => setShowPoiPanel(false)} /> : null}
           addPoiPanel={(placingPoi || draftPoi) ? (
             <AddPoiPanel
@@ -181,7 +285,19 @@ export function MapPage() {
               onSave={handleSavePoi}
             />
           ) : null}
-          addHazardPanel={showAddHazard ? <AddHazardPanel onClose={() => setShowAddHazard(false)} /> : null}
+          addHazardPanel={showAddHazard ? (
+            <AddHazardPanel
+              label={hazardLabel}
+              notes={hazardNotes}
+              level={hazardLevel}
+              isEditing={Boolean(editingHazardId)}
+              onLabelChange={setHazardLabel}
+              onNotesChange={setHazardNotes}
+              onLevelChange={setHazardLevel}
+              onDelete={handleDeleteHazard}
+              onClose={handleCancelHazard}
+            />
+          ) : null}
         />
       </section>
       {isExpanded && (

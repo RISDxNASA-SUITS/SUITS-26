@@ -48,12 +48,22 @@
 }
 
 .add-poi-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: #213757;
   border-radius: 20px;
   padding: 4px 8px;
   font: 600 14px/1 "IBM Plex Sans", sans-serif;
   color: #ffffff;
   font-feature-settings: "zero" 1;
+}
+
+.add-poi-tag img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 
 .add-poi-fields {
@@ -136,6 +146,17 @@ textarea.add-poi-input:focus {
   backdrop-filter: blur(50px);
 }
 
+.add-poi-btn-reset {
+  background: transparent;
+  border: 1px solid rgba(107, 139, 174, 0.55);
+  border-radius: 12px;
+  font: 500 18px/1 "IBM Plex Sans", sans-serif;
+  color: #b7c9dc;
+  cursor: pointer;
+  padding: 10px 20px;
+  height: 46px;
+}
+
 .add-poi-btn-done {
   background: #174c98;
   border: none;
@@ -149,6 +170,7 @@ textarea.add-poi-input:focus {
 }
 
 .add-poi-btn-cancel:disabled,
+.add-poi-btn-reset:disabled,
 .add-poi-btn-done:disabled,
 .add-poi-input:disabled,
 .add-poi-textarea:disabled {
