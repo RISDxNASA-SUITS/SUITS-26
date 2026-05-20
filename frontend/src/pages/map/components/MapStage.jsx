@@ -108,6 +108,13 @@ function offsetMapCoordinate(map, [lng, lat], offsetX, offsetY) {
   return map.unproject([projected.x + offsetX, projected.y + offsetY]).toArray()
 }
 
+function bearingDegrees(fromX, fromY, toX, toY) {
+  const dx = toX - fromX
+  const dy = toY - fromY
+  const radians = Math.atan2(dx, dy)
+  return (radians * 180) / Math.PI
+}
+
 function gridFeatures() {
   const features = []
 
@@ -313,8 +320,9 @@ export function MapStage({
     })
   }, [])
 
-  const syncTelemetryMarkers = useCallback((map, points) => {
+  const syncTelemetryMarkers = useCallback((map, points, routePois = []) => {
     const nextIds = new Set(points.map((point) => point.id))
+    const firstPathPoi = routePois[0]
 
     for (const [id, marker] of telemetryMarkerRefs.current.entries()) {
       if (!nextIds.has(id)) {
@@ -325,18 +333,21 @@ export function MapStage({
 
     points.forEach((point) => {
       const lngLat = tssToMapCoordinate(point.x, point.y)
+      const heading = point.id === "pr" && firstPathPoi
+        ? bearingDegrees(point.x, point.y, firstPathPoi.tssX, firstPathPoi.tssY)
+        : (point.heading || 0)
       const existing = telemetryMarkerRefs.current.get(point.id)
       if (existing) {
         existing.setLngLat(lngLat)
         const el = existing.getElement()
         if (el) {
-          el.style.setProperty("--heading", `${point.heading || 0}deg`)
+          el.style.setProperty("--heading", `${heading}deg`)
         }
         return
       }
 
       const marker = new maplibregl.Marker({
-        element: makeTelemetryElement(point),
+        element: makeTelemetryElement({ ...point, heading }),
         anchor: "bottom",
       })
         .setLngLat(lngLat)
@@ -719,7 +730,7 @@ export function MapStage({
 
       mapReadyRef.current = true
       syncPoiMarkers(map, pois)
-      syncTelemetryMarkers(map, telemetryPoints)
+      syncTelemetryMarkers(map, telemetryPoints, pathPois)
       syncPathRoute(map, pathPois, telemetryPoints)
       syncHazardZones(map, hazards)
       syncHazardMarkers(map, hazards)
@@ -763,8 +774,8 @@ export function MapStage({
 
   useEffect(() => {
     if (!mapReadyRef.current || !mapRef.current) return
-    syncTelemetryMarkers(mapRef.current, telemetryPoints)
-  }, [syncTelemetryMarkers, telemetryPoints])
+    syncTelemetryMarkers(mapRef.current, telemetryPoints, pathPois)
+  }, [pathPois, syncTelemetryMarkers, telemetryPoints])
 
   useEffect(() => {
     if (!mapReadyRef.current || !mapRef.current) return
