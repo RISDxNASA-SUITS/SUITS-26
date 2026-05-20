@@ -10,6 +10,8 @@ import SUITS2026Backend.TssIntegration.EvaTssComms
 import SUITS2026Backend.TssIntegration.LtvTssComms
 import SUITS2026Backend.TssIntegration.TelemetryBroadcaster
 import SUITS2026Backend.TssIntegration.TssConfig
+import SUITS2026Backend.MapData.MapController
+import SUITS2026Backend.db.DbFactory
 
 /** Application entry-point */
 object Server {
@@ -44,8 +46,12 @@ object Server {
         }
         app.options("/*") { ctx -> ctx.status(204) }
 
+        /* ---------- Database setup ---------- */
+        DbFactory.init()
+
         /* ---------- REST controllers ---------- */
         PoiController.setup(app)
+        MapController.setup(app)
         RoverTssController.setup(app)
         EvaTssComms.setup(app)
         LtvTssComms.setup(app)

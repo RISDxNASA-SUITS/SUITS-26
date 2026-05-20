@@ -91,6 +91,21 @@ export function MapPage() {
     return [...pois, ...locals]
   }, [pois, localPois])
 
+  useEffect(() => {
+    if (!pois.length) return
+    setLocalPois((prev) =>
+      prev.filter((local) => {
+        const persistedMatch = pois.some(
+          (poi) =>
+            String(poi.id) === String(local.pendingHubId) ||
+            poi.label === local.label ||
+            (poi.tssX === local.tssX && poi.tssY === local.tssY),
+        )
+        return !persistedMatch
+      }),
+    )
+  }, [pois])
+
   const handleDeletePoi = useCallback(
     async (poi) => {
       if (!poi.hubId) {
@@ -125,6 +140,7 @@ export function MapPage() {
       const optimistic = {
         id: localId,
         hubId: null,
+        pendingHubId: null,
         label: name,
         type: "POI",
         tssX: x,
@@ -138,8 +154,10 @@ export function MapPage() {
       setStatusMessage(`Placed ${name} at ${formatTssCoords(x, y)}`)
 
       try {
-        await createPoi({ name, x, y, tags: ["POI"], type: "poi" })
-        setLocalPois((prev) => prev.filter((p) => p.id !== localId))
+        const savedPoi = await createPoi({ name, x, y, tags: ["POI"], type: "poi" })
+        setLocalPois((prev) =>
+          prev.map((p) => (p.id === localId ? { ...p, pendingHubId: savedPoi.id } : p)),
+        )
         await refresh()
       } catch {
         setStatusMessage(

@@ -9,6 +9,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import io.javalin.http.Context
 import java.io.File
 import io.javalin.http.UploadedFile
+import SUITS2026Backend.db.DbFactory
 
 
 
@@ -88,7 +89,7 @@ data class PoiResponse(
 
 class PoiDbController {
     init {
-        Database.connect("jdbc:sqlite:sample.db", "org.sqlite.JDBC")
+        DbFactory.init()
         // Create tables only once during initialization
         transaction {
             SchemaUtils.create(Pois, Audios)
