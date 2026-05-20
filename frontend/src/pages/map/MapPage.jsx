@@ -6,7 +6,6 @@ import { PathOptExpanded } from "./components/PathOptExpanded"
 import { PoiPanel } from "./components/PoiPanel"
 import { AddPoiPanel } from "./components/AddPoiPanel"
 import { AddHazardPanel } from "./components/AddHazardPanel"
-import { HubStatusBanner } from "../dashboard/components/HubStatusBanner"
 import { useMapLiveData } from "../../hooks/useMapLiveData"
 import { deletePoi, setRoverBrakes, setRoverSteering, setRoverThrottle } from "../../api/hubClient"
 import { startRobustNavigation } from "../../api/navClient"
@@ -28,7 +27,7 @@ export function MapPage() {
   const [statusMessage, setStatusMessage] = useState(null)
   const manualIntervalRef = useRef(null)
 
-  const { pois, telemetryPoints, hubError, refresh } = useMapLiveData()
+  const { pois, telemetryPoints, refresh } = useMapLiveData()
 
   const sendManualControl = useCallback(async ({ throttle, steering, brake }) => {
     await Promise.all([
@@ -120,8 +119,7 @@ export function MapPage() {
         onManualStop={stopManualControl}
       />
       <section className="map-workspace" aria-label="Map workspace">
-        <HubStatusBanner error={hubError} />
-        {statusMessage && !hubError && (
+        {statusMessage && (
           <div className="map-status-banner" role="status">
             {statusMessage}
           </div>
