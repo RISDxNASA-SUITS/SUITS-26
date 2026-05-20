@@ -87,9 +87,9 @@ export function MapPage() {
 
     if (command === "reverse") {
       await Promise.all([
-        setRoverThrottle(0),
+        setRoverThrottle(-20),
         setRoverSteering(0),
-        setRoverBrakes(1),
+        setRoverBrakes(0),
       ])
     }
   }

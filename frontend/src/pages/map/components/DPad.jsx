@@ -25,7 +25,7 @@ export function DPad({ onCommandStart, onCommandEnd, onStop }) {
       <button type="button" className="dpad-btn dpad-right" aria-label="Turn right" {...bindCommand("right")}>
         <img src={controllerArrow} alt="" width={58} height={58} style={{ transform: "rotate(90deg)" }} />
       </button>
-      <button type="button" className="dpad-btn dpad-down" aria-label="Brake" {...bindCommand("reverse")}>
+      <button type="button" className="dpad-btn dpad-down" aria-label="Drive backward" {...bindCommand("reverse")}>
         <img src={controllerArrow} alt="" width={58} height={58} style={{ transform: "rotate(180deg)" }} />
       </button>
       <button type="button" className="dpad-btn dpad-left" aria-label="Turn left" {...bindCommand("left")}>

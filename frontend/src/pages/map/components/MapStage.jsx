@@ -40,6 +40,8 @@ const BASE_MAP_OPTIONS = { padding: 0, pitch: 0, bearing: 0 }
 const ZOOM_STEP = 1
 const ZOOM_DURATION = 120
 const RETURN_DURATION = 260
+const LTV_SEARCH_RADIUS_METERS = 1.77 * 310
+const LTV_SEARCH_RADIUS_ACTIVATION_DISTANCE_METERS = 30
 const GRID_COLUMNS = 30
 const GRID_ROWS = 19
 const SHARE_ICON_URL = "https://www.figma.com/api/mcp/asset/fbae0cb5-f112-446d-ab97-772406d27ee1"
@@ -66,6 +68,10 @@ function pctToMapCoordinate(x, y) {
 
 function clamp(n, min, max) {
   return Math.min(max, Math.max(min, n))
+}
+
+function distanceMeters(x1, y1, x2, y2) {
+  return Math.hypot(x2 - x1, y2 - y1)
 }
 
 function tssToMapCoordinate(x, y) {
@@ -96,6 +102,23 @@ function zoneFeature(zone) {
   return {
     type: "Feature",
     properties: { level: zone.level ?? "warning", name: zone.label ?? zone.name ?? "" },
+    geometry: {
+      type: "Polygon",
+      coordinates: [coordinates],
+    },
+  }
+}
+
+function makeTssCircleFeature(centerX, centerY, radiusMeters, segments = 96) {
+  const coordinates = Array.from({ length: segments + 1 }, (_, index) => {
+    const theta = (index / segments) * Math.PI * 2
+    const x = centerX + radiusMeters * Math.cos(theta)
+    const y = centerY + radiusMeters * Math.sin(theta)
+    return tssToMapCoordinate(x, y)
+  })
+
+  return {
+    type: "Feature",
     geometry: {
       type: "Polygon",
       coordinates: [coordinates],
@@ -485,6 +508,31 @@ export function MapStage({
     }
   }, [])
 
+  const syncLtvSearchRadius = useCallback((map, points) => {
+    if (!map.getSource("ltv-search-radius")) return
+
+    const prPoint = points.find((point) => point.id === "pr")
+    const ltvPoint = points.find((point) => point.id === "ltv")
+    const features = []
+
+    if (
+      prPoint &&
+      ltvPoint &&
+      Number.isFinite(prPoint.x) &&
+      Number.isFinite(prPoint.y) &&
+      Number.isFinite(ltvPoint.x) &&
+      Number.isFinite(ltvPoint.y)
+    ) {
+      const arrivalDistance = distanceMeters(prPoint.x, prPoint.y, ltvPoint.x, ltvPoint.y)
+      if (arrivalDistance <= LTV_SEARCH_RADIUS_ACTIVATION_DISTANCE_METERS) {
+        features.push(makeTssCircleFeature(ltvPoint.x, ltvPoint.y, LTV_SEARCH_RADIUS_METERS))
+      }
+    }
+
+    const source = map.getSource("ltv-search-radius")
+    source.setData({ type: "FeatureCollection", features })
+  }, [])
+
   useEffect(() => {
     if (!mapNode.current || mapRef.current) return
 
@@ -650,6 +698,10 @@ export function MapStage({
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
       })
+      map.addSource("ltv-search-radius", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
+      })
 
       map.addLayer({
         id: "map-grid-minor",
@@ -722,6 +774,25 @@ export function MapStage({
           "line-dasharray": [3, 2],
         },
       })
+      map.addLayer({
+        id: "ltv-search-radius-fill",
+        type: "fill",
+        source: "ltv-search-radius",
+        paint: {
+          "fill-color": "rgba(22, 132, 255, 0.12)",
+          "fill-opacity": 0.32,
+        },
+      })
+      map.addLayer({
+        id: "ltv-search-radius-outline",
+        type: "line",
+        source: "ltv-search-radius",
+        paint: {
+          "line-color": "rgba(74, 176, 255, 0.95)",
+          "line-width": 2,
+          "line-dasharray": [4, 2],
+        },
+      })
 
       hazardZones.forEach((zone) => {
         const { el, coordinate } = makeZoneLabel(zone)
@@ -732,6 +803,7 @@ export function MapStage({
       syncPoiMarkers(map, pois)
       syncTelemetryMarkers(map, telemetryPoints, pathPois)
       syncPathRoute(map, pathPois, telemetryPoints)
+      syncLtvSearchRadius(map, telemetryPoints)
       syncHazardZones(map, hazards)
       syncHazardMarkers(map, hazards)
       syncHazardPreview(map, hazardPreview)
@@ -756,7 +828,7 @@ export function MapStage({
       map.remove()
       mapRef.current = null
     }
-  }, [syncHazardMarkers, syncHazardPreview, syncHazardZones, syncPathRoute, syncPoiMarkers, syncTelemetryMarkers])
+  }, [syncHazardMarkers, syncHazardPreview, syncHazardZones, syncLtvSearchRadius, syncPathRoute, syncPoiMarkers, syncTelemetryMarkers])
 
   useEffect(() => {
     if (!mapRef.current || !mapReadyRef.current) return
@@ -781,6 +853,11 @@ export function MapStage({
     if (!mapReadyRef.current || !mapRef.current) return
     syncPathRoute(mapRef.current, pathPois, telemetryPoints)
   }, [pathPois, syncPathRoute, telemetryPoints])
+
+  useEffect(() => {
+    if (!mapReadyRef.current || !mapRef.current) return
+    syncLtvSearchRadius(mapRef.current, telemetryPoints)
+  }, [syncLtvSearchRadius, telemetryPoints])
 
   useEffect(() => {
     if (!mapReadyRef.current || !mapRef.current) return
