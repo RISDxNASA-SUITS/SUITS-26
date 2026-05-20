@@ -178,6 +178,20 @@ If using port `7070`, run:
 python3 test_live_telemetry_ws.py --host 127.0.0.1 --port 7070 --count 5
 ```
 
+### Mission WebSocket (EVA AIA)
+
+Full mission telemetry for the AIA backend:
+
+```text
+ws://localhost:7071/telemetry/mission/live
+```
+
+```bash
+python3 test_mission_telemetry_ws.py --host 127.0.0.1 --port 7071 --count 3
+```
+
+Set `EVA_JAVA_BACKEND_URL` to the same host/port (for example `http://localhost:7071`) when running the EVA API.
+
 Expected payload shape:
 
 ```json

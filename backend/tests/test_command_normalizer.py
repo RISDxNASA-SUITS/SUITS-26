@@ -39,8 +39,6 @@ from app.services.command_normalizer import normalize_eva_command
         ("start e r m", "start erm"),
         ("run diagnostic", "run diagnosis"),
         ("run diagnostics", "run diagnosis"),
-        ("guide me to p r", "guide me back"),
-        ("guide me to pr", "guide me back"),
         ("any alerts", "any warnings"),
         ("any alert", "any warnings"),
     ],

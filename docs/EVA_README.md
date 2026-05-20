@@ -356,7 +356,7 @@ ollama pull llama3.2
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `EVA_AGENTIC_ENABLED` | `false` | `true`: `POST /command` and ASR auto-route use the LLM router (`agent_navigate` / `agent_telemetry` / `agent_unknown`) instead of the phrase parser. |
+| `EVA_AGENTIC_ENABLED` | `false` | `true`: `POST /command` and ASR auto-route use the LLM router (`agent_telemetry` / `agent_unknown`) instead of the phrase parser. |
 | `EVA_OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama API base (no trailing slash). |
 | `EVA_OLLAMA_MODEL` | `llama3.2` | Model name for router, telemetry answers, and alert phrasing. |
 | `EVA_OLLAMA_TIMEOUT_S` | `120` | HTTP timeout for chat requests. |
@@ -460,7 +460,6 @@ With **demo mode** on (default), phase starts as **EGRESS** and telemetry is rea
 4. **ERM** — `start erm` or `start repair`.
 5. **Diagnosis** — `run diagnosis` (stub depends on telemetry / phase).
 6. **Warnings** — `any warnings` or watch **Alerts**.
-7. **Return route** — Set **EVA_NAV** or **INGRESS**, then `guide me back` or `return route`.
 
 Adjust **Telemetry** sliders and refresh to see **Alerts** change.
 

@@ -1,0 +1,91 @@
+# Optional: entire stack in Docker (TSS + Java + Python nav + Ollama + EVA).
+# Conflicts with a native TSS on UDP 14141 — stop ./server.exe first.
+#
+#   docker compose -f docker-compose.full-stack.yaml up -d --build
+
+services:
+  c-backend:
+    build:
+      context: ./TSS
+      dockerfile: Dockerfile
+    ports:
+      - "14141:14141"
+      - "14141:14141/udp"
+    stdin_open: true
+    tty: true
+
+  java-backend:
+    build:
+      context: ./JavaBackend
+      dockerfile: Dockerfile
+    environment:
+      TSS_HOST: c-backend
+      TSS_UDP_PORT: "14141"
+      TSS_TIMEOUT_MS: "3000"
+    ports:
+      - "7070:7070"
+    depends_on:
+      - c-backend
+
+  python-backend:
+    build:
+      context: ./PythonBackend
+      dockerfile: Dockerfile
+    command: ["poetry", "run", "python", "python_server/api.py"]
+    environment:
+      JAVA_BACKEND_URL: "http://java-backend:7070"
+      POETRY_VIRTUALENVS_CREATE: "false"
+    ports:
+      - "4000:4000"
+    depends_on:
+      - java-backend
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  ollama-init:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["ollama", "pull", "llama3.2"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
+  eva-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      EVA_JAVA_BACKEND_URL: "http://java-backend:7070"
+      EVA_JAVA_TELEMETRY_TRANSPORT: websocket
+      EVA_LIVE_TELEMETRY: "true"
+      EVA_DEMO_MODE: "false"
+      EVA_CORS_ORIGINS: '["http://localhost:5173","http://127.0.0.1:5173","http://localhost:8000"]'
+      EVA_ASR_ENABLED: "true"
+      EVA_AGENTIC_ENABLED: "true"
+      EVA_OLLAMA_BASE_URL: http://ollama:11434
+      EVA_OLLAMA_MODEL: llama3.2
+    depends_on:
+      java-backend:
+        condition: service_started
+      ollama:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+
+volumes:
+  ollama_data:
