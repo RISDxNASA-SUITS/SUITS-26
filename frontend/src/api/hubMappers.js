@@ -188,22 +188,18 @@ export function mapLtvBeacon(ltv, rover, prev = {}) {
   const signalBars = [...prevBars.slice(-(SIGNAL_BAR_COUNT - 1)), clamp(signalNorm, 0.05, 1)]
 
   const elapsed = (prev.locateElapsedSeconds ?? 0) + 1
-  const bottomGoalM = 500
-  const bottomDistanceM = clamp(Math.round(dist), 0, bottomGoalM)
+  const distanceMToBeacon = Math.round(dist)
 
   return {
     locateElapsedSeconds: elapsed,
     currentMode: "LOCATE",
-    distanceNearM: Math.round(dist),
-    distanceFarM: Math.max(Math.round(dist) + 30, 500),
+    distanceM: distanceMToBeacon,
     ltvLocationDetected: Number.isFinite(lx) && Number.isFinite(ly),
     trackingBeaconId: "LTV BEACON",
     centerLabel: "Rover",
     directionRowSub: "Bearing Radar",
     bearingDeg: bearing,
     formattedCoords: formatSiteCoords(lx, ly),
-    bottomDistanceM,
-    bottomGoalM,
     envRiskIndex: clamp(0.12 + (100 - signalPct) * 0.003, 0.08, 0.45),
     envRiskStable: signalPct > 40,
     signalPct,

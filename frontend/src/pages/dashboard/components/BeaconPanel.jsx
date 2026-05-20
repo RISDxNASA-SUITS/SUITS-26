@@ -47,16 +47,18 @@ export function BeaconPanel() {
       <div className="distance-row">
         <div className="distance-header">
           <p className="distance-label">Distance to Beacon</p>
-          <strong className="distance-current-val">~{beacon.bottomDistanceM} m</strong>
+          <strong className="distance-current-val">~{beacon.distanceM} m</strong>
         </div>
         <div className="distance-track-section">
-          <span className="distance-end-label distance-end-label--start">500 m</span>
+          <span className="distance-end-label distance-end-label--start">
+            {beacon.distanceTrackStartLabel ?? "--"}
+          </span>
           <div className="distance-track-wrapper">
             <div className="distance-track">
               <div className="distance-track-line" />
               <div
                 className="distance-track-fill"
-                style={{ width: `${((beacon.bottomGoalM - beacon.bottomDistanceM) / beacon.bottomGoalM * 100).toFixed(1)}%` }}
+                style={{ width: `${(beacon.distanceTrackPct ?? 0).toFixed(1)}%` }}
               />
               {[0, 20, 40, 60, 80, 100].map((pct, i) => (
                 <span key={i} className={`distance-dot${i === 0 || i === 5 ? " large" : ""}`} style={{ left: `${pct}%` }} />
@@ -67,10 +69,12 @@ export function BeaconPanel() {
               alt=""
               aria-hidden="true"
               className="distance-position-marker"
-              style={{ left: `${((beacon.bottomGoalM - beacon.bottomDistanceM) / beacon.bottomGoalM * 100).toFixed(1)}%` }}
+              style={{ left: `${(beacon.distanceTrackPct ?? 0).toFixed(1)}%` }}
             />
           </div>
-          <span className="distance-end-label distance-end-label--end">0 m</span>
+          <span className="distance-end-label distance-end-label--end">
+            {beacon.distanceTrackEndLabel ?? "0 m"}
+          </span>
         </div>
         <div className="distance-start-end-labels">
           <span className="distance-labels-start">Start</span>
@@ -112,8 +116,7 @@ export function BeaconPanel() {
             <span>LTV Location:</span> <strong>{beacon.ltvLocationDetected ? "Detected" : "Not Detected"}</strong>
           </p>
           <p className="radar-meta-line">
-            <span>Distance to Beacon:</span> <strong>{beacon.distanceNearM} m</strong>
-            <em> / {beacon.distanceFarM} m</em>
+            <span>Distance to Beacon:</span> <strong>{beacon.distanceM} m</strong>
           </p>
           <div className="radar" aria-hidden="true">
             <span className="radar-ring" />
