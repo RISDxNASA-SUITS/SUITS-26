@@ -25,10 +25,24 @@ object Server {
         /* ---------- Javalin instance ---------- */
         val app = Javalin.create { cfg ->
             cfg.jsonMapper(JavalinJackson(mapper, false))
+            // Allow browser REST calls from the Vite dev server (and other origins).
+            cfg.bundledPlugins.enableCors { cors ->
+                cors.addRule { it.anyHost() }
+            }
         }
 
         /* ---------- WebSocket handlers ---------- */
         TelemetryBroadcaster.setup(app, mapper)
+
+        /* ---------- CORS (browser REST from Vite / other origins) ---------- */
+        app.before { ctx ->
+            val origin = ctx.header("Origin")
+            ctx.header("Access-Control-Allow-Origin", origin ?: "*")
+            ctx.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            ctx.header("Access-Control-Allow-Headers", "Content-Type, Accept, Authorization")
+            ctx.header("Access-Control-Max-Age", "86400")
+        }
+        app.options("/*") { ctx -> ctx.status(204) }
 
         /* ---------- REST controllers ---------- */
         PoiController.setup(app)

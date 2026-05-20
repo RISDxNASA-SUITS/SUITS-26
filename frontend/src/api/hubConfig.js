@@ -35,3 +35,21 @@ export function getHubBase() {
   if (hubUrl) return hubUrl
   return "/hub"
 }
+
+/**
+ * Base URL for hub REST fetch(). In Vite dev, use same-origin /hub proxy to avoid CORS.
+ */
+export function getHubFetchBase() {
+  if (import.meta.env.DEV) {
+    return "/hub"
+  }
+  return getHubBase()
+}
+
+/** Base for WebSocket in dev (proxied) vs production (direct hub URL). */
+export function getHubWsBase(hubUrl) {
+  if (import.meta.env.DEV) {
+    return "/hub"
+  }
+  return hubUrl || getHubBase()
+}

@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/hub": {
-        target: "http://localhost:7070",
+        target: process.env.VITE_HUB_PROXY_TARGET ?? "http://localhost:7071",
         changeOrigin: true,
         ws: true,
         rewrite: (path) => path.replace(/^\/hub/, ""),

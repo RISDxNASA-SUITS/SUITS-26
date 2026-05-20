@@ -1,16 +1,54 @@
-import { setHubUrl } from "../../../api/hubConfig"
+import { useHubConfigContext } from "../../../context/HubConfigContext"
 
-export function HubStatusBanner({ error }) {
-  if (!error) return null
+export function HubStatusBanner({ restError }) {
+  const { isHubConfigured, wsStatus, wsError, liveTelemetry, clearHubUrl } = useHubConfigContext()
+
+  if (!isHubConfigured) {
+    if (!restError) return null
+    return (
+      <div className="hub-status-banner" role="status">
+        <span>{restError}</span>
+      </div>
+    )
+  }
+
+  const wsLabel =
+    wsStatus === "open"
+      ? "WebSocket connected"
+      : wsStatus === "connecting"
+        ? "WebSocket connecting…"
+        : wsStatus === "error"
+          ? `WebSocket error${wsError ? `: ${wsError}` : ""}`
+          : wsStatus === "closed"
+            ? "WebSocket disconnected (reconnecting…)"
+            : "WebSocket idle"
+
+  const tssOk = liveTelemetry?.tssConnected === true
+  const tssLabel =
+    wsStatus === "open"
+      ? tssOk
+        ? "TSS connected"
+        : `TSS offline${liveTelemetry?.error ? `: ${liveTelemetry.error}` : ""}`
+      : null
+
+  const showBanner =
+    restError || wsStatus !== "open" || (wsStatus === "open" && liveTelemetry && !tssOk)
+
+  if (!showBanner) return null
 
   const handleResetHub = () => {
-    setHubUrl("")
+    clearHubUrl()
     window.location.reload()
   }
 
   return (
     <div className="hub-status-banner" role="status">
-      <span>Hub offline — showing last values. ({error})</span>
+      <span>
+        {restError && <>{restError} · </>}
+        {wsLabel}
+        {tssLabel && <> · {tssLabel}</>}
+        {!restError && wsStatus !== "open" && " — showing last values"}
+      </span>
       <button
         type="button"
         onClick={handleResetHub}

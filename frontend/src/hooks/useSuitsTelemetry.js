@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react"
 import { suitsTelemetryMock, getSuitsDerived } from "../mock/suitsTelemetryMock"
 import { fetchEvTelemetry } from "../api/hubClient"
-import { isHubConfigured } from "../api/hubConfig"
 import { mapEvTelemetryToSlot } from "../api/hubMappers"
+import { useHubConfigContext } from "../context/HubConfigContext"
 
 const SLOT_TO_EV_ID = { suits1: 1, suits2: 2 }
 const POLL_MS = 1000
@@ -13,6 +13,7 @@ const POLL_MS = 1000
  * @param {'suits1' | 'suits2'} slot
  */
 export function useSuitsTelemetry(slot = "suits1") {
+  const { isHubConfigured, hubUrl } = useHubConfigContext()
   const fallback = suitsTelemetryMock.getSnapshot()[slot]
   const [data, setData] = useState(() => ({
     ...fallback,
@@ -23,8 +24,7 @@ export function useSuitsTelemetry(slot = "suits1") {
   const accRef = useRef({})
 
   useEffect(() => {
-    // Dont poll until hub configuration is ready
-    if (!isHubConfigured()) {
+    if (!isHubConfigured) {
       setHubConnected(false)
       setHubError("Hub not configured")
       return
@@ -59,7 +59,7 @@ export function useSuitsTelemetry(slot = "suits1") {
       cancelled = true
       clearInterval(timer)
     }
-  }, [slot])
+  }, [slot, isHubConfigured, hubUrl])
 
   return {
     suits: data.suits,

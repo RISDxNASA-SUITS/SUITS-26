@@ -4,20 +4,24 @@ import { CommsHistory } from "./components/CommsHistory"
 import { SuitsPanel } from "./components/SuitsPanel"
 import { HubStatusBanner } from "./components/HubStatusBanner"
 import { fetchEvTelemetry } from "../../api/hubClient"
-import { isHubConfigured } from "../../api/hubConfig"
+import { useHubConfigContext } from "../../context/HubConfigContext"
 import { useViewportScale } from "../../hooks/useViewportScale"
 import "./styles/index.css"
 
 export function DashboardPage() {
   const shellRef = useRef(null)
   const scale = useViewportScale(shellRef)
+  const { isHubConfigured, hubUrl, wsStatus } = useHubConfigContext()
   const [hubError, setHubError] = useState(null)
 
   useEffect(() => {
-    // Dont check until hub configuration is ready
-    if (!isHubConfigured()) {
+    if (!isHubConfigured) {
       setHubError("Hub not configured")
       return
+    }
+
+    if (wsStatus === "open") {
+      setHubError(null)
     }
 
     let cancelled = false
@@ -37,11 +41,11 @@ export function DashboardPage() {
       cancelled = true
       clearInterval(timer)
     }
-  }, [])
+  }, [isHubConfigured, hubUrl, wsStatus])
 
   return (
     <main className="dashboard-shell" ref={shellRef} style={{ zoom: scale }}>
-      <HubStatusBanner error={hubError} />
+      <HubStatusBanner restError={hubError} />
       <div className="dashboard-grid">
         <CommsHistory />
         <SuitsPanel label="Suits 1" panelClass="suits-panel" slot="suits1" />

@@ -1,14 +1,18 @@
-import { getHubBase, isHubConfigured } from "./hubConfig"
+import { getHubBase, getHubFetchBase, isHubConfigured } from "./hubConfig"
 
-/** WebSocket URL for live telemetry stream (e.g. /hub/telemetry/live in dev). */
-export function hubTelemetryLiveWsUrl() {
-  if (HUB_BASE.startsWith("http://") || HUB_BASE.startsWith("https://")) {
-    const url = new URL(`${HUB_BASE}/telemetry/live`)
+/**
+ * WebSocket URL for live telemetry stream.
+ * @param {string} [base] Hub HTTP base (saved URL or dev proxy path `/hub`).
+ */
+export function hubTelemetryLiveWsUrl(base = getHubBase()) {
+  if (base.startsWith("http://") || base.startsWith("https://")) {
+    const url = new URL(`${base}/telemetry/live`)
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
     return url.toString()
   }
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
-  return `${proto}//${window.location.host}${HUB_BASE}/telemetry/live`
+  const path = base.startsWith("/") ? base : `/${base}`
+  return `${proto}//${window.location.host}${path}/telemetry/live`
 }
 
 async function hubGet(path) {
@@ -16,7 +20,7 @@ async function hubGet(path) {
     throw new Error("Java Hub not configured")
   }
 
-  const hubBase = getHubBase()
+  const hubBase = getHubFetchBase()
   const res = await fetch(`${hubBase}${path}`, {
     headers: { Accept: "application/json" },
   })
@@ -50,7 +54,7 @@ export async function fetchPois() {
 }
 
 export function deletePoi(id) {
-  const hubBase = getHubBase()
+  const hubBase = getHubFetchBase()
   return fetch(`${hubBase}/poi/${id}`, { method: "DELETE" }).then((res) => {
     if (!res.ok) throw new Error(`Hub DELETE /poi/${id} failed (${res.status})`)
   })
@@ -69,7 +73,8 @@ export async function createPoi(poi) {
     audioId: null,
     radius: null,
   }
-  const res = await fetch(`${HUB_BASE}/poi`, {
+  const hubBase = getHubFetchBase()
+  const res = await fetch(`${hubBase}/poi`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(body),
