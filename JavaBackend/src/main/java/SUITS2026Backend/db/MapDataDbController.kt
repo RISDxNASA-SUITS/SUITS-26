@@ -6,9 +6,6 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 class MapDataDbController {
     init {
         ensureMapDbSchema()
-        transaction {
-            MapPoi.all().forEach { it.delete() }
-        }
     }
 
     fun getPois(): MapPoiListResponse {

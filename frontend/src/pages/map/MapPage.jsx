@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { TaskPanel } from "./components/TaskPanel"
 import { MissionBar } from "./components/MissionBar"
 import { MapStage } from "./components/MapStage"
@@ -6,7 +6,14 @@ import { PathOptExpanded } from "./components/PathOptExpanded"
 import { PoiPanel } from "./components/PoiPanel"
 import { AddPoiPanel } from "./components/AddPoiPanel"
 import { AddHazardPanel } from "./components/AddHazardPanel"
-import { createMapPoi, deleteMapPoi, updateMapPoi } from "../../api/hubClient"
+import {
+  createMapPoi,
+  deleteMapPoi,
+  updateMapPoi,
+  setRoverBrakes,
+  setRoverSteering,
+  setRoverThrottle,
+} from "../../api/hubClient"
 import { useMapLiveData } from "../../hooks/useMapLiveData"
 import "./styles/index.css"
 
@@ -28,6 +35,8 @@ export function MapPage() {
   const [savedPois, setSavedPois] = useState([])
   const [pathPoiIds, setPathPoiIds] = useState([])
   const { telemetryPoints } = useMapLiveData()
+  const manualCommandRef = useRef(null)
+  const manualTimerRef = useRef(null)
 
   const nextPoiLabel = `POI ${savedPois.length + 1}`
   const nextHazardLabel = `Hazard ${savedHazards.length + 1}`
@@ -39,6 +48,92 @@ export function MapPage() {
   useEffect(() => {
     setPathPoiIds((prev) => prev.filter((id) => savedPois.some((poi) => poi.id === id)))
   }, [savedPois])
+
+  useEffect(() => {
+    return () => {
+      if (manualTimerRef.current) {
+        window.clearInterval(manualTimerRef.current)
+      }
+    }
+  }, [])
+
+  async function applyManualCommand(command) {
+    if (command === "forward") {
+      await Promise.all([
+        setRoverBrakes(0),
+        setRoverSteering(0),
+        setRoverThrottle(35),
+      ])
+      return
+    }
+
+    if (command === "left") {
+      await Promise.all([
+        setRoverBrakes(0),
+        setRoverThrottle(20),
+        setRoverSteering(-1),
+      ])
+      return
+    }
+
+    if (command === "right") {
+      await Promise.all([
+        setRoverBrakes(0),
+        setRoverThrottle(20),
+        setRoverSteering(1),
+      ])
+      return
+    }
+
+    if (command === "reverse") {
+      await Promise.all([
+        setRoverThrottle(0),
+        setRoverSteering(0),
+        setRoverBrakes(1),
+      ])
+    }
+  }
+
+  async function sendManualNeutral() {
+    await Promise.all([
+      setRoverThrottle(0),
+      setRoverSteering(0),
+      setRoverBrakes(0),
+    ])
+  }
+
+  function clearManualTimer() {
+    if (manualTimerRef.current) {
+      window.clearInterval(manualTimerRef.current)
+      manualTimerRef.current = null
+    }
+  }
+
+  function handleManualCommandStart(command) {
+    manualCommandRef.current = command
+    clearManualTimer()
+    applyManualCommand(command).catch(console.error)
+    manualTimerRef.current = window.setInterval(() => {
+      if (!manualCommandRef.current) return
+      applyManualCommand(manualCommandRef.current).catch(console.error)
+    }, 250)
+  }
+
+  function handleManualCommandEnd() {
+    manualCommandRef.current = null
+    clearManualTimer()
+    sendManualNeutral().catch(console.error)
+  }
+
+  function handleManualStop() {
+    manualCommandRef.current = null
+    clearManualTimer()
+    Promise.all([
+      setRoverThrottle(0),
+      setRoverSteering(0),
+      setRoverBrakes(1),
+    ]).catch(console.error)
+  }
 
   function handleAddPoiClick() {
     setShowPoiPanel(false)
@@ -284,6 +379,9 @@ export function MapPage() {
         onToggleManual={setIsManual}
         isExpanded={isExpanded}
         onToggleExpand={() => setIsExpanded(true)}
+        onManualCommandStart={handleManualCommandStart}
+        onManualCommandEnd={handleManualCommandEnd}
+        onManualStop={handleManualStop}
       />
       <section className="map-workspace" aria-label="Map workspace">
         <MissionBar

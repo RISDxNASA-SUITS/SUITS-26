@@ -50,6 +50,6 @@ class MapPoi(id: EntityID<Int>) : IntEntity(id) {
 fun ensureMapDbSchema() {
     DbFactory.init()
     transaction {
-        SchemaUtils.create(MapPois)
+        SchemaUtils.createMissingTablesAndColumns(MapPois)
     }
 }
