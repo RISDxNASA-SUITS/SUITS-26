@@ -34,6 +34,19 @@ export function tssToMapCoordinate(x, y) {
   )
 }
 
+/** Map MapLibre [lng, lat] to TSS world coordinates (meters). */
+export function mapCoordinateToTss(lng, lat) {
+  const { xMin, xMax, yMin, yMax } = tssDustCoordinateRange
+  const xPct = ((lng - IMAGE_WEST) / (IMAGE_EAST - IMAGE_WEST)) * 100
+  const northY = latToMercatorY(IMAGE_NORTH)
+  const southY = latToMercatorY(IMAGE_SOUTH)
+  const mercY = latToMercatorY(lat)
+  const yPct = ((mercY - northY) / (southY - northY)) * 100
+  const x = xMin + (xPct / 100) * (xMax - xMin)
+  const y = yMin + ((100 - yPct) / 100) * (yMax - yMin)
+  return { x, y }
+}
+
 export function formatTssCoords(x, y) {
   return `${x.toFixed(1)}, ${y.toFixed(1)}`
 }
