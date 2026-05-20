@@ -96,6 +96,24 @@ export async function createPoi(poi) {
   return res.json()
 }
 
+export async function fetchHazards() {
+  const body = await hubGet("/map/hazard")
+  return body?.data ?? []
+}
+
+export async function createHazard(hazard) {
+  const hubBase = getHubFetchBase()
+  const res = await fetch(`${hubBase}/map/hazard`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(hazard),
+  })
+  if (!res.ok) {
+    throw new Error(`Hub POST /map/hazard failed (${res.status})`)
+  }
+  return res.json()
+}
+
 export function setRoverThrottle(throttleInput) {
   return hubPost("/throttle", { throttleInput })
 }

@@ -39,7 +39,6 @@ const ZOOM_DURATION = 120
 const RETURN_DURATION = 260
 const GRID_COLUMNS = 30
 const GRID_ROWS = 19
-const SHARE_ICON_URL = "https://www.figma.com/api/mcp/asset/fbae0cb5-f112-446d-ab97-772406d27ee1"
 
 function latToMercatorY(lat) {
   const rad = (lat * Math.PI) / 180
@@ -65,12 +64,16 @@ function clamp(n, min, max) {
 }
 
 function zoneFeature(zone) {
+  const coordinates = zone.points
+    ? [...zone.points.map(([x, y]) => pctToMapCoordinate(x, y)), pctToMapCoordinate(...zone.points[0])]
+    : [...zone.vertices.map(({ x, y }) => tssToMapCoordinate(x, y)), tssToMapCoordinate(zone.vertices[0].x, zone.vertices[0].y)]
+
   return {
     type: "Feature",
-    properties: { level: zone.level },
+    properties: { level: zone.level ?? "warning", name: zone.name ?? "" },
     geometry: {
       type: "Polygon",
-      coordinates: [[...zone.points.map(([x, y]) => pctToMapCoordinate(x, y)), pctToMapCoordinate(...zone.points[0])]],
+      coordinates: [coordinates],
     },
   }
 }
@@ -138,10 +141,6 @@ function makePoiActionMenu(poi, { onDelete, onNavigate }) {
       <img src="${trashIcon}" alt="" aria-hidden="true" />
       <span>Delete</span>
     </button>
-    <button type="button" class="map-poi-action-menu__item" data-action="share">
-      <img src="${SHARE_ICON_URL}" alt="" aria-hidden="true" />
-      <span>Share</span>
-    </button>
   `
   el.querySelector('[data-action="navigate"]')?.addEventListener("click", (e) => {
     e.stopPropagation()
@@ -174,6 +173,13 @@ function makeZoneLabel(zone) {
   return { el, coordinate: pctToMapCoordinate(cx, cy) }
 }
 
+function makeHazardPreviewLabel(label, level = "warning") {
+  const el = document.createElement("div")
+  el.className = `map-hazard-preview-label map-hazard-preview-label-${level}`
+  el.textContent = label
+  return el
+}
+
 function telemetryMarkerOffset(pointId) {
   if (pointId === "eva1") return [-8, -10]
   if (pointId === "eva2") return [8, 10]
@@ -185,7 +191,11 @@ export function MapStage({
   pois = [],
   telemetryPoints = [],
   placingPoi = false,
+  placingHazard = false,
+  hazards = [],
+  hazardPreview = null,
   onPlacePoi,
+  onPlaceHazard,
   onDeletePoi,
   onNavigateToPoi,
   poiPanel,
@@ -198,6 +208,7 @@ export function MapStage({
   const poiMarkerRefs = useRef(new Map())
   const telemetryMarkerRefs = useRef(new Map())
   const poiActionMarkerRef = useRef(null)
+  const hazardLabelMarkerRef = useRef(null)
   const selectedPoiIdRef = useRef(null)
   const hidePoiActionMenuRef = useRef(() => {})
   const baseZoomRef = useRef(null)
@@ -207,13 +218,17 @@ export function MapStage({
   const onDeletePoiRef = useRef(onDeletePoi)
   const onNavigateToPoiRef = useRef(onNavigateToPoi)
   const onPlacePoiRef = useRef(onPlacePoi)
+  const onPlaceHazardRef = useRef(onPlaceHazard)
   const placingPoiRef = useRef(placingPoi)
+  const placingHazardRef = useRef(placingHazard)
   const [is3d, setIs3d] = useState(false)
 
   onDeletePoiRef.current = onDeletePoi
   onNavigateToPoiRef.current = onNavigateToPoi
   onPlacePoiRef.current = onPlacePoi
+  onPlaceHazardRef.current = onPlaceHazard
   placingPoiRef.current = placingPoi
+  placingHazardRef.current = placingHazard
 
   const syncPoiMarkers = useCallback((map, poiList) => {
     const nextIds = new Set(poiList.map((p) => p.id))
@@ -270,6 +285,58 @@ export function MapStage({
         .addTo(map)
       poiMarkerRefs.current.set(poi.id, poiMarker)
     })
+  }, [])
+
+  const syncHazardPreview = useCallback((map, preview) => {
+    if (!map.getSource("hazard-preview")) return
+
+    const features = []
+    const getLngLat = (vertex) => {
+      if (vertex.lngLat) return vertex.lngLat
+      if (typeof vertex.x === "number" && typeof vertex.y === "number") {
+        return tssToMapCoordinate(vertex.x, vertex.y)
+      }
+      return null
+    }
+
+    const coordinates = preview?.vertices?.map(getLngLat).filter(Boolean)
+    if (coordinates?.length >= 2) {
+      const closedCoordinates = [...coordinates, coordinates[0]]
+      features.push({ type: "Feature", geometry: { type: "LineString", coordinates: closedCoordinates } })
+    }
+    if (coordinates?.length >= 3) {
+      const polygonCoordinates = [...coordinates, coordinates[0]]
+      features.push({ type: "Feature", geometry: { type: "Polygon", coordinates: [polygonCoordinates] } })
+    }
+
+    const source = map.getSource("hazard-preview")
+    source.setData({ type: "FeatureCollection", features })
+
+    hazardLabelMarkerRef.current?.remove()
+    hazardLabelMarkerRef.current = null
+    if (preview?.label && coordinates?.length >= 3) {
+      const centroid = coordinates.reduce(
+        (acc, [lng, lat]) => [acc[0] + lng, acc[1] + lat],
+        [0, 0],
+      )
+      const center = [centroid[0] / coordinates.length, centroid[1] / coordinates.length]
+      hazardLabelMarkerRef.current = new maplibregl.Marker({
+        element: makeHazardPreviewLabel(preview.label, preview.level),
+        anchor: "center",
+      })
+        .setLngLat(center)
+        .addTo(map)
+    }
+  }, [])
+
+  const syncHazardZones = useCallback((map, hazardList) => {
+    if (!map.getSource("hazard-zones")) return
+    const features = [
+      ...hazardZones.map(zoneFeature),
+      ...hazardList.map((hazard) => zoneFeature(hazard)),
+    ]
+    const source = map.getSource("hazard-zones")
+    source.setData({ type: "FeatureCollection", features })
   }, [])
 
   const syncTelemetryMarkers = useCallback((map, points) => {
@@ -439,6 +506,12 @@ export function MapStage({
     map.on("move", containView)
     map.on("moveend", containView)
     map.on("click", (event) => {
+      if (placingHazardRef.current) {
+        hidePoiActionMenu()
+        const { x, y } = mapCoordinateToTss(event.lngLat.lng, event.lngLat.lat)
+        onPlaceHazardRef.current?.({ x, y, lngLat: [event.lngLat.lng, event.lngLat.lat] })
+        return
+      }
       if (placingPoiRef.current) {
         hidePoiActionMenu()
         const { x, y } = mapCoordinateToTss(event.lngLat.lng, event.lngLat.lat)
@@ -463,7 +536,18 @@ export function MapStage({
       })
       map.addSource("hazard-zones", {
         type: "geojson",
-        data: { type: "FeatureCollection", features: hazardZones.map(zoneFeature) },
+        data: {
+          type: "FeatureCollection",
+          features: [
+            ...hazardZones.map(zoneFeature),
+            ...hazards.map((hazard) => zoneFeature(hazard)),
+          ],
+        },
+      })
+
+      map.addSource("hazard-preview", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
       })
 
       map.addLayer({
@@ -507,6 +591,47 @@ export function MapStage({
         },
       })
 
+      map.addLayer({
+        id: "hazard-labels",
+        type: "symbol",
+        source: "hazard-zones",
+        layout: {
+          "text-field": ["get", "name"],
+          "text-size": 14,
+          "text-anchor": "center",
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          "text-color": "#ffffff",
+          "text-halo-color": "rgba(0, 0, 0, 0.7)",
+          "text-halo-width": 2,
+        },
+        filter: ["has", "name"],
+      })
+
+      map.addLayer({
+        id: "hazard-preview-fill",
+        type: "fill",
+        source: "hazard-preview",
+        filter: ["==", "$type", "Polygon"],
+        paint: {
+          "fill-color": "rgba(77, 77, 255, 0.22)",
+          "fill-opacity": 0.35,
+        },
+      })
+      map.addLayer({
+        id: "hazard-preview-outline",
+        type: "line",
+        source: "hazard-preview",
+        filter: ["==", "$type", "LineString"],
+        paint: {
+          "line-color": "rgba(77, 77, 255, 0.9)",
+          "line-width": 2,
+          "line-dasharray": [2, 1.5],
+        },
+      })
+
       hazardZones.forEach((zone) => {
         const { el, coordinate } = makeZoneLabel(zone)
         new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat(coordinate).addTo(map)
@@ -515,12 +640,16 @@ export function MapStage({
       mapReadyRef.current = true
       syncPoiMarkers(map, pois)
       syncTelemetryMarkers(map, telemetryPoints)
+      syncHazardZones(map, hazards)
+      syncHazardPreview(map, hazardPreview)
     })
 
     return () => {
       hidePoiActionMenu()
       poiElementRefs.current.clear()
       poiMarkerRefs.current.clear()
+      hazardLabelMarkerRef.current?.remove()
+      hazardLabelMarkerRef.current = null
       telemetryMarkerRefs.current.forEach((m) => m.remove())
       telemetryMarkerRefs.current.clear()
       mapReadyRef.current = false
@@ -528,13 +657,25 @@ export function MapStage({
       map.remove()
       mapRef.current = null
     }
-  }, [syncPoiMarkers, syncTelemetryMarkers])
+  }, [syncPoiMarkers, syncTelemetryMarkers, syncHazardZones, syncHazardPreview])
 
   useEffect(() => {
     const map = mapRef.current
     if (!mapReadyRef.current || !map) return
     syncPoiMarkers(map, pois)
   }, [pois, syncPoiMarkers])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!mapReadyRef.current || !map) return
+    syncHazardZones(map, hazards)
+  }, [hazards, syncHazardZones])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!mapReadyRef.current || !map) return
+    syncHazardPreview(map, hazardPreview)
+  }, [hazardPreview, syncHazardPreview])
 
   useEffect(() => {
     const map = mapRef.current
@@ -546,7 +687,7 @@ export function MapStage({
     const map = mapRef.current
     if (!map || !mapReadyRef.current) return
 
-    if (placingPoi) {
+    if (placingPoi || placingHazard) {
       map.getCanvas().style.cursor = "crosshair"
       map.dragPan.disable()
     } else {
@@ -560,7 +701,7 @@ export function MapStage({
         map.dragPan.disable()
       }
     }
-  }, [placingPoi])
+  }, [placingPoi, placingHazard])
 
   function resetMap() {
     is3dRef.current = false
@@ -647,9 +788,9 @@ export function MapStage({
   return (
     <section className={`map-stage${placingPoi ? " map-stage--placing-poi" : ""}`}>
       <div ref={mapNode} className="maplibre-stage" aria-label="Interactive TSS DUST map" />
-      {placingPoi && (
+      {(placingPoi || placingHazard) && (
         <div className="map-place-poi-hint" role="status">
-          Click the map to drop a POI · Esc to cancel
+          {placingHazard ? "Click the map to add hazard vertices · Esc to cancel" : "Click the map to drop a POI · Esc to cancel"}
         </div>
       )}
       <div className="map-grid-overlay" aria-hidden="true" />

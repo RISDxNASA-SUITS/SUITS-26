@@ -26,7 +26,6 @@ export function AddPoiPanel({ onClose }) {
         </div>
 
         <div className="add-poi-actions">
-          <button type="button" className="add-poi-btn-share">Share</button>
           <button type="button" className="add-poi-btn-cancel" onClick={onClose}>Cancel</button>
           <button type="button" className="add-poi-btn-done">Done</button>
         </div>

@@ -8,8 +8,10 @@ import { AddHazardPanel } from "./components/AddHazardPanel"
 import { HubStatusBanner } from "../dashboard/components/HubStatusBanner"
 import { useMapLiveData } from "../../hooks/useMapLiveData"
 import {
+  createHazard,
   createPoi,
   deletePoi,
+  fetchHazards,
   setRoverBrakes,
   setRoverSteering,
   setRoverThrottle,
@@ -31,6 +33,11 @@ export function MapPage() {
   const [showPoiPanel, setShowPoiPanel] = useState(false)
   const [placingPoi, setPlacingPoi] = useState(false)
   const [showAddHazard, setShowAddHazard] = useState(false)
+  const [hazardLabel, setHazardLabel] = useState("")
+  const [hazardLevel, setHazardLevel] = useState("warning")
+  const [hazardVertices, setHazardVertices] = useState([])
+  const [savedHazard, setSavedHazard] = useState(null)
+  const [hazards, setHazards] = useState([])
   const [statusMessage, setStatusMessage] = useState(null)
   const [localPois, setLocalPois] = useState([])
   const manualIntervalRef = useRef(null)
@@ -133,6 +140,74 @@ export function MapPage() {
     }
   }, [])
 
+  const closeHazardMode = useCallback(() => {
+    setShowAddHazard(false)
+    setHazardVertices([])
+    setHazardLabel("")
+    setHazardLevel("warning")
+    setStatusMessage("Hazard placement cancelled")
+  }, [])
+
+  const resetHazardVertices = useCallback(() => {
+    setHazardVertices([])
+    setStatusMessage("Hazard vertices reset")
+  }, [])
+
+  const handlePlaceHazard = useCallback(
+    ({ x, y, lngLat }) => {
+      setHazardVertices((prev) => {
+        const next = [...prev, { x, y, lngLat }]
+        setStatusMessage(`Added vertex ${next.length} at ${formatTssCoords(x, y)}`)
+        return next
+      })
+    },
+    [formatTssCoords],
+  )
+
+  const refreshHazards = useCallback(async () => {
+    try {
+      const hazardRows = await fetchHazards()
+      setHazards(hazardRows ?? [])
+    } catch (err) {
+      console.error(err)
+      setStatusMessage("Unable to load backend hazards")
+    }
+  }, [])
+
+  const handleDoneHazard = useCallback(async () => {
+    if (hazardVertices.length < 3) {
+      setStatusMessage("Add at least 3 vertices to create a hazard")
+      return
+    }
+    const name = hazardLabel.trim() || `Hazard ${hazards.length + 1}`
+    const requestVertices = hazardVertices.map(({ x, y }) => ({ x, y }))
+    const saved = { name, level: hazardLevel, vertices: hazardVertices }
+    try {
+      await createHazard({ name, level: hazardLevel, vertices: requestVertices })
+      setHazards((prev) => [
+        ...prev.filter((hazard) => hazard.name !== name),
+        { name, level: hazardLevel, vertices: hazardVertices },
+      ])
+      setSavedHazard(saved)
+      setShowAddHazard(false)
+      setHazardVertices([])
+      setHazardLabel("")
+      setHazardLevel("warning")
+      setStatusMessage(`Hazard ${name} added`)
+      await refreshHazards()
+    } catch (err) {
+      console.error(err)
+      setStatusMessage("Failed to save hazard. Check that the Java backend is running.")
+    }
+  }, [hazardLabel, hazardLevel, hazardVertices, hazards.length, refreshHazards])
+
+  const hazardDisplayList = useMemo(() => {
+    if (savedHazard && !hazards.some((hazard) => hazard.name === savedHazard.name)) {
+      return [...hazards, savedHazard]
+    }
+    return hazards
+  }, [hazards, savedHazard])
+
   const handlePlacePoi = useCallback(
     async ({ x, y }) => {
       const name = `POI ${displayPois.length + 1}`
@@ -169,16 +244,32 @@ export function MapPage() {
   )
 
   useEffect(() => {
-    if (!placingPoi) return
+    if (!placingPoi && !showAddHazard) return
     const onKeyDown = (e) => {
       if (e.key === "Escape") {
-        setPlacingPoi(false)
-        setStatusMessage("POI placement cancelled")
+        if (placingPoi) {
+          setPlacingPoi(false)
+          setStatusMessage("POI placement cancelled")
+        }
+        if (showAddHazard) {
+          closeHazardMode()
+        }
       }
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [placingPoi])
+  }, [placingPoi, showAddHazard, closeHazardMode])
+
+  useEffect(() => {
+    void refreshHazards()
+  }, [refreshHazards])
+
+  useEffect(() => {
+    if (!savedHazard) return
+    if (hazards.some((hazard) => hazard.name === savedHazard.name)) {
+      setSavedHazard(null)
+    }
+  }, [hazards, savedHazard])
 
   useEffect(() => {
     if (!isManual) return undefined
@@ -210,6 +301,7 @@ export function MapPage() {
           onPoiClick={() => setShowPoiPanel((p) => !p)}
           showPoiPanel={showPoiPanel}
           onAddPoiClick={() => {
+            setShowAddHazard(false)
             setPlacingPoi((p) => {
               const next = !p
               if (next) setStatusMessage("Click the map to drop a POI (Esc to cancel)")
@@ -217,18 +309,45 @@ export function MapPage() {
             })
           }}
           placingPoi={placingPoi}
-          onAddHazardClick={() => setShowAddHazard((p) => !p)}
+          onAddHazardClick={() => {
+            setPlacingPoi(false)
+            setShowAddHazard((p) => {
+              const next = !p
+              if (next) {
+                setHazardVertices([])
+                setHazardLabel("")
+                setHazardLevel("warning")
+                setStatusMessage("Click the map to add hazard vertices (Esc to cancel)")
+              }
+              return next
+            })
+          }}
           showAddHazard={showAddHazard}
         />
         <MapStage
           pois={displayPois}
           telemetryPoints={telemetryPoints}
           placingPoi={placingPoi}
+          placingHazard={showAddHazard}
+          hazards={hazardDisplayList}
+          hazardPreview={showAddHazard ? { label: hazardLabel, level: hazardLevel, vertices: hazardVertices } : null}
           onPlacePoi={handlePlacePoi}
+          onPlaceHazard={handlePlaceHazard}
           onDeletePoi={handleDeletePoi}
           onNavigateToPoi={handleNavigateToPoi}
           poiPanel={showPoiPanel ? <PoiPanel pois={displayPois} onClose={() => setShowPoiPanel(false)} /> : null}
-          addHazardPanel={showAddHazard ? <AddHazardPanel onClose={() => setShowAddHazard(false)} /> : null}
+          addHazardPanel={showAddHazard ? (
+            <AddHazardPanel
+              label={hazardLabel}
+              level={hazardLevel}
+              onLabelChange={setHazardLabel}
+              onLevelChange={setHazardLevel}
+              vertices={hazardVertices}
+              onClose={closeHazardMode}
+              onReset={resetHazardVertices}
+              onDone={handleDoneHazard}
+            />
+          ) : null}
         />
       </section>
       {isExpanded && (
