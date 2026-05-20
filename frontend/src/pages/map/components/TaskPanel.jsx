@@ -356,7 +356,9 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
                     <ol className="upcoming-step-list">
                       {config.steps.map((label, j) => (
                         <li key={j} className="upcoming-step-item">
-                          <span className="upcoming-step-dot" />
+                          <span className="upcoming-step-rail" aria-hidden="true">
+                            <span className="upcoming-step-dot" />
+                          </span>
                           <span className="upcoming-step-text">{label}</span>
                         </li>
                       ))}
