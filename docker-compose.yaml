@@ -1,26 +1,14 @@
 ﻿services:
-  c-backend:
-    build:
-      context: ./TSS
-      dockerfile: Dockerfile
-    ports:
-      - "14141:14141"
-      - "14141:14141/udp"
-    stdin_open: true
-    tty: true
-
   java-backend:
     build:
       context: ./JavaBackend
       dockerfile: Dockerfile
     environment:
-      TSS_HOST: c-backend
-      TSS_UDP_PORT: "14141"
-      TSS_TIMEOUT_MS: "3000"
+      TSS_HOST: ${TSS_HOST:-127.0.0.1}
+      TSS_UDP_PORT: ${TSS_UDP_PORT:-14141}
+      TSS_TIMEOUT_MS: ${TSS_TIMEOUT_MS:-3000}
     ports:
       - "7070:7070"
-    depends_on:
-      - c-backend
 
   python-backend:
     build:

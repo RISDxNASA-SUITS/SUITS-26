@@ -1,6 +1,6 @@
 # How to run SUITS-26 (quick guide)
 
-Everything you need to run the **EVA voice assistant UI**, **live NASA telemetry (TSS + Java)**, and **optional Ollama** for natural-language commands.
+Everything you need to run the **EVA voice assistant UI**, **Java telemetry bridge**, and **optional Ollama** for natural-language commands.
 
 ---
 
@@ -10,7 +10,6 @@ Everything you need to run the **EVA voice assistant UI**, **live NASA telemetry
 |-----|------------|
 | http://localhost:5173 | **EVA mission console** (React) — commands, telemetry, procedures |
 | http://localhost:8000 | **EVA API** (FastAPI) — docs at `/docs` |
-| http://localhost:14141 | **TSS control panel** — NASA sim UI (EVA/rover/LTV toggles) |
 | http://localhost:7070 | **Java API** — bridge to TSS (not meant for humans) |
 | http://localhost:11434 | **Ollama** (when run via Docker Compose) |
 
@@ -20,7 +19,7 @@ Everything you need to run the **EVA voice assistant UI**, **live NASA telemetry
 
 | Tool | Why |
 |------|-----|
-| [Docker Desktop](https://docs.docker.com/get-docker/) | TSS, Java, Ollama, and optional EVA API |
+| [Docker Desktop](https://docs.docker.com/get-docker/) | Java, Ollama, and optional EVA API |
 | **Python 3.11+** | EVA backend (local dev only) |
 | **Node.js 20.19+ or 22.12+** | EVA frontend (`npm run dev`) |
 | **ffmpeg** | Voice input when EVA runs locally (`brew install ffmpeg`) |
@@ -28,12 +27,12 @@ Everything you need to run the **EVA voice assistant UI**, **live NASA telemetry
 
 ---
 
-## All-in-Docker (TSS + Java + Ollama + EVA API)
+## All-in-Docker (Java + Ollama + EVA API)
 
 From the **repo root** (first start downloads `llama3.2` — can take several minutes):
 
 ```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend ollama eva-backend
+docker compose -f docker-compose.yaml up -d --build java-backend ollama eva-backend
 ```
 
 `ollama-init` runs automatically, pulls `llama3.2`, then exits. EVA waits for that before starting.
@@ -65,12 +64,12 @@ Model weights persist in the `ollama_data` volume.
 
 ---
 
-## Step 1 — TSS + Java (Docker)
+## Step 1 — Java bridge (Docker)
 
 From the **repo root**:
 
 ```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend
+TSS_HOST=<telemetry-host> docker compose -f docker-compose.yaml up -d --build java-backend
 ```
 
 Check:
@@ -80,7 +79,7 @@ docker compose -f docker-compose.yaml ps
 curl -s http://localhost:7070/ev-telemetry/1 | head -c 120
 ```
 
-Open the **TSS web UI**: http://localhost:14141
+Open the Java backend: http://localhost:7070
 
 ---
 
@@ -108,7 +107,7 @@ curl -s http://localhost:8000/telemetry
 curl -s http://localhost:8000/telemetry/full | head -c 200
 ```
 
-If `/telemetry` returns **503**, TSS/Java is not reachable — fix Step 1 first.  
+If `/telemetry` returns **503**, the Java bridge or external telemetry source is not reachable — fix Step 1 first.  
 **`/telemetry/full`** returns the full Java mission bundle (EV1/EV2, DCU, errors, IMU, UIA, EVA state, rover, lidar, LTV) used by AIA for warnings and agentic Q&A.
 
 ---
@@ -202,7 +201,7 @@ If Ollama is down you’ll see errors like **`LLM_UNAVAILABLE`**, not `UNKNOWN_C
 **EVA API + Ollama in Docker** (instead of local `uvicorn` + host Ollama):
 
 ```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend ollama eva-backend
+docker compose -f docker-compose.yaml up -d --build java-backend ollama eva-backend
 ```
 
 Still run the React frontend locally (`npm run dev` on :5173).
@@ -225,8 +224,7 @@ docker compose -f docker-compose.yaml down
 
 | Problem | Fix |
 |---------|-----|
-| `GET /telemetry` → 503 | Start `c-backend` + `java-backend`; `curl http://localhost:7070/ev-telemetry/1` |
-| TSS UI won’t load | Open http://localhost:14141; `docker compose logs c-backend` |
+| `GET /telemetry` → 503 | Start `java-backend` and ensure the external telemetry source is reachable; `curl http://localhost:7070/ev-telemetry/1` |
 | CORS error in browser | Add your origin to `EVA_CORS_ORIGINS` in `backend/.env` |
 | Mic / voice fails | Install **ffmpeg**; first transcribe downloads Whisper (slow once) |
 | `UNKNOWN_COMMAND` | Use exact phrases, or enable agentic + Ollama |
@@ -237,8 +235,7 @@ docker compose -f docker-compose.yaml down
 
 ## Minimal checklist
 
-- [ ] Docker: `c-backend` + `java-backend` up
-- [ ] http://localhost:14141 loads (TSS)
+- [ ] Docker: `java-backend` up
 - [ ] `curl http://localhost:7070/ev-telemetry/1` returns JSON
 - [ ] EVA API on :8000, `/health` OK
 - [ ] Frontend on :5173

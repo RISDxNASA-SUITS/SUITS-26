@@ -1,16 +1,15 @@
 # SUITS-26
 
-RISD × NASA SUITS 2026 monorepo: the **official NASA telemetry stack** (TSS, Java, Python navigation) plus the team **EVA voice assistant** (FastAPI + React).
+RISD × NASA SUITS 2026 monorepo: the EVA voice assistant, Java telemetry bridge, Python navigation tools, and the React mission console.
 
-**New here?** See **[RUN.md](./RUN.md)** for a short setup guide (Docker, EVA UI, voice, Ollama).
+**New here?** See [RUN.md](./RUN.md) for a short setup guide.
 
 ## Project structure
 
 | Path | Purpose |
 |------|---------|
-| [TSS](./TSS/README.md) | Telemetry Stream Server (C) — rover, EVA, LTV data; DUST simulator UDP |
-| [JavaBackend](./JavaBackend/README.md) | Kotlin/Javalin REST API over TSS (POIs, rover control, EVA/LTV reads) |
-| [PythonBackend](./PythonBackend/README.md) | Flask robust rover navigation over the Java backend |
+| [JavaBackend](./JavaBackend/README.md) | Kotlin/Javalin REST API for telemetry and rover control |
+| [PythonBackend](./PythonBackend/README.md) | Flask robust rover navigation over the Java bridge |
 | [backend](./backend/README.md) | FastAPI EVA mission assistant (commands, procedures, ASR, optional Ollama) |
 | [frontend](./frontend/README.md) | React mission console for the EVA assistant |
 | [docs/EVA_README.md](./docs/EVA_README.md) | Full EVA assistant documentation (architecture, config, troubleshooting) |
@@ -20,11 +19,10 @@ RISD × NASA SUITS 2026 monorepo: the **official NASA telemetry stack** (TSS, Ja
 
 | Tool | Used for |
 |------|----------|
-| [Docker](https://docs.docker.com/get-docker/) + Docker Compose | TSS, Java, Ollama, Python nav, EVA API (recommended) |
+| [Docker](https://docs.docker.com/get-docker/) + Docker Compose | Java, Ollama, Python nav, EVA API (recommended) |
 | Python 3.11+ | EVA backend local dev |
 | Node.js 20.19+ or 22.12+ | EVA frontend (`npm`) |
-| ffmpeg | Browser voice input when EVA runs **locally** (`brew install ffmpeg`) |
-| GCC (macOS/Linux) | Building TSS natively outside Docker |
+| ffmpeg | Browser voice input when EVA runs locally (`brew install ffmpeg`) |
 
 **Ollama:** included in `docker-compose.yaml` for agentic commands (natural language). Install the [Ollama app](https://ollama.com) only if you run the EVA API on the host with `EVA_AGENTIC_ENABLED=true`.
 
@@ -32,7 +30,6 @@ RISD × NASA SUITS 2026 monorepo: the **official NASA telemetry stack** (TSS, Ja
 
 | Service | Port | URL |
 |---------|------|-----|
-| TSS (`c-backend`) | 14141 TCP/UDP | http://localhost:14141 |
 | Java backend | 7070 | http://localhost:7070 |
 | Python navigation | 4000 | http://localhost:4000 |
 | EVA API | 8000 | http://localhost:8000 |
@@ -45,9 +42,9 @@ In Compose, `eva-backend` calls `http://ollama:11434` on the Docker network. Ser
 
 ## Run everything (recommended)
 
-### Option A — Full stack in Docker (TSS + Java + Ollama + EVA API)
+### Option A — Full stack in Docker
 
-Starts TSS, Java, Ollama (with model pull), EVA API, and Python navigation. Live telemetry and **agentic** voice/text commands are enabled in the container env.
+Starts Java, Ollama (with model pull), EVA API, and Python navigation. Live telemetry and agentic voice/text commands are enabled in the container env.
 
 ```bash
 # From repo root — first start downloads llama3.2 via ollama-init
@@ -57,13 +54,13 @@ docker compose -f docker-compose.yaml up -d --build
 **EVA + telemetry + Ollama only** (no Python navigation):
 
 ```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend ollama eva-backend
+docker compose -f docker-compose.yaml up -d --build java-backend ollama eva-backend
 ```
 
-**TSS + Java only** (no EVA/Ollama — use with local `uvicorn`):
+**Java bridge with external telemetry source only** (no EVA/Ollama — use with local `uvicorn`):
 
 ```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend
+TSS_HOST=<telemetry-host> docker compose -f docker-compose.yaml up -d --build java-backend
 ```
 
 **Add rover navigation** (after Java is up):
@@ -76,10 +73,9 @@ Verify:
 
 ```bash
 docker compose -f docker-compose.yaml ps
-curl -s http://localhost:14141/ | head -3          # TSS web UI
 curl -s http://localhost:7070/ev-telemetry/1 | head -c 120
-curl -s http://localhost:11434/api/tags            # Ollama
-curl -s http://localhost:8000/agent/status         # agentic_enabled, java_backend_reachable
+curl -s http://localhost:11434/api/tags
+curl -s http://localhost:8000/agent/status
 ```
 
 View logs:
@@ -94,7 +90,7 @@ Stop and remove containers (keeps `ollama_data` volume):
 docker compose -f docker-compose.yaml down
 ```
 
-Then run the **frontend** locally (not in compose yet):
+Then run the frontend locally:
 
 ```bash
 cd frontend
@@ -102,17 +98,17 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173 — the UI talks to the EVA API at http://localhost:8000. Open http://localhost:14141 for the **TSS** control panel.
+Open http://localhost:5173 — the UI talks to the EVA API at http://localhost:8000.
 
 ### Option B — Local dev (best for frontend + EVA work)
 
-**Terminal 1 — TSS + Java (Docker)**
+**Terminal 1 — Java bridge (Docker)**
 
 ```bash
-docker compose -f docker-compose.yaml up -d --build c-backend java-backend
+TSS_HOST=<telemetry-host> docker compose -f docker-compose.yaml up -d --build java-backend
 ```
 
-Optional: run **only Ollama** in Docker while EVA stays local:
+Optional: run only Ollama in Docker while EVA stays local:
 
 ```bash
 docker compose -f docker-compose.yaml up -d ollama
@@ -121,7 +117,7 @@ docker compose -f docker-compose.yaml up -d ollama
 
 **Terminal 2 — EVA backend**
 
-Copy and edit [`backend/.env`](backend/.env). For agentic mode locally, install [Ollama](https://ollama.com), run `ollama pull llama3.2`, and set `EVA_AGENTIC_ENABLED=true` with `EVA_OLLAMA_BASE_URL=http://127.0.0.1:11434`.
+Copy and edit [backend/.env](backend/.env). For agentic mode locally, install [Ollama](https://ollama.com), run `ollama pull llama3.2`, and set `EVA_AGENTIC_ENABLED=true` with `EVA_OLLAMA_BASE_URL=http://127.0.0.1:11434`.
 
 ```bash
 cd backend
@@ -149,11 +145,11 @@ curl -s http://localhost:8000/health
 curl -s http://localhost:8000/telemetry
 ```
 
-If `GET /telemetry` returns **503**, TSS/Java is not up yet or `EVA_JAVA_BACKEND_URL` is wrong. See [Troubleshooting](#troubleshooting).
+If `GET /telemetry` returns 503, the Java bridge or the external telemetry source is unavailable, or `EVA_JAVA_BACKEND_URL` is wrong. See [Troubleshooting](#troubleshooting).
 
-### Option C — EVA API + UI only (mock telemetry, no TSS)
+### Option C — EVA API + UI only (mock telemetry)
 
-Useful for UI, commands, and procedures without the NASA stack.
+Useful for UI, commands, and procedures without the telemetry bridge.
 
 ```bash
 cd backend
@@ -173,30 +169,19 @@ Or set `EVA_LIVE_TELEMETRY=false` in `backend/.env`.
 docker compose -f docker-compose.yml up --build
 ```
 
-Open http://localhost:8000 (no separate Vite dev server). For live TSS data, still run TSS + Java via `docker-compose.yaml` and point the container at them (see [docs/EVA_README.md](./docs/EVA_README.md)).
+Open http://localhost:8000 (no separate Vite dev server). For live telemetry, still run the Java bridge via `docker-compose.yaml` and point the container at it (see [docs/EVA_README.md](./docs/EVA_README.md)).
 
 ---
 
 ## Run individual services
 
-### TSS (native, outside Docker)
-
-```bash
-cd TSS
-chmod +x ./build.bat
-./build.bat
-./server.exe
-```
-
-Open the URL printed at startup (e.g. `http://<your-ip>:14141`). See [TSS/README.md](./TSS/README.md) for DUST connection and UDP commands.
-
 ### Java backend (local Maven, if not using Docker)
 
-Requires TSS on `14141`:
+Requires an external telemetry source on `14141`:
 
 ```bash
 cd JavaBackend
-export TSS_HOST=127.0.0.1
+export TSS_HOST=<telemetry-host>
 export TSS_UDP_PORT=14141
 # Build/run per JavaBackend/README.md
 ```
@@ -229,13 +214,13 @@ curl -X POST http://localhost:4000/navigate_robust \
 ```text
                     ┌── Ollama :11434 (agentic commands + alerts)
                     │   HTTP /api/chat
-DUST / TSS ──UDP──► Java :7070 ──HTTP poll──► EVA API :8000 ──HTTP──► React :5173
-  :14141              :7070                      :8000              :5173
-  (TSS UI)                                    GET /telemetry
+Telemetry source ──UDP──► Java :7070 ──HTTP poll──► EVA API :8000 ──HTTP──► React :5173
+                     :7070                      :8000              :5173
+                                              GET /telemetry
                                               POST /command
 ```
 
-- **Telemetry:** EVA polls Java every second when `EVA_LIVE_TELEMETRY=true`. The frontend never calls Java or TSS directly.
+- **Telemetry:** EVA polls Java every second when `EVA_LIVE_TELEMETRY=true`. The frontend never calls Java directly.
 - **Commands:** With `EVA_AGENTIC_ENABLED=true`, EVA routes utterances through Ollama, then answers using the in-memory telemetry snapshot (and optional navigation demo).
 - **Voice:** Browser → `POST /asr/transcribe` (Whisper in EVA) → same command pipeline as text.
 
@@ -253,11 +238,11 @@ These are set in Compose (override in the `environment:` block if needed):
 | `EVA_OLLAMA_BASE_URL` | `http://ollama:11434` | Ollama on Docker network |
 | `EVA_AGENTIC_ENABLED` | `true` | Natural-language commands |
 | `EVA_OLLAMA_MODEL` | `llama3.2` | Pulled by `ollama-init` |
-| `EVA_LIVE_TELEMETRY` | `true` | Live suit data from Java/TSS |
+| `EVA_LIVE_TELEMETRY` | `true` | Live suit data from the Java bridge |
 
 ### Local (`backend/.env`)
 
-Copy and edit [`backend/.env`](backend/.env) when running `uvicorn` on the host:
+Copy and edit [backend/.env](backend/.env) when running `uvicorn` on the host:
 
 | Variable | Typical local value | Purpose |
 |----------|---------------------|---------|
@@ -302,8 +287,8 @@ npm run lint
 ## Troubleshooting
 
 | Symptom | What to check |
-|---------|----------------|
-| `GET /telemetry` → 503 | Java/TSS not running or wrong `EVA_JAVA_BACKEND_URL`. `curl http://localhost:7070/ev-telemetry/1`. |
+|---------|---------------|
+| `GET /telemetry` → 503 | Java bridge or external telemetry source not running, or wrong `EVA_JAVA_BACKEND_URL`. `curl http://localhost:7070/ev-telemetry/1`. |
 | `LLM_UNAVAILABLE` / language model errors | Ollama not up: `docker compose logs ollama ollama-init` or start host Ollama + `ollama pull llama3.2`. `curl http://localhost:11434/api/tags`. |
 | `UNKNOWN_COMMAND` | Rule-based mode (`EVA_AGENTIC_ENABLED=false`) — use exact phrases like `battery status`, not free-form questions. |
 | EVA container won’t start | Wait for `ollama-init` to finish pulling `llama3.2` (`docker compose ps -a`). |
@@ -311,9 +296,8 @@ npm run lint
 | Voice input fails (local EVA) | Install ffmpeg; first transcribe downloads Whisper weights. |
 | Voice input fails (Docker EVA) | ASR runs inside the image; check `docker compose logs eva-backend`. |
 | Telemetry stuck / mock values | `EVA_LIVE_TELEMETRY=false` or Java poll failing — `GET http://localhost:8000/agent/status`. |
-| TSS UI won’t load | Open http://localhost:14141; `docker compose logs c-backend`. |
 | Docker build fails on EVA image | Build from repo root; root `Dockerfile` required. |
-| Node / Vite errors | Node **20.19+** or **22.12+** (`frontend/package.json` engines). |
+| Node / Vite errors | Node 20.19+ or 22.12+ (`frontend/package.json` engines). |
 
 ---
 
@@ -321,14 +305,12 @@ npm run lint
 
 | File | Services |
 |------|----------|
-| [`docker-compose.yaml`](docker-compose.yaml) | `c-backend`, `java-backend`, `python-backend`, `ollama`, `ollama-init`, `eva-backend` |
-| [`docker-compose.yml`](docker-compose.yml) | Standalone EVA image (API + static UI; wire Ollama/TSS separately) |
+| [`docker-compose.yaml`](docker-compose.yaml) | `java-backend`, `python-backend`, `ollama`, `ollama-init`, `eva-backend` |
+| [`docker-compose.yml`](docker-compose.yml) | Standalone EVA image (API + static UI; wire Ollama/bridge separately) |
 
 | Volume | Purpose |
 |--------|---------|
 | `ollama_data` | Persisted Ollama models (`llama3.2`, etc.) |
-
-Prefer `TSS/` in this repo for team changes; `TSS2026/` may exist as a separate NASA upstream clone.
 
 ---
 
@@ -336,7 +318,6 @@ Prefer `TSS/` in this repo for team changes; `TSS2026/` may exist as a separate 
 
 - Java: [JavaBackend/README.md](./JavaBackend/README.md)
 - Python navigation: [PythonBackend/README.md](./PythonBackend/README.md)
-- TSS: [TSS/README.md](./TSS/README.md)
 - EVA: http://localhost:8000/docs (when API is running)
 
 ---
