@@ -56,12 +56,20 @@ export function useLtvBeacon() {
     if (!ltvRef.current) return
     const mapped = mapLtvBeacon(ltvRef.current, roverRef.current, accRef.current)
     const elapsedMs = Date.now() - startedAtRef.current
+    const roverX = Number(roverRef.current?.currentPosX)
+    const roverY = Number(roverRef.current?.currentPosY)
+    const hasValidRoverTelemetry =
+      liveTelemetry?.tssConnected === true &&
+      Number.isFinite(roverX) &&
+      Number.isFinite(roverY)
+    const canUseRoverBaseline =
+      hasValidRoverTelemetry && !(roverX === 0 && roverY === 0)
     const maxDistanceM = Math.max(
       Number(accRef.current.maxDistanceM) || 0,
-      Number(mapped.distanceM) || 0,
+      canUseRoverBaseline ? Number(mapped.distanceM) || 0 : 0,
     )
     const distanceTrackPct =
-      maxDistanceM > 0
+      canUseRoverBaseline && maxDistanceM > 0
         ? clamp(((maxDistanceM - mapped.distanceM) / maxDistanceM) * 100, 0, 100)
         : 0
     const withSession = {
@@ -70,7 +78,7 @@ export function useLtvBeacon() {
       formattedDuration: formatHms(elapsedMs),
       maxDistanceM,
       distanceTrackPct,
-      distanceTrackStartLabel: maxDistanceM > 0 ? `${Math.round(maxDistanceM)} m` : "--",
+      distanceTrackStartLabel: canUseRoverBaseline && maxDistanceM > 0 ? `${Math.round(maxDistanceM)} m` : "--",
       distanceTrackEndLabel: "0 m",
     }
     accRef.current = {
@@ -78,7 +86,7 @@ export function useLtvBeacon() {
       maxDistanceM: withSession.maxDistanceM,
     }
     setSnap(withSession)
-  }, [])
+  }, [liveTelemetry?.tssConnected])
 
   useEffect(() => {
     if (!isHubConfigured) {
