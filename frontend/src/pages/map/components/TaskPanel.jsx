@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import caretIcon from "../../../assets/map/Caret_Circle_Up.svg"
 import addPlusCircleIcon from "../../../assets/map/Add_Plus_Circle.png"
 import trashIcon from "../../../assets/map/Task_Trash.svg"
@@ -21,18 +21,51 @@ function capitalizeFirstLetter(value) {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
+function parseTaskDurationSeconds(value) {
+  const text = String(value ?? "").trim()
+  const match = text.match(/^(\d+(?:\.\d+)?)\s*min$/i)
+  if (!match) return null
+  return Number(match[1]) * 60
+}
+
+function formatRemainingTime(seconds) {
+  const totalSeconds = Math.max(0, Math.ceil(seconds))
+  const minutes = Math.floor(totalSeconds / 60)
+  const remainingSeconds = totalSeconds % 60
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function formatStepPercent(activeStep, stepCount) {
+  if (!stepCount) return "0%"
+  return `${Math.min(100, Math.floor((activeStep / stepCount) * 100))}%`
+}
+
 export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand, onManualCommandStart, onManualCommandEnd, onManualStop }) {
   const [activeTab, setActiveTab] = useState("tasks")
   const [currentTaskOpen, setCurrentTaskOpen] = useState(true)
   const [currentTaskKey, setCurrentTaskKey] = useState(INITIAL_TASK_KEY)
   const [activeStep, setActiveStep] = useState(0)
-  const [hasAdvanced, setHasAdvanced] = useState(false)
   const [upcomingOpen, setUpcomingOpen] = useState(true)
   const [expandedTasks, setExpandedTasks] = useState(new Set())
   const [upcomingTasks, setUpcomingTasks] = useState(INITIAL_UPCOMING)
   const [showAddTaskModal, setShowAddTaskModal] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
 
   const [dragIndex, setDragIndex] = useState(null)
+  const [taskStartedAt, setTaskStartedAt] = useState(() => Date.now())
+  const [stepStartedAt, setStepStartedAt] = useState(() => Date.now())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNow(Date.now())
+    }, 100)
+
+    return () => window.clearInterval(timer)
+  }, [])
 
   const toggleTaskExpand = (i) => {
     setExpandedTasks(prev => {
@@ -60,12 +93,28 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
   const task = TASK_CONFIGS[currentTaskKey]
   const currentTaskIndex = TASK_ORDER.indexOf(currentTaskKey) + 1
   const totalTasks = TASK_ORDER.length + upcomingTasks.length
+  const stepPercent = formatStepPercent(activeStep, task?.steps.length ?? 0)
+  const taskDurationSeconds = task ? parseTaskDurationSeconds(task.remainingTime) : null
+  const stepDurationSeconds = taskDurationSeconds && task.steps.length > 0 ? taskDurationSeconds / task.steps.length : null
+  const remainingTaskSeconds = taskDurationSeconds == null ? null : Math.max(0, taskDurationSeconds - (now - taskStartedAt) / 1000)
+  const currentStepProgress = stepDurationSeconds == null ? 0 : clamp((now - stepStartedAt) / (stepDurationSeconds * 1000), 0, 1)
+
+  const startTask = (title, nextActiveStep) => {
+    const startedAt = Date.now()
+    setTaskStartedAt(startedAt)
+    setStepStartedAt(startedAt)
+    setNow(startedAt)
+    setCurrentTaskKey(title)
+    setActiveStep(nextActiveStep)
+  }
 
   const advanceStep = () => {
     const lastStepIndex = task.steps.length - 1
 
     if (activeStep < lastStepIndex) {
-      setHasAdvanced(true)
+      const startedAt = Date.now()
+      setStepStartedAt(startedAt)
+      setNow(startedAt)
       setActiveStep(s => s + 1)
       return
     }
@@ -76,9 +125,7 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
     const nextConfig = TASK_CONFIGS[next.title]
     setUpcomingTasks(prev => prev.slice(1))
     // Handle both predefined tasks (with config) and custom tasks (without config)
-    setCurrentTaskKey(next.title)
-    setActiveStep(nextConfig?.defaultActiveStep ?? 0)
-    setHasAdvanced(nextConfig?.defaultHasAdvanced ?? false)
+    startTask(next.title, nextConfig?.defaultActiveStep ?? 0)
   }
 
   const skipTask = () => {
@@ -87,9 +134,7 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
     const nextConfig = TASK_CONFIGS[next.title]
     setUpcomingTasks(prev => prev.slice(1))
     // Handle both predefined tasks (with config) and custom tasks (without config)
-    setCurrentTaskKey(next.title)
-    setActiveStep(nextConfig?.defaultActiveStep ?? 0)
-    setHasAdvanced(nextConfig?.defaultHasAdvanced ?? false)
+    startTask(next.title, nextConfig?.defaultActiveStep ?? 0)
   }
 
   const addTask = () => {
@@ -137,11 +182,11 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
             {task ? (
               <>
                 <div className="task-meta">
-                  <span>Remaining time: {task.remainingTime}</span>
+                  <span>Remaining time: {remainingTaskSeconds == null ? task.remainingTime : formatRemainingTime(remainingTaskSeconds)}</span>
                   <span>|</span>
                   <span>{task.steps.length} steps</span>
                   <span>|</span>
-                  <span>{task.pct}</span>
+                  <span>{stepPercent}</span>
                 </div>
 
                 <div className="task-progress">
@@ -149,9 +194,10 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
                     <div className="progress-blocks" aria-hidden="true" style={{ gridTemplateColumns: task.gridCols }}>
                       {task.steps.map((_, i) => {
                         let cls = ""
-                        if (i === activeStep) cls = `active${hasAdvanced ? " active--advanced" : ""}`
+                        if (i === activeStep) cls = "active"
                         else if (i < activeStep) cls = "done"
-                        return <span key={i} className={cls} />
+                        const style = i === activeStep ? { "--step-progress": `${currentStepProgress * 100}%` } : undefined
+                        return <span key={i} className={cls} style={style} />
                       })}
                     </div>
                   </div>

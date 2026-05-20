@@ -375,17 +375,13 @@
 .progress-blocks .active::after {
   content: "";
   position: absolute;
-  left: 50%;
+  left: var(--step-progress, 0%);
   top: -0.4rem;
   bottom: -0.4rem;
   width: 2px;
   transform: translateX(-50%);
   background: #ffffff;
   border-radius: 1px;
-}
-
-.progress-blocks .active--advanced::after {
-  left: 0;
 }
 
 .task-progress-meta {
