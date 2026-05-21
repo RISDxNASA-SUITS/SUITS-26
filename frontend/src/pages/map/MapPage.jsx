@@ -6,6 +6,7 @@ import { PathOptExpanded } from "./components/PathOptExpanded"
 import { PoiPanel } from "./components/PoiPanel"
 import { AddPoiPanel } from "./components/AddPoiPanel"
 import { AddHazardPanel } from "./components/AddHazardPanel"
+import { startRobustNavigation } from "../../api/navClient"
 import {
   createMapPoi,
   deleteMapPoi,
@@ -16,6 +17,12 @@ import {
 } from "../../api/hubClient"
 import { useMapLiveData } from "../../hooks/useMapLiveData"
 import "./styles/index.css"
+
+const POI_ARRIVAL_THRESHOLD_METERS = 25
+
+function distanceMeters(x1, y1, x2, y2) {
+  return Math.hypot(x2 - x1, y2 - y1)
+}
 
 export function MapPage() {
   const [isManual, setIsManual] = useState(false)
@@ -34,6 +41,8 @@ export function MapPage() {
   const [isSavingPoi, setIsSavingPoi] = useState(false)
   const [savedPois, setSavedPois] = useState([])
   const [pathPoiIds, setPathPoiIds] = useState([])
+  const [recallPoiIndex, setRecallPoiIndex] = useState(0)
+  const [recallStarted, setRecallStarted] = useState(false)
   const { telemetryPoints } = useMapLiveData()
   const manualCommandRef = useRef(null)
   const manualTimerRef = useRef(null)
@@ -48,6 +57,16 @@ export function MapPage() {
   useEffect(() => {
     setPathPoiIds((prev) => prev.filter((id) => savedPois.some((poi) => poi.id === id)))
   }, [savedPois])
+
+  useEffect(() => {
+    setRecallPoiIndex((prev) => {
+      if (!pathPois.length) return 0
+      return Math.min(prev, pathPois.length - 1)
+    })
+    if (!pathPois.length) {
+      setRecallStarted(false)
+    }
+  }, [pathPois])
 
   useEffect(() => {
     return () => {
@@ -350,11 +369,44 @@ export function MapPage() {
   }
 
   function handleDeletePathPoi(poiId) {
+    setRecallStarted(false)
+    setRecallPoiIndex(0)
     setPathPoiIds((prev) => prev.filter((id) => id !== poiId))
   }
 
   function handleAddPoiToPath(poiId) {
+    setRecallStarted(false)
+    setRecallPoiIndex(0)
     setPathPoiIds((prev) => (prev.includes(poiId) ? prev : [...prev, poiId]))
+  }
+
+  async function handleRecallPr() {
+    if (!pathPois.length) return
+
+    const prPoint = telemetryPoints.find((point) => point.id === "pr")
+    let nextIndex = recallPoiIndex
+    const activePoi = pathPois[nextIndex]
+
+    if (
+      prPoint &&
+      activePoi &&
+      Number.isFinite(prPoint.x) &&
+      Number.isFinite(prPoint.y) &&
+      Number.isFinite(activePoi.tssX) &&
+      Number.isFinite(activePoi.tssY)
+    ) {
+      const arrivalDistance = distanceMeters(prPoint.x, prPoint.y, activePoi.tssX, activePoi.tssY)
+      if (arrivalDistance <= POI_ARRIVAL_THRESHOLD_METERS && nextIndex < pathPois.length - 1) {
+        nextIndex += 1
+      }
+    }
+
+    const targetPoi = pathPois[nextIndex]
+    if (!targetPoi) return
+
+    await startRobustNavigation(targetPoi.tssX, targetPoi.tssY)
+    setRecallStarted(true)
+    setRecallPoiIndex(nextIndex)
   }
 
   function handleReorderPathPoi(draggedPoiId, targetPoiId) {
@@ -370,6 +422,8 @@ export function MapPage() {
       next.splice(toIndex, 0, moved)
       return next
     })
+    setRecallStarted(false)
+    setRecallPoiIndex(0)
   }
 
   return (
@@ -437,10 +491,13 @@ export function MapPage() {
           onToggleManual={setIsManual}
           onCollapse={() => setIsExpanded(false)}
           pois={pathPois}
+          activePoiIndex={recallPoiIndex}
+          recallStarted={recallStarted}
           availablePois={availablePathPois}
           onAddPoi={handleAddPoiToPath}
           onDeletePoi={handleDeletePathPoi}
           onReorderPoi={handleReorderPathPoi}
+          onRecallPr={handleRecallPr}
         />
       )}
     </main>

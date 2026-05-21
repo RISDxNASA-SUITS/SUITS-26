@@ -29,13 +29,29 @@ function buildWaypoints(pois) {
   }))
 }
 
-export function PathOptExpanded({ isManual, onToggleManual, onCollapse, pois = [], availablePois = [], onAddPoi, onDeletePoi, onReorderPoi }) {
+export function PathOptExpanded({
+  isManual,
+  onToggleManual,
+  onCollapse,
+  pois = [],
+  availablePois = [],
+  onAddPoi,
+  onDeletePoi,
+  onReorderPoi,
+  onRecallPr,
+  activePoiIndex = 0,
+  recallStarted = false,
+}) {
   const [selectedPois, setSelectedPois] = useState(new Set())
   const [showPoiPicker, setShowPoiPicker] = useState(false)
   const [draggedPoiId, setDraggedPoiId] = useState(null)
+  const [isRecalling, setIsRecalling] = useState(false)
   const waypoints = buildWaypoints(pois)
-  const currentWaypoint = waypoints[0]
-  const progressPct = 0
+  const clampedActivePoiIndex = pois.length ? Math.min(activePoiIndex, pois.length - 1) : 0
+  const currentWaypoint = recallStarted && pois.length ? waypoints[clampedActivePoiIndex + 1] : waypoints[0]
+  const progressPct = recallStarted && pois.length ? Math.round(((clampedActivePoiIndex + 1) / pois.length) * 100) : 0
+  const routeStartProgress = waypoints[0]?.progress ?? 18
+  const doneWidth = Math.max(0, (currentWaypoint?.progress ?? routeStartProgress) - routeStartProgress)
 
   const togglePoi = (id) => {
     setSelectedPois(prev => {
@@ -61,6 +77,18 @@ export function PathOptExpanded({ isManual, onToggleManual, onCollapse, pois = [
     if (!draggedPoiId || draggedPoiId === targetPoiId) return
     onReorderPoi?.(draggedPoiId, targetPoiId)
     setDraggedPoiId(null)
+  }
+
+  const handleRecallPr = async () => {
+    if (!pois.length || !onRecallPr || isRecalling) return
+    try {
+      setIsRecalling(true)
+      await onRecallPr()
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setIsRecalling(false)
+    }
   }
 
   const content = (
@@ -102,6 +130,13 @@ export function PathOptExpanded({ isManual, onToggleManual, onCollapse, pois = [
           ))}
         </div>
         <div className="route-track">
+          <div
+            className="route-line-done"
+            style={{
+              left: `${routeStartProgress}%`,
+              width: `${doneWidth}%`,
+            }}
+          />
           {waypoints.map((wp, i) => (
             <div
               key={i}
@@ -114,7 +149,7 @@ export function PathOptExpanded({ isManual, onToggleManual, onCollapse, pois = [
               onDrop={() => wp.kind === "poi" && handleDrop(wp.id)}
             >
               <span
-                className={`route-node ${wp.done ? "route-node-done" : "route-node-poi"}`}
+                className={`route-node ${(wp.kind === "start" || (recallStarted && wp.kind === "poi" && (wp.poiIndex - 1) < clampedActivePoiIndex)) ? "route-node-done" : "route-node-poi"}`}
                 style={{
                   ...(wp.kind === "poi" && selectedPois.has(wp.id) && {
                     background: "#00b288",
@@ -177,7 +212,14 @@ export function PathOptExpanded({ isManual, onToggleManual, onCollapse, pois = [
           </div>
         )}
         </div>
-        <button type="button" className="path-optimize-btn">Recall PR</button>
+        <button
+          type="button"
+          className="path-optimize-btn"
+          onClick={handleRecallPr}
+          disabled={!pois.length || isRecalling}
+        >
+          {isRecalling ? "Recalling..." : "Recall PR"}
+        </button>
       </div>
 
       <button type="button" className="path-opt-collapse" aria-label="Collapse" onClick={onCollapse}>
