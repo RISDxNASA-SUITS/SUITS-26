@@ -59,6 +59,7 @@ export function mapTelemetryMarkers(rover, imu1, imu2, ltv) {
       x: Number(rover.currentPosX),
       y: Number(rover.currentPosY),
       heading: Number(rover.heading) || 0,
+      speed: Number(rover.speed) || 0,
     })
   }
 

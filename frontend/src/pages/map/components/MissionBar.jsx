@@ -11,6 +11,12 @@ function formatHms(totalMs) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
 }
 
+function formatPrSpeed(speed) {
+  const n = Number(speed)
+  if (!Number.isFinite(n)) return "0 kph"
+  return `${Math.max(0, Math.round(n))} kph`
+}
+
 export function MissionBar({
   onPoiClick,
   showPoiPanel,
@@ -18,6 +24,8 @@ export function MissionBar({
   showAddPoi,
   onAddHazardClick,
   showAddHazard,
+  prSpeed,
+  prDirection = "0° N",
 }) {
   const startedAtRef = useRef(Date.now())
   const [missionElapsedTime, setMissionElapsedTime] = useState("00:00:00")
@@ -76,11 +84,11 @@ export function MissionBar({
         </div>
         <div className="mission-stat">
           <span className="mission-stat-label">PR SPEED</span>
-          <span className="mission-stat-value">0 kph</span>
+          <span className="mission-stat-value">{formatPrSpeed(prSpeed)}</span>
         </div>
         <div className="mission-stat">
           <span className="mission-stat-label">PR DIRECTION</span>
-          <span className="mission-stat-value">31° SW</span>
+          <span className="mission-stat-value">{prDirection}</span>
         </div>
       </div>
     </header>

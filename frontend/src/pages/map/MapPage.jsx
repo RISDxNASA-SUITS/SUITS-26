@@ -6,7 +6,7 @@ import { PathOptExpanded } from "./components/PathOptExpanded"
 import { PoiPanel } from "./components/PoiPanel"
 import { AddPoiPanel } from "./components/AddPoiPanel"
 import { AddHazardPanel } from "./components/AddHazardPanel"
-import { startRobustNavigation } from "../../api/navClient"
+import { cancelRobustNavigation, startRobustNavigation } from "../../api/navClient"
 import {
   createMapPoi,
   deleteMapPoi,
@@ -22,6 +22,13 @@ const POI_ARRIVAL_THRESHOLD_METERS = 25
 
 function distanceMeters(x1, y1, x2, y2) {
   return Math.hypot(x2 - x1, y2 - y1)
+}
+
+function formatCardinalDirection(heading) {
+  const normalized = ((Number(heading) % 360) + 360) % 360
+  const labels = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+  const index = Math.floor((normalized + 22.5) / 45) % 8
+  return `${Math.round(normalized)}° ${labels[index]}`
 }
 
 export function MapPage() {
@@ -46,6 +53,7 @@ export function MapPage() {
   const { telemetryPoints } = useMapLiveData()
   const manualCommandRef = useRef(null)
   const manualTimerRef = useRef(null)
+  const manualNavCancelledRef = useRef(false)
 
   const nextPoiLabel = `POI ${savedPois.length + 1}`
   const nextHazardLabel = `Hazard ${savedHazards.length + 1}`
@@ -53,6 +61,7 @@ export function MapPage() {
     .map((id) => savedPois.find((poi) => poi.id === id))
     .filter(Boolean)
   const availablePathPois = savedPois.filter((poi) => !pathPoiIds.includes(poi.id))
+  const prPoint = telemetryPoints.find((point) => point.id === "pr")
 
   useEffect(() => {
     setPathPoiIds((prev) => prev.filter((id) => savedPois.some((poi) => poi.id === id)))
@@ -131,11 +140,23 @@ export function MapPage() {
   function handleManualCommandStart(command) {
     manualCommandRef.current = command
     clearManualTimer()
-    applyManualCommand(command).catch(console.error)
-    manualTimerRef.current = window.setInterval(() => {
-      if (!manualCommandRef.current) return
-      applyManualCommand(manualCommandRef.current).catch(console.error)
-    }, 250)
+    const startLoop = () => {
+      applyManualCommand(command).catch(console.error)
+      manualTimerRef.current = window.setInterval(() => {
+        if (!manualCommandRef.current) return
+        applyManualCommand(manualCommandRef.current).catch(console.error)
+      }, 250)
+    }
+
+    if (!manualNavCancelledRef.current) {
+      manualNavCancelledRef.current = true
+      cancelRobustNavigation()
+        .catch(console.error)
+        .finally(startLoop)
+      return
+    }
+
+    startLoop()
   }
 
   function handleManualCommandEnd() {
@@ -152,6 +173,16 @@ export function MapPage() {
       setRoverSteering(0),
       setRoverBrakes(1),
     ]).catch(console.error)
+  }
+
+  function handleToggleManual(nextManual) {
+    setIsManual(nextManual)
+    if (nextManual) {
+      manualNavCancelledRef.current = true
+      cancelRobustNavigation().catch(console.error)
+      return
+    }
+    manualNavCancelledRef.current = false
   }
 
   function handleAddPoiClick() {
@@ -430,7 +461,7 @@ export function MapPage() {
     <main className="map-page-shell">
       <TaskPanel
         isManual={isManual}
-        onToggleManual={setIsManual}
+        onToggleManual={handleToggleManual}
         isExpanded={isExpanded}
         onToggleExpand={() => setIsExpanded(true)}
         onManualCommandStart={handleManualCommandStart}
@@ -445,6 +476,8 @@ export function MapPage() {
           showAddPoi={placingPoi}
           onAddHazardClick={handleAddHazardClick}
           showAddHazard={showAddHazard}
+          prSpeed={prPoint?.speed}
+          prDirection={formatCardinalDirection(prPoint?.heading ?? 0)}
         />
         <MapStage
           pois={savedPois}
@@ -488,7 +521,7 @@ export function MapPage() {
       {isExpanded && (
         <PathOptExpanded
           isManual={isManual}
-          onToggleManual={setIsManual}
+          onToggleManual={handleToggleManual}
           onCollapse={() => setIsExpanded(false)}
           pois={pathPois}
           activePoiIndex={recallPoiIndex}
