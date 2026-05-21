@@ -498,7 +498,6 @@ export function MapPage() {
         />
         <section className="map-workspace" aria-label="Map workspace">
           <AlertOverlay />
-          <HeadlightToggle />
           <MissionBar
             onPoiClick={() => setShowPoiPanel((prev) => !prev)}
             showPoiPanel={showPoiPanel}
@@ -558,6 +557,9 @@ export function MapPage() {
                 />
               ) : null
             }
+              mapControls={
+                <HeadlightToggle />
+              }
           />
         </section>
         {isExpanded && (

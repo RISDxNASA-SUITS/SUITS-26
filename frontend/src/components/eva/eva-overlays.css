@@ -212,8 +212,9 @@
 
 /* Headlight toggle dock — positioned inside the map workspace (bottom-right) */
 .headlight-dock {
-  position: absolute; /* positioned relative to .map-workspace */
-  left: 1.1rem; /* bottom-left of the map workspace */
+  /* fallback: position inside nearest positioned ancestor */
+  position: absolute;
+  left: 1.1rem;
   bottom: var(--eva-headlight-dock-bottom, 1rem);
   z-index: 1001;
   display: flex;
@@ -221,6 +222,14 @@
   align-items: center;
   gap: 0.6rem;
   pointer-events: auto;
+}
+
+/* Ensure the dock is positioned relative to the map panel when placed inside it */
+.map-stage .headlight-dock {
+  position: absolute;
+  left: 1.1rem;
+  bottom: var(--eva-headlight-dock-bottom, 1rem);
+  z-index: 12; /* above map overlays */
 }
 
 /* iOS-style pill toggle */

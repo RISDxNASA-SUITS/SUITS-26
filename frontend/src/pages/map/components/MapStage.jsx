@@ -248,6 +248,7 @@ export function MapStage({
   poiPanel,
   addPoiPanel,
   addHazardPanel,
+  mapControls,
 }) {
   const mapNode = useRef(null)
   const mapRef = useRef(null)
@@ -939,6 +940,7 @@ export function MapStage({
   return (
     <section className={`map-stage${placingPoi || placingHazard ? " map-stage--placing-poi" : ""}`}>
       <div ref={mapNode} className="maplibre-stage" aria-label="Interactive TSS DUST rock yard map" />
+      {mapControls}
       {(placingPoi || placingHazard) && (
         <div className="map-place-poi-hint" role="status">
           {placingHazard
