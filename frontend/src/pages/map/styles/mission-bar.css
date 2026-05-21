@@ -2,29 +2,34 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
+  gap: 0.65rem;
+  padding: clamp(0.55rem, 0.85vw, 0.9rem) clamp(0.7rem, 1vw, 1.25rem);
   border-bottom: 3px solid #191f3c;
   border-radius: 12px;
   background: #060f1c;
   min-height: 80px;
+  min-width: 0;
 }
 
 .mission-bar-buttons {
   display: flex;
-  gap: 10px;
+  gap: clamp(0.3rem, 0.55vw, 0.55rem);
   align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .mission-map-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px 24px;
+  gap: clamp(0.28rem, 0.45vw, 0.45rem);
+  padding: clamp(0.62rem, 0.8vw, 0.9rem) clamp(0.8rem, 1vw, 1.15rem);
   background: rgba(70, 98, 163, 0.5);
   border: 1px solid #4662a3;
   border-radius: 12px;
   color: #fff;
-  font: 500 18px/1 "IBM Plex Sans", sans-serif;
+  font: 500 clamp(0.78rem, 0.9vw, 0.98rem)/1 "IBM Plex Sans", sans-serif;
   cursor: pointer;
   backdrop-filter: blur(50px);
   white-space: nowrap;
@@ -36,26 +41,56 @@
 }
 
 .mission-stats {
-  display: flex;
-  gap: 80px;
-  align-items: flex-start;
-  padding-right: 32px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.45rem, 0.8vw, 1rem);
+  align-items: start;
+  padding-right: 0;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .mission-stat {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .mission-stat-label {
   color: #fff;
-  font: 400 13px/1 "IBM Plex Sans", sans-serif;
+  font: 400 clamp(0.56rem, 0.62vw, 0.76rem)/1 "IBM Plex Sans", sans-serif;
   white-space: nowrap;
 }
 
 .mission-stat-value {
   color: #fff;
-  font: 500 26px/1 "IBM Plex Sans", sans-serif;
+  font: 500 clamp(0.92rem, 1.35vw, 1.35rem)/1 "IBM Plex Sans", sans-serif;
   white-space: nowrap;
+}
+
+@media (max-width: 1500px) {
+  .mission-bar {
+    min-height: 68px;
+  }
+
+  .mission-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
+  .mission-bar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .mission-bar-buttons {
+    width: 100%;
+  }
+
+  .mission-stats {
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }

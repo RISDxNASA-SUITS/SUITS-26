@@ -6,7 +6,6 @@ import { PathOptExpanded } from "./components/PathOptExpanded"
 import { PoiPanel } from "./components/PoiPanel"
 import { AddPoiPanel } from "./components/AddPoiPanel"
 import { AddHazardPanel } from "./components/AddHazardPanel"
-import { startRobustNavigation } from "../../api/navClient"
 import {
   createMapPoi,
   deleteMapPoi,
@@ -17,12 +16,6 @@ import {
 } from "../../api/hubClient"
 import { useMapLiveData } from "../../hooks/useMapLiveData"
 import "./styles/index.css"
-
-const POI_ARRIVAL_THRESHOLD_METERS = 25
-
-function distanceMeters(x1, y1, x2, y2) {
-  return Math.hypot(x2 - x1, y2 - y1)
-}
 
 export function MapPage() {
   const [isManual, setIsManual] = useState(false)
@@ -41,32 +34,25 @@ export function MapPage() {
   const [isSavingPoi, setIsSavingPoi] = useState(false)
   const [savedPois, setSavedPois] = useState([])
   const [pathPoiIds, setPathPoiIds] = useState([])
-  const [recallPoiIndex, setRecallPoiIndex] = useState(0)
-  const [recallStarted, setRecallStarted] = useState(false)
   const { telemetryPoints } = useMapLiveData()
   const manualCommandRef = useRef(null)
   const manualTimerRef = useRef(null)
 
+  useEffect(() => {
+    const dockBottom = isExpanded ? "calc(1rem + 130px + 0.85rem)" : "1rem"
+    document.documentElement.style.setProperty("--eva-command-dock-bottom", dockBottom)
+    return () => {
+      document.documentElement.style.removeProperty("--eva-command-dock-bottom")
+    }
+  }, [isExpanded])
+
   const nextPoiLabel = `POI ${savedPois.length + 1}`
   const nextHazardLabel = `Hazard ${savedHazards.length + 1}`
-  const pathPois = pathPoiIds
+  const validPathPoiIds = pathPoiIds.filter((id) => savedPois.some((poi) => poi.id === id))
+  const pathPois = validPathPoiIds
     .map((id) => savedPois.find((poi) => poi.id === id))
     .filter(Boolean)
-  const availablePathPois = savedPois.filter((poi) => !pathPoiIds.includes(poi.id))
-
-  useEffect(() => {
-    setPathPoiIds((prev) => prev.filter((id) => savedPois.some((poi) => poi.id === id)))
-  }, [savedPois])
-
-  useEffect(() => {
-    setRecallPoiIndex((prev) => {
-      if (!pathPois.length) return 0
-      return Math.min(prev, pathPois.length - 1)
-    })
-    if (!pathPois.length) {
-      setRecallStarted(false)
-    }
-  }, [pathPois])
+  const availablePathPois = savedPois.filter((poi) => !validPathPoiIds.includes(poi.id))
 
   useEffect(() => {
     return () => {
@@ -106,9 +92,9 @@ export function MapPage() {
 
     if (command === "reverse") {
       await Promise.all([
-        setRoverThrottle(-20),
+        setRoverThrottle(0),
         setRoverSteering(0),
-        setRoverBrakes(0),
+        setRoverBrakes(1),
       ])
     }
   }
@@ -369,44 +355,11 @@ export function MapPage() {
   }
 
   function handleDeletePathPoi(poiId) {
-    setRecallStarted(false)
-    setRecallPoiIndex(0)
     setPathPoiIds((prev) => prev.filter((id) => id !== poiId))
   }
 
   function handleAddPoiToPath(poiId) {
-    setRecallStarted(false)
-    setRecallPoiIndex(0)
     setPathPoiIds((prev) => (prev.includes(poiId) ? prev : [...prev, poiId]))
-  }
-
-  async function handleRecallPr() {
-    if (!pathPois.length) return
-
-    const prPoint = telemetryPoints.find((point) => point.id === "pr")
-    let nextIndex = recallPoiIndex
-    const activePoi = pathPois[nextIndex]
-
-    if (
-      prPoint &&
-      activePoi &&
-      Number.isFinite(prPoint.x) &&
-      Number.isFinite(prPoint.y) &&
-      Number.isFinite(activePoi.tssX) &&
-      Number.isFinite(activePoi.tssY)
-    ) {
-      const arrivalDistance = distanceMeters(prPoint.x, prPoint.y, activePoi.tssX, activePoi.tssY)
-      if (arrivalDistance <= POI_ARRIVAL_THRESHOLD_METERS && nextIndex < pathPois.length - 1) {
-        nextIndex += 1
-      }
-    }
-
-    const targetPoi = pathPois[nextIndex]
-    if (!targetPoi) return
-
-    await startRobustNavigation(targetPoi.tssX, targetPoi.tssY)
-    setRecallStarted(true)
-    setRecallPoiIndex(nextIndex)
   }
 
   function handleReorderPathPoi(draggedPoiId, targetPoiId) {
@@ -422,84 +375,81 @@ export function MapPage() {
       next.splice(toIndex, 0, moved)
       return next
     })
-    setRecallStarted(false)
-    setRecallPoiIndex(0)
   }
 
   return (
     <main className="map-page-shell">
-      <TaskPanel
-        isManual={isManual}
-        onToggleManual={setIsManual}
-        isExpanded={isExpanded}
-        onToggleExpand={() => setIsExpanded(true)}
-        onManualCommandStart={handleManualCommandStart}
-        onManualCommandEnd={handleManualCommandEnd}
-        onManualStop={handleManualStop}
-      />
-      <section className="map-workspace" aria-label="Map workspace">
-        <MissionBar
-          onPoiClick={() => setShowPoiPanel(p => !p)}
-          showPoiPanel={showPoiPanel}
-          onAddPoiClick={handleAddPoiClick}
-          showAddPoi={placingPoi}
-          onAddHazardClick={handleAddHazardClick}
-          showAddHazard={showAddHazard}
-        />
-        <MapStage
-          pois={savedPois}
-          pathPois={pathPois}
-          telemetryPoints={telemetryPoints}
-          placingPoi={placingPoi}
-          placingHazard={showAddHazard}
-          hazards={savedHazards.filter((hazard) => hazard.id !== editingHazardId)}
-          hazardPreview={showAddHazard ? { label: hazardLabel.trim() || nextHazardLabel, level: hazardLevel, vertices: hazardVertices } : null}
-          onPlacePoi={handlePoiMapPick}
-          onPlaceHazard={handlePlaceHazard}
-          onEditPoi={handleEditPoi}
-          onDeletePoi={handleDeletePoi}
-          onEditHazard={handleEditHazard}
-          poiPanel={showPoiPanel ? <PoiPanel pois={savedPois} onClose={() => setShowPoiPanel(false)} /> : null}
-          addPoiPanel={(placingPoi || draftPoi) ? (
-            <AddPoiPanel
-              draftPoi={draftPoi}
-              isEditing={Boolean(editingPoiId)}
-              isSaving={isSavingPoi}
-              onChange={handleDraftPoiChange}
-              onCancel={handleCancelPoi}
-              onSave={handleSavePoi}
-            />
-          ) : null}
-          addHazardPanel={showAddHazard ? (
-            <AddHazardPanel
-              label={hazardLabel}
-              notes={hazardNotes}
-              level={hazardLevel}
-              isEditing={Boolean(editingHazardId)}
-              onLabelChange={setHazardLabel}
-              onNotesChange={setHazardNotes}
-              onLevelChange={setHazardLevel}
-              onDelete={handleDeleteHazard}
-              onClose={handleCancelHazard}
-            />
-          ) : null}
-        />
-      </section>
-      {isExpanded && (
-        <PathOptExpanded
+      <div className="map-page-scale-frame">
+        <TaskPanel
           isManual={isManual}
           onToggleManual={setIsManual}
-          onCollapse={() => setIsExpanded(false)}
-          pois={pathPois}
-          activePoiIndex={recallPoiIndex}
-          recallStarted={recallStarted}
-          availablePois={availablePathPois}
-          onAddPoi={handleAddPoiToPath}
-          onDeletePoi={handleDeletePathPoi}
-          onReorderPoi={handleReorderPathPoi}
-          onRecallPr={handleRecallPr}
+          isExpanded={isExpanded}
+          onToggleExpand={() => setIsExpanded(true)}
+          onManualCommandStart={handleManualCommandStart}
+          onManualCommandEnd={handleManualCommandEnd}
+          onManualStop={handleManualStop}
         />
-      )}
+        <section className="map-workspace" aria-label="Map workspace">
+          <MissionBar
+            onPoiClick={() => setShowPoiPanel(p => !p)}
+            showPoiPanel={showPoiPanel}
+            onAddPoiClick={handleAddPoiClick}
+            showAddPoi={placingPoi}
+            onAddHazardClick={handleAddHazardClick}
+            showAddHazard={showAddHazard}
+          />
+          <MapStage
+            pois={savedPois}
+            pathPois={pathPois}
+            telemetryPoints={telemetryPoints}
+            placingPoi={placingPoi}
+            placingHazard={showAddHazard}
+            hazards={savedHazards.filter((hazard) => hazard.id !== editingHazardId)}
+            hazardPreview={showAddHazard ? { label: hazardLabel.trim() || nextHazardLabel, level: hazardLevel, vertices: hazardVertices } : null}
+            onPlacePoi={handlePoiMapPick}
+            onPlaceHazard={handlePlaceHazard}
+            onEditPoi={handleEditPoi}
+            onDeletePoi={handleDeletePoi}
+            onEditHazard={handleEditHazard}
+            poiPanel={showPoiPanel ? <PoiPanel pois={savedPois} onClose={() => setShowPoiPanel(false)} /> : null}
+            addPoiPanel={(placingPoi || draftPoi) ? (
+              <AddPoiPanel
+                draftPoi={draftPoi}
+                isEditing={Boolean(editingPoiId)}
+                isSaving={isSavingPoi}
+                onChange={handleDraftPoiChange}
+                onCancel={handleCancelPoi}
+                onSave={handleSavePoi}
+              />
+            ) : null}
+            addHazardPanel={showAddHazard ? (
+              <AddHazardPanel
+                label={hazardLabel}
+                notes={hazardNotes}
+                level={hazardLevel}
+                isEditing={Boolean(editingHazardId)}
+                onLabelChange={setHazardLabel}
+                onNotesChange={setHazardNotes}
+                onLevelChange={setHazardLevel}
+                onDelete={handleDeleteHazard}
+                onClose={handleCancelHazard}
+              />
+            ) : null}
+          />
+        </section>
+        {isExpanded && (
+          <PathOptExpanded
+            isManual={isManual}
+            onToggleManual={setIsManual}
+            onCollapse={() => setIsExpanded(false)}
+            pois={pathPois}
+            availablePois={availablePathPois}
+            onAddPoi={handleAddPoiToPath}
+            onDeletePoi={handleDeletePathPoi}
+            onReorderPoi={handleReorderPathPoi}
+          />
+        )}
+      </div>
     </main>
   )
 }

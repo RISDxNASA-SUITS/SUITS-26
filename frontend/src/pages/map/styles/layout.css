@@ -3,17 +3,25 @@
   overflow: hidden;
   padding: 0.55rem;
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: 380px minmax(0, 1fr);
   gap: 0.65rem;
   background: #060f1c;
 }
 
+.map-page-scale-frame {
+  display: contents;
+}
+
 .map-workspace {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  align-content: start;
-  gap: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   min-height: 0;
+  gap: 0.6rem;
+  overflow: hidden;
+  padding-right: 0;
+  height: 100%;
 }
 
 .mission-bar,
@@ -26,13 +34,22 @@
 
 @media (max-width: 1300px) {
   .map-page-shell {
-    grid-template-columns: 330px 1fr;
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: clamp(300px, 26vw, 330px) minmax(0, 1fr);
   }
 }
 
 @media (max-width: 1024px) {
   .map-page-shell {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100dvh;
+    overflow: auto;
+  }
+
+  .map-page-scale-frame {
+    display: grid;
+    gap: 0.65rem;
   }
 
   .task-panel {

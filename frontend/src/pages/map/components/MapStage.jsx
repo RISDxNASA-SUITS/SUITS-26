@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import maplibregl from "maplibre-gl"
 import "maplibre-gl/dist/maplibre-gl.css"
 import rockYardImage from "../../../assets/map/rock-yard.png"
@@ -7,7 +7,6 @@ import editIcon from "../../../assets/map/Edit.svg"
 import mapPinIcon from "../../../assets/map/Map_Pin.svg"
 import navigationIcon from "../../../assets/map/Navigation.svg"
 import removeMinusIcon from "../../../assets/map/Remove_Minus.svg"
-import stackSimpleIcon from "../../../assets/map/StackSimple.svg"
 import trashIcon from "../../../assets/map/Trash.png"
 import evNavigationIcon from "../../../assets/map/EV_Navigation.svg"
 import prNavigationIcon from "../../../assets/map/PR_Navigation.svg"
@@ -34,6 +33,8 @@ const IMAGE_BOUNDS = [
   [IMAGE_WEST, IMAGE_SOUTH],
   [IMAGE_EAST, IMAGE_NORTH],
 ]
+
+const IMAGE_ASPECT_RATIO = 3507 / 2220
 
 const DRAG_ZOOM_BUFFER = 0.05
 const BASE_MAP_OPTIONS = { padding: 0, pitch: 0, bearing: 0 }
@@ -260,7 +261,6 @@ export function MapStage({
   const selectedPoiIdRef = useRef(null)
   const baseZoomRef = useRef(null)
   const baseCameraRef = useRef(null)
-  const is3dRef = useRef(false)
   const isReturningRef = useRef(false)
   const placingPoiRef = useRef(placingPoi)
   const placingHazardRef = useRef(placingHazard)
@@ -269,15 +269,16 @@ export function MapStage({
   const onEditPoiRef = useRef(onEditPoi)
   const onDeletePoiRef = useRef(onDeletePoi)
   const onEditHazardRef = useRef(onEditHazard)
-  const [is3d, setIs3d] = useState(false)
 
-  placingPoiRef.current = placingPoi
-  placingHazardRef.current = placingHazard
-  onPlacePoiRef.current = onPlacePoi
-  onPlaceHazardRef.current = onPlaceHazard
-  onEditPoiRef.current = onEditPoi
-  onDeletePoiRef.current = onDeletePoi
-  onEditHazardRef.current = onEditHazard
+  useEffect(() => {
+    placingPoiRef.current = placingPoi
+    placingHazardRef.current = placingHazard
+    onPlacePoiRef.current = onPlacePoi
+    onPlaceHazardRef.current = onPlaceHazard
+    onEditPoiRef.current = onEditPoi
+    onDeletePoiRef.current = onDeletePoi
+    onEditHazardRef.current = onEditHazard
+  }, [placingPoi, placingHazard, onPlacePoi, onPlaceHazard, onEditPoi, onDeletePoi, onEditHazard])
 
   const syncPoiMarkers = useCallback((map, points) => {
     const nextIds = new Set(points.map((poi) => poi.id))
@@ -582,7 +583,7 @@ export function MapStage({
       return (
         !isReturningRef.current &&
         baseZoomRef.current !== null &&
-        map.getZoom() > baseZoomRef.current + DRAG_ZOOM_BUFFER
+        map.getZoom() >= baseZoomRef.current - DRAG_ZOOM_BUFFER
       )
     }
 
@@ -631,6 +632,12 @@ export function MapStage({
       map.resize()
       map.setMinZoom(0)
       map.fitBounds(IMAGE_BOUNDS, { ...BASE_MAP_OPTIONS, duration })
+      const container = map.getContainer()
+      const containerAspectRatio = container.clientWidth / Math.max(1, container.clientHeight)
+      const coverZoomBump = Math.max(0, Math.log2(Math.max(containerAspectRatio / IMAGE_ASPECT_RATIO, IMAGE_ASPECT_RATIO / containerAspectRatio)))
+      if (coverZoomBump > 0) {
+        map.setZoom(Math.min(map.getMaxZoom(), map.getZoom() + coverZoomBump))
+      }
       baseZoomRef.current = map.getZoom()
       baseCameraRef.current = {
         center: map.getCenter(),
@@ -875,24 +882,6 @@ export function MapStage({
   }, [hazardPreview, syncHazardPreview])
 
   function resetMap() {
-    is3dRef.current = false
-    setIs3d(false)
-    mapRef.current?.setMinZoom(0)
-    mapRef.current?.fitBounds(IMAGE_BOUNDS, { ...BASE_MAP_OPTIONS, duration: 0 })
-    if (mapRef.current) {
-      baseZoomRef.current = mapRef.current.getZoom()
-      baseCameraRef.current = {
-        center: mapRef.current.getCenter(),
-        zoom: mapRef.current.getZoom(),
-      }
-      mapRef.current.setMinZoom(baseZoomRef.current)
-    }
-    mapRef.current?.dragPan.disable()
-  }
-
-  function resetFlatView() {
-    is3dRef.current = false
-    setIs3d(false)
     mapRef.current?.setMinZoom(0)
     mapRef.current?.fitBounds(IMAGE_BOUNDS, { ...BASE_MAP_OPTIONS, duration: 0 })
     if (mapRef.current) {
@@ -911,9 +900,7 @@ export function MapStage({
     const baseCamera = baseCameraRef.current
     if (!map || !baseCamera || baseZoomRef.current === null) return
 
-    is3dRef.current = false
     isReturningRef.current = true
-    setIs3d(false)
     map.stop()
     map.setMinZoom(0)
     map.easeTo({
@@ -944,16 +931,9 @@ export function MapStage({
       zoom: Math.min(map.getMaxZoom(), map.getZoom() + ZOOM_STEP),
       duration: ZOOM_DURATION,
     })
-    if (baseZoomRef.current !== null && map.getZoom() + ZOOM_STEP > baseZoomRef.current + DRAG_ZOOM_BUFFER) {
+    if (baseZoomRef.current !== null && map.getZoom() + ZOOM_STEP >= baseZoomRef.current - DRAG_ZOOM_BUFFER) {
       map.dragPan.enable()
     }
-  }
-
-  function toggle3d() {
-    const next = !is3d
-    is3dRef.current = next
-    setIs3d(next)
-    mapRef.current?.easeTo({ pitch: next ? 45 : 0, bearing: next ? -18 : 0, duration: 450 })
   }
 
   return (
@@ -967,14 +947,6 @@ export function MapStage({
         </div>
       )}
       <div className="map-grid-overlay" aria-hidden="true" />
-      <div className="map-mode-control" aria-label="Map mode">
-        <button type="button" className={is3d ? "is-enabled" : ""} onClick={toggle3d}>
-          <span className="map-mode-toggle" aria-hidden="true">
-            <span className="map-mode-toggle-handle" />
-          </span>
-          <span className="map-mode-label">3D</span>
-        </button>
-      </div>
       <div className="map-quick-tools" aria-label="Map tools">
         <button type="button" className="map-tool-button-nav" onClick={resetMap} aria-label="Recenter map">
           <img src={navigationIcon} alt="" aria-hidden="true" />
@@ -984,9 +956,6 @@ export function MapStage({
         </button>
         <button type="button" onClick={zoomOut} aria-label="Zoom out">
           <img src={removeMinusIcon} alt="" aria-hidden="true" />
-        </button>
-        <button type="button" onClick={resetFlatView} aria-label="Reset bearing and pitch">
-          <img src={stackSimpleIcon} alt="" aria-hidden="true" />
         </button>
       </div>
       {poiPanel}
