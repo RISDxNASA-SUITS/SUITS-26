@@ -10,7 +10,6 @@ import { cancelRobustNavigation, startRobustNavigation } from "../../api/navClie
 import {
   createMapPoi,
   deleteMapPoi,
-  fetchMapPois,
   updateMapPoi,
   setRoverBrakes,
   setRoverSteering,
@@ -30,19 +29,6 @@ function formatCardinalDirection(heading) {
   const labels = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
   const index = Math.floor((normalized + 22.5) / 45) % 8
   return `${Math.round(normalized)} deg ${labels[index]}`
-}
-
-function normalizeMapPoi(poi) {
-  return {
-    id: poi.id ?? `poi-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    label: poi.name ?? poi.label ?? "POI",
-    type: poi.type || "PR",
-    tssX: Number(poi.x),
-    tssY: Number(poi.y),
-    description: poi.description ?? "",
-    active: false,
-    muted: false,
-  }
 }
 
 export function MapPage() {
@@ -76,21 +62,6 @@ export function MapPage() {
       document.documentElement.style.removeProperty("--eva-command-dock-bottom")
     }
   }, [isExpanded])
-
-  useEffect(() => {
-    let cancelled = false
-
-    fetchMapPois()
-      .then((pois) => {
-        if (cancelled) return
-        setSavedPois((pois ?? []).map(normalizeMapPoi))
-      })
-      .catch(console.error)
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   useEffect(() => {
     return () => {
@@ -366,8 +337,12 @@ export function MapPage() {
             poi.id === editingPoiId
               ? {
                   ...poi,
-                  ...normalizeMapPoi(updated),
                   id: updated.id ?? poi.id,
+                  label: updated.name,
+                  type: updated.type || draftPoi.type || "PR",
+                  tssX: updated.x,
+                  tssY: updated.y,
+                  description: updated.description ?? draftPoi.notes ?? "",
                 }
               : poi,
           ),
@@ -388,7 +363,19 @@ export function MapPage() {
         type: draftPoi.type || "PR",
       })
 
-      setSavedPois((prev) => [...prev, normalizeMapPoi(created)])
+      setSavedPois((prev) => [
+        ...prev,
+        {
+          id: created.id ?? `poi-${Date.now()}`,
+          label: created.name,
+          type: created.type || draftPoi.type || "PR",
+          tssX: created.x,
+          tssY: created.y,
+          description: created.description ?? draftPoi.notes ?? "",
+          active: false,
+          muted: false,
+        },
+      ])
       setDraftPoi(null)
       setPlacingPoi(false)
       setShowPoiPanel(true)
