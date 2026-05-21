@@ -8,6 +8,10 @@
   background: #060f1c;
 }
 
+.map-page-scale-frame {
+  display: contents;
+}
+
 .map-workspace {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);

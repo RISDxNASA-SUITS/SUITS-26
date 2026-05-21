@@ -9,9 +9,15 @@ export function useViewportScale(ref) {
       const el = ref.current
       // remove zoom temporarily to measure natural content height
       el.style.zoom = ""
+      // measure natural content size
       const naturalH = el.scrollHeight
-      el.style.zoom = Math.min(window.innerHeight / naturalH, 1)
-      setScale(Math.min(window.innerHeight / naturalH, 1))
+      const naturalW = el.scrollWidth
+      const scaleH = window.innerHeight / naturalH
+      const scaleW = window.innerWidth / naturalW
+      // choose the smaller scale so content fits both dimensions
+      const final = Math.min(scaleH, scaleW, 1)
+      el.style.zoom = final
+      setScale(final)
     }
     update()
     window.addEventListener("resize", update)

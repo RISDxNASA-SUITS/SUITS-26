@@ -10,6 +10,7 @@ import { cancelRobustNavigation, startRobustNavigation } from "../../api/navClie
 import {
   createMapPoi,
   deleteMapPoi,
+  fetchMapPois,
   updateMapPoi,
   setRoverBrakes,
   setRoverSteering,
@@ -28,7 +29,20 @@ function formatCardinalDirection(heading) {
   const normalized = ((Number(heading) % 360) + 360) % 360
   const labels = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
   const index = Math.floor((normalized + 22.5) / 45) % 8
-  return `${Math.round(normalized)}° ${labels[index]}`
+  return `${Math.round(normalized)} deg ${labels[index]}`
+}
+
+function normalizeMapPoi(poi) {
+  return {
+    id: poi.id ?? `poi-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    label: poi.name ?? poi.label ?? "POI",
+    type: poi.type || "PR",
+    tssX: Number(poi.x),
+    tssY: Number(poi.y),
+    description: poi.description ?? "",
+    active: false,
+    muted: false,
+  }
 }
 
 export function MapPage() {
@@ -55,6 +69,37 @@ export function MapPage() {
   const manualTimerRef = useRef(null)
   const manualNavCancelledRef = useRef(false)
 
+  useEffect(() => {
+    const dockBottom = isExpanded ? "calc(1rem + 130px + 0.85rem)" : "1rem"
+    document.documentElement.style.setProperty("--eva-command-dock-bottom", dockBottom)
+    return () => {
+      document.documentElement.style.removeProperty("--eva-command-dock-bottom")
+    }
+  }, [isExpanded])
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetchMapPois()
+      .then((pois) => {
+        if (cancelled) return
+        setSavedPois((pois ?? []).map(normalizeMapPoi))
+      })
+      .catch(console.error)
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (manualTimerRef.current) {
+        window.clearInterval(manualTimerRef.current)
+      }
+    }
+  }, [])
+
   const nextPoiLabel = `POI ${savedPois.length + 1}`
   const nextHazardLabel = `Hazard ${savedHazards.length + 1}`
   const pathPois = pathPoiIds
@@ -72,18 +117,11 @@ export function MapPage() {
       if (!pathPois.length) return 0
       return Math.min(prev, pathPois.length - 1)
     })
+
     if (!pathPois.length) {
       setRecallStarted(false)
     }
   }, [pathPois])
-
-  useEffect(() => {
-    return () => {
-      if (manualTimerRef.current) {
-        window.clearInterval(manualTimerRef.current)
-      }
-    }
-  }, [])
 
   async function applyManualCommand(command) {
     if (command === "forward") {
@@ -115,9 +153,9 @@ export function MapPage() {
 
     if (command === "reverse") {
       await Promise.all([
-        setRoverThrottle(-20),
-        setRoverSteering(0),
         setRoverBrakes(0),
+        setRoverSteering(0),
+        setRoverThrottle(-20),
       ])
     }
   }
@@ -140,6 +178,7 @@ export function MapPage() {
   function handleManualCommandStart(command) {
     manualCommandRef.current = command
     clearManualTimer()
+
     const startLoop = () => {
       applyManualCommand(command).catch(console.error)
       manualTimerRef.current = window.setInterval(() => {
@@ -150,9 +189,7 @@ export function MapPage() {
 
     if (!manualNavCancelledRef.current) {
       manualNavCancelledRef.current = true
-      cancelRobustNavigation()
-        .catch(console.error)
-        .finally(startLoop)
+      cancelRobustNavigation().catch(console.error).finally(startLoop)
       return
     }
 
@@ -190,6 +227,7 @@ export function MapPage() {
     setShowAddHazard(false)
     setHazardVertices([])
     setDraftPoi(null)
+    setEditingPoiId(null)
     setPlacingPoi((prev) => !prev)
   }
 
@@ -309,10 +347,12 @@ export function MapPage() {
 
     const label = draftPoi.label.trim() || nextPoiLabel
     setIsSavingPoi(true)
+
     try {
       if (editingPoiId) {
         const currentPoi = savedPois.find((poi) => poi.id === editingPoiId)
         if (!currentPoi) return
+
         const updated = await updateMapPoi(currentPoi.label, {
           name: label,
           x: draftPoi.tssX,
@@ -320,21 +360,19 @@ export function MapPage() {
           description: draftPoi.notes ?? "",
           type: draftPoi.type || "PR",
         })
+
         setSavedPois((prev) =>
           prev.map((poi) =>
             poi.id === editingPoiId
               ? {
                   ...poi,
+                  ...normalizeMapPoi(updated),
                   id: updated.id ?? poi.id,
-                  label: updated.name,
-                  type: updated.type || draftPoi.type || "PR",
-                  tssX: updated.x,
-                  tssY: updated.y,
-                  description: updated.description ?? draftPoi.notes ?? "",
                 }
               : poi,
           ),
         )
+
         setDraftPoi(null)
         setEditingPoiId(null)
         setPlacingPoi(false)
@@ -349,19 +387,8 @@ export function MapPage() {
         description: draftPoi.notes ?? "",
         type: draftPoi.type || "PR",
       })
-      setSavedPois((prev) => [
-        ...prev,
-        {
-          id: created.id ?? `poi-${Date.now()}`,
-          label: created.name,
-          type: created.type || draftPoi.type || "PR",
-          tssX: created.x,
-          tssY: created.y,
-          description: created.description ?? draftPoi.notes ?? "",
-          active: false,
-          muted: false,
-        },
-      ])
+
+      setSavedPois((prev) => [...prev, normalizeMapPoi(created)])
       setDraftPoi(null)
       setPlacingPoi(false)
       setShowPoiPanel(true)
@@ -392,6 +419,7 @@ export function MapPage() {
 
     await deleteMapPoi(poi.label)
     setSavedPois((prev) => prev.filter((item) => item.id !== poiId))
+
     if (editingPoiId === poiId) {
       setDraftPoi(null)
       setEditingPoiId(null)
@@ -414,19 +442,26 @@ export function MapPage() {
   async function handleRecallPr() {
     if (!pathPois.length) return
 
-    const prPoint = telemetryPoints.find((point) => point.id === "pr")
-    let nextIndex = recallPoiIndex
+    let nextIndex = recallStarted ? recallPoiIndex : 0
+    const livePrPoint = telemetryPoints.find((point) => point.id === "pr")
     const activePoi = pathPois[nextIndex]
 
     if (
-      prPoint &&
+      recallStarted &&
+      livePrPoint &&
       activePoi &&
-      Number.isFinite(prPoint.x) &&
-      Number.isFinite(prPoint.y) &&
+      Number.isFinite(livePrPoint.x) &&
+      Number.isFinite(livePrPoint.y) &&
       Number.isFinite(activePoi.tssX) &&
       Number.isFinite(activePoi.tssY)
     ) {
-      const arrivalDistance = distanceMeters(prPoint.x, prPoint.y, activePoi.tssX, activePoi.tssY)
+      const arrivalDistance = distanceMeters(
+        livePrPoint.x,
+        livePrPoint.y,
+        activePoi.tssX,
+        activePoi.tssY,
+      )
+
       if (arrivalDistance <= POI_ARRIVAL_THRESHOLD_METERS && nextIndex < pathPois.length - 1) {
         nextIndex += 1
       }
@@ -453,86 +488,101 @@ export function MapPage() {
       next.splice(toIndex, 0, moved)
       return next
     })
+
     setRecallStarted(false)
     setRecallPoiIndex(0)
   }
 
   return (
     <main className="map-page-shell">
-      <TaskPanel
-        isManual={isManual}
-        onToggleManual={handleToggleManual}
-        isExpanded={isExpanded}
-        onToggleExpand={() => setIsExpanded(true)}
-        onManualCommandStart={handleManualCommandStart}
-        onManualCommandEnd={handleManualCommandEnd}
-        onManualStop={handleManualStop}
-      />
-      <section className="map-workspace" aria-label="Map workspace">
-        <MissionBar
-          onPoiClick={() => setShowPoiPanel(p => !p)}
-          showPoiPanel={showPoiPanel}
-          onAddPoiClick={handleAddPoiClick}
-          showAddPoi={placingPoi}
-          onAddHazardClick={handleAddHazardClick}
-          showAddHazard={showAddHazard}
-          prSpeed={prPoint?.speed}
-          prDirection={formatCardinalDirection(prPoint?.heading ?? 0)}
-        />
-        <MapStage
-          pois={savedPois}
-          pathPois={pathPois}
-          telemetryPoints={telemetryPoints}
-          placingPoi={placingPoi}
-          placingHazard={showAddHazard}
-          hazards={savedHazards.filter((hazard) => hazard.id !== editingHazardId)}
-          hazardPreview={showAddHazard ? { label: hazardLabel.trim() || nextHazardLabel, level: hazardLevel, vertices: hazardVertices } : null}
-          onPlacePoi={handlePoiMapPick}
-          onPlaceHazard={handlePlaceHazard}
-          onEditPoi={handleEditPoi}
-          onDeletePoi={handleDeletePoi}
-          onEditHazard={handleEditHazard}
-          poiPanel={showPoiPanel ? <PoiPanel pois={savedPois} onClose={() => setShowPoiPanel(false)} /> : null}
-          addPoiPanel={(placingPoi || draftPoi) ? (
-            <AddPoiPanel
-              draftPoi={draftPoi}
-              isEditing={Boolean(editingPoiId)}
-              isSaving={isSavingPoi}
-              onChange={handleDraftPoiChange}
-              onCancel={handleCancelPoi}
-              onSave={handleSavePoi}
-            />
-          ) : null}
-          addHazardPanel={showAddHazard ? (
-            <AddHazardPanel
-              label={hazardLabel}
-              notes={hazardNotes}
-              level={hazardLevel}
-              isEditing={Boolean(editingHazardId)}
-              onLabelChange={setHazardLabel}
-              onNotesChange={setHazardNotes}
-              onLevelChange={setHazardLevel}
-              onDelete={handleDeleteHazard}
-              onClose={handleCancelHazard}
-            />
-          ) : null}
-        />
-      </section>
-      {isExpanded && (
-        <PathOptExpanded
+      <div className="map-page-scale-frame">
+        <TaskPanel
           isManual={isManual}
           onToggleManual={handleToggleManual}
-          onCollapse={() => setIsExpanded(false)}
-          pois={pathPois}
-          activePoiIndex={recallPoiIndex}
-          recallStarted={recallStarted}
-          availablePois={availablePathPois}
-          onAddPoi={handleAddPoiToPath}
-          onDeletePoi={handleDeletePathPoi}
-          onReorderPoi={handleReorderPathPoi}
-          onRecallPr={handleRecallPr}
+          isExpanded={isExpanded}
+          onToggleExpand={() => setIsExpanded(true)}
+          onManualCommandStart={handleManualCommandStart}
+          onManualCommandEnd={handleManualCommandEnd}
+          onManualStop={handleManualStop}
         />
-      )}
+        <section className="map-workspace" aria-label="Map workspace">
+          <MissionBar
+            onPoiClick={() => setShowPoiPanel((prev) => !prev)}
+            showPoiPanel={showPoiPanel}
+            onAddPoiClick={handleAddPoiClick}
+            showAddPoi={placingPoi}
+            onAddHazardClick={handleAddHazardClick}
+            showAddHazard={showAddHazard}
+            prSpeed={prPoint?.speed}
+            prDirection={formatCardinalDirection(prPoint?.heading ?? 0)}
+          />
+          <MapStage
+            pois={savedPois}
+            pathPois={pathPois}
+            telemetryPoints={telemetryPoints}
+            placingPoi={placingPoi}
+            placingHazard={showAddHazard}
+            hazards={savedHazards.filter((hazard) => hazard.id !== editingHazardId)}
+            hazardPreview={
+              showAddHazard
+                ? {
+                    label: hazardLabel.trim() || nextHazardLabel,
+                    level: hazardLevel,
+                    vertices: hazardVertices,
+                  }
+                : null
+            }
+            onPlacePoi={handlePoiMapPick}
+            onPlaceHazard={handlePlaceHazard}
+            onEditPoi={handleEditPoi}
+            onDeletePoi={handleDeletePoi}
+            onEditHazard={handleEditHazard}
+            poiPanel={showPoiPanel ? <PoiPanel pois={savedPois} /> : null}
+            addPoiPanel={
+              placingPoi || draftPoi ? (
+                <AddPoiPanel
+                  draftPoi={draftPoi}
+                  isEditing={Boolean(editingPoiId)}
+                  isSaving={isSavingPoi}
+                  onChange={handleDraftPoiChange}
+                  onCancel={handleCancelPoi}
+                  onSave={handleSavePoi}
+                />
+              ) : null
+            }
+            addHazardPanel={
+              showAddHazard ? (
+                <AddHazardPanel
+                  label={hazardLabel}
+                  notes={hazardNotes}
+                  level={hazardLevel}
+                  isEditing={Boolean(editingHazardId)}
+                  onLabelChange={setHazardLabel}
+                  onNotesChange={setHazardNotes}
+                  onLevelChange={setHazardLevel}
+                  onDelete={handleDeleteHazard}
+                  onClose={handleCancelHazard}
+                />
+              ) : null
+            }
+          />
+        </section>
+        {isExpanded && (
+          <PathOptExpanded
+            isManual={isManual}
+            onToggleManual={handleToggleManual}
+            onCollapse={() => setIsExpanded(false)}
+            pois={pathPois}
+            activePoiIndex={recallPoiIndex}
+            recallStarted={recallStarted}
+            availablePois={availablePathPois}
+            onAddPoi={handleAddPoiToPath}
+            onDeletePoi={handleDeletePathPoi}
+            onReorderPoi={handleReorderPathPoi}
+            onRecallPr={handleRecallPr}
+          />
+        )}
+      </div>
     </main>
   )
 }

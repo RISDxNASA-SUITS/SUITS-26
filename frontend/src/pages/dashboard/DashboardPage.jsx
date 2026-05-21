@@ -12,26 +12,29 @@ export function DashboardPage() {
   const shellRef = useRef(null)
   const scale = useViewportScale(shellRef)
   const { isHubConfigured, hubUrl, wsStatus } = useHubConfigContext()
-  const [hubError, setHubError] = useState(null)
+  const [hubError, setHubError] = useState(() => {
+    return !isHubConfigured ? "Hub not configured" : null
+  })
 
+  // calling setState in this effect is intentional: we only update hubError when
+  // the observed external hub state changes or when the async health check reports.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (!isHubConfigured) {
-      setHubError("Hub not configured")
-      return
-    }
+    if (!isHubConfigured) return
 
     if (wsStatus === "open") {
-      setHubError(null)
+      if (hubError !== null) setHubError(null)
     }
 
     let cancelled = false
     async function check() {
       try {
         await fetchEvTelemetry(1)
-        if (!cancelled) setHubError(null)
+        if (!cancelled && hubError !== null) setHubError(null)
       } catch (err) {
         if (!cancelled) {
-          setHubError(err instanceof Error ? err.message : "Hub unavailable")
+          const msg = err instanceof Error ? err.message : "Hub unavailable"
+          if (hubError !== msg) setHubError(msg)
         }
       }
     }
@@ -41,7 +44,8 @@ export function DashboardPage() {
       cancelled = true
       clearInterval(timer)
     }
-  }, [isHubConfigured, hubUrl, wsStatus])
+  }, [isHubConfigured, hubUrl, wsStatus, hubError])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <main className="dashboard-shell" ref={shellRef} style={{ zoom: scale }}>
