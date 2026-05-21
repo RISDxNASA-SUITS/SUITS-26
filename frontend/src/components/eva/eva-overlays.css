@@ -27,11 +27,35 @@
   pointer-events: auto;
 }
 
+/* Top-right stacked alert cards */
+.eva-alert-overlay--topright {
+  top: 1rem;
+  right: 1rem;
+  left: auto;
+  transform: none;
+  align-items: flex-end;
+  max-width: min(36rem, 36vw);
+}
+
 .eva-alert-bubbles {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: center;
+}
+
+.eva-alert-bubbles--stacked {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+/* Ensure stacked cards never overlap: use normal flow and spacing */
+.eva-alert-bubbles--stacked > * {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
 }
 
 .eva-alert-fulltext {
@@ -119,6 +143,56 @@
   background: #d97706;
 }
 
+/* Alert card styles for top-right layout */
+.eva-alert-card {
+  min-width: 18rem;
+  max-width: 28rem;
+  background: linear-gradient(180deg, rgba(20,16,22,0.98), rgba(18,14,20,0.95));
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.04);
+  position: relative;
+  z-index: 1200;
+}
+
+.eva-alert-card__head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:0.5rem;
+}
+
+.eva-alert-card__title {
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.eva-alert-card__close {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.9);
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.eva-alert-card__body {
+  margin-top: 0.35rem;
+  font-size: 0.86rem;
+  opacity: 0.95;
+}
+
+.eva-alert-card--warning {
+  background: linear-gradient(180deg,#6b0b0b,#4b0a0a);
+  border: 1px solid rgba(255,80,90,0.18);
+}
+
+.eva-alert-card--caution {
+  background: linear-gradient(180deg,#6b4a0b,#533b07);
+  border: 1px solid rgba(255,200,80,0.18);
+}
+
 .eva-alert-bubble--agent {
   background: #b91c1c;
   box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.5), 0 4px 14px rgba(0, 0, 0, 0.45);
@@ -134,6 +208,80 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 0.65rem;
+}
+
+/* Headlight toggle dock — positioned inside the map workspace (bottom-right) */
+.headlight-dock {
+  position: absolute; /* positioned relative to .map-workspace */
+  left: 1.1rem; /* bottom-left of the map workspace */
+  bottom: var(--eva-headlight-dock-bottom, 1rem);
+  z-index: 1001;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  pointer-events: auto;
+}
+
+/* iOS-style pill toggle */
+.headlight-toggle {
+  --track-width: 56px;
+  --track-height: 32px;
+  --knob-size: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--track-width);
+  height: var(--track-height);
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 0 6px 18px rgba(2,8,20,0.55);
+  cursor: pointer;
+  transition: background-color 180ms ease, box-shadow 180ms ease, transform 120ms ease;
+  position: relative;
+}
+
+.headlight-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.headlight-toggle__knob {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--knob-size);
+  height: var(--knob-size);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+  transition: left 180ms cubic-bezier(.22,.9,.31,1), background-color 180ms ease, transform 120ms ease;
+}
+
+.headlight-toggle--on {
+  background: linear-gradient(90deg,#06b6d4,#06d6a0);
+  border-color: rgba(255,255,255,0.06);
+}
+
+.headlight-toggle--on .headlight-toggle__knob {
+  left: calc(100% - var(--knob-size) - 4px);
+  background: #fff;
+}
+
+/* small visual icon inside the knob */
+.headlight-toggle__knob svg { width: 16px; height: 16px; display: block }
+
+/* Label text shown next to the pill */
+.headlight-label {
+  font-size: 0.86rem;
+  color: #e6eef8;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: lowercase;
+  user-select: none;
 }
 
 .eva-command-dock__panel {

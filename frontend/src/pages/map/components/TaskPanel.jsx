@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { useEvaAlertContext } from "../../../context/EvaAlertContext"
+import { bubbleTitle } from "../../../utils/alertText"
 import caretIcon from "../../../assets/map/Caret_Circle_Up.svg"
 import addPlusCircleIcon from "../../../assets/map/Add_Plus_Circle.png"
 import trashIcon from "../../../assets/map/Task_Trash.svg"
@@ -148,6 +150,13 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
     setUpcomingTasks(prev => prev.filter((_, idx) => idx !== i))
   }
 
+  const { warnings, agentAlerts } = useEvaAlertContext()
+
+  const alertItems = [
+    ...warnings.map((w) => ({ kind: "warning", key: `w-${w.code}`, ...w })),
+    ...agentAlerts.map((a) => ({ kind: "agent", key: `a-${a.id}`, ...a })),
+  ]
+
   return (
     <aside className={`task-panel${isManual ? " task-panel--manual" : ""}`} aria-label="Task panel">
       <div className="task-big-container">
@@ -166,7 +175,22 @@ export function TaskPanel({ isManual, onToggleManual, isExpanded, onToggleExpand
         </nav>
 
         <div className="task-scroll-area">
-          {activeTab === "notifications" && <div />}
+          {activeTab === "notifications" && (
+            <section className="notifications-list">
+              {alertItems.length === 0 ? (
+                <p className="no-notifications">No notifications</p>
+              ) : (
+                <ul>
+                  {alertItems.map((it) => (
+                    <li key={it.key} className={`notification-item notification-item--${it.severity || "warning"}`}>
+                      <div className="notification-title">{bubbleTitle(it)}</div>
+                      {it.message && <div className="notification-body">{it.message}</div>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
           {activeTab === "tasks" && <><section className="current-task-section">
             <header className="current-task-header" onClick={() => setCurrentTaskOpen(o => !o)}>
               <h3 className="current-task-title">Current Task</h3>

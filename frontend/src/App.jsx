@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
-import { AlertOverlay } from "./components/eva/AlertOverlay"
+// AlertOverlay moved to MapPage so notifications show only on the map route
 import { EvaCommandDock } from "./components/eva/EvaCommandDock"
 import "./components/eva/eva-overlays.css"
 import { EvaAlertProvider } from "./context/EvaAlertContext"
@@ -21,7 +21,6 @@ function App() {
   return (
     <HubConfigProvider>
       <EvaAlertProvider>
-        <AlertOverlay />
         <EvaCommandDock />
         <HubIpPrompt open={showHubPrompt} onDismiss={handlePromptDismiss} />
         <Routes>

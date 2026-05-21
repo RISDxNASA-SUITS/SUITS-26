@@ -168,6 +168,10 @@ export function setRoverSteering(steeringInput) {
   return hubPost("/steering", { steeringInput })
 }
 
+export function setHeadlights(input) {
+  return hubPost("/headlights", { input })
+}
+
 export function setRoverBrakes(brakeInput) {
   return hubPost("/brakes", { brakeInput })
 }

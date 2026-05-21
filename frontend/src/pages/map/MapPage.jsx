@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react"
 import { TaskPanel } from "./components/TaskPanel"
 import { MissionBar } from "./components/MissionBar"
 import { MapStage } from "./components/MapStage"
+import { AlertOverlay } from "../../components/eva/AlertOverlay"
+import HeadlightToggle from "../../components/eva/HeadlightToggle"
 import { PathOptExpanded } from "./components/PathOptExpanded"
 import { PoiPanel } from "./components/PoiPanel"
 import { AddPoiPanel } from "./components/AddPoiPanel"
@@ -58,8 +60,10 @@ export function MapPage() {
   useEffect(() => {
     const dockBottom = isExpanded ? "calc(1rem + 130px + 0.85rem)" : "1rem"
     document.documentElement.style.setProperty("--eva-command-dock-bottom", dockBottom)
+    document.documentElement.style.setProperty("--eva-headlight-dock-bottom", dockBottom)
     return () => {
       document.documentElement.style.removeProperty("--eva-command-dock-bottom")
+      document.documentElement.style.removeProperty("--eva-headlight-dock-bottom")
     }
   }, [isExpanded])
 
@@ -493,6 +497,8 @@ export function MapPage() {
           onManualStop={handleManualStop}
         />
         <section className="map-workspace" aria-label="Map workspace">
+          <AlertOverlay />
+          <HeadlightToggle />
           <MissionBar
             onPoiClick={() => setShowPoiPanel((prev) => !prev)}
             showPoiPanel={showPoiPanel}
